@@ -13,7 +13,8 @@ The source repository `gubasv93/orbit` is public with owner approval.
 - Public registration approved by the owner; Supabase's existing email-verification setting is preserved.
 - SMTP configuration and all forgot/reset-password functionality are intentionally deferred by the owner.
 - No social sign-in, invitations, billing, or collaborative editing.
-- Hosted deployment requires authenticated Supabase and Vercel access. Local verification is distinct from production deployment; see `docs/VALIDATION.md` for observed results.
+- The selected hosted Supabase project has Orbit's migration and password policy applied. Hosted persistence and account isolation were exercised with temporary test accounts.
+- Vercel project `orbit` is configured on the owner's existing Hobby plan. Git integration requires the owner to authorize Vercel's GitHub app. See `docs/VALIDATION.md` for deployment status and observed results.
 
 ## Development
 

@@ -1,6 +1,6 @@
 import { beforeAll, afterAll, describe, expect, it } from 'vitest';
 import { PGlite } from '@electric-sql/pglite';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { fullWorkspace } from './fixtures';
 let db: PGlite;
 const a = '11111111-1111-4111-8111-111111111111', b = '22222222-2222-4222-8222-222222222222';
@@ -13,7 +13,10 @@ beforeAll(async () => {
   await db.exec(`create role anon; create role authenticated; create schema auth; grant usage on schema auth to anon,authenticated;
   create table auth.users(id uuid primary key); insert into auth.users values('${a}'),('${b}');
   create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;`);
-  await db.exec(readFileSync(new URL('../supabase/migrations/20261023000100_orbit.sql', import.meta.url), 'utf8'));
+  const migrations = new URL('../supabase/migrations/', import.meta.url);
+  for (const file of readdirSync(migrations).filter(name => /^\d{14}_[a-z0-9_]+\.sql$/.test(name)).sort()) {
+    await db.exec(readFileSync(new URL(file, migrations), 'utf8'));
+  }
 });
 afterAll(async () => { await db?.close(); });
 describe('PostgreSQL ownership, RLS, and atomic persistence', () => {
@@ -42,7 +45,7 @@ describe('PostgreSQL ownership, RLS, and atomic persistence', () => {
     await expect(db.query('update public.orbit_workspaces set revision=99 where id=$1', [ownerWorkspace])).rejects.toThrow(/permission denied/);
   });
   it('rejects stale writes without changing saved data', async () => {
-    await user(a); const before = await load(); await expect(save(fullWorkspace(), before.revision - 1)).rejects.toThrow(/revision conflict/); expect(await load()).toEqual(before);
+    await user(a); const before = await load(); await expect(save(fullWorkspace(), before.revision - 1)).rejects.toMatchObject({ code: 'PT409' }); expect(await load()).toEqual(before);
   });
   it('rolls back invalid references and cycles, including attempted replacement', async () => {
     await user(a); const before = await load(); const invalid = fullWorkspace(); invalid.projects[0].data.tasks[0].assignee = 'foreign-person';

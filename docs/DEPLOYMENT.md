@@ -10,7 +10,7 @@ Supply `SUPABASE_ACCESS_TOKEN` and `VERCEL_TOKEN` through secure environment set
 npm run check:integrations
 ```
 
-This reads account/project metadata only and suppresses credentials and response bodies. In the Codex cloud environment, the scripts use Node's supported environment proxy route. Required API destinations are `api.supabase.com`, `api.vercel.com`, and `api.github.com`, plus the selected Supabase hostname and the exact eventual deployment hostname. Never disable TLS checks.
+This reads account/project metadata only and suppresses credentials and response bodies. Vercel read access does not establish permission to create projects or deployments. A token scoped to the selected team with project/deployment management access is required. Create it through [Vercel account tokens](https://vercel.com/account/tokens) and supply it in secure `VERCEL_TOKEN` settings. In the Codex cloud environment, the scripts use Node's supported environment proxy route. Required API destinations are `api.supabase.com`, `api.vercel.com`, and `api.github.com`, plus the selected Supabase hostname and the exact eventual deployment hostname. Never disable TLS checks.
 
 ## Database
 
@@ -20,13 +20,15 @@ Inspect the selected hosted project before applying anything. The migration crea
 node --use-env-proxy scripts/apply-migrations.mjs
 ```
 
-The management API applies the versioned migration and its checksum marker in one transaction. Repeated execution checks the marker. If existing untracked Orbit tables or a changed checksum are found, it refuses to overwrite them. This hosted management path must be verified with real credentials; the SQL itself is exercised against both PGlite and the disposable PostgreSQL backend.
+The management API applies each versioned migration and its checksum marker in one transaction. Repeated execution checks the markers. If existing untracked Orbit tables or a changed checksum are found, it refuses to overwrite them. Migrations `20261023000100` and `20261023000200` were applied to the selected hosted project on 2026-10-23. The second migration returns business revision conflicts as `PT409`/HTTP 409; the original serialization SQLSTATE timed out through the hosted API. The hosted database's 18 private tables passed RLS and grants checks.
 
 Do not edit an applied migration. Add a new versioned migration for future schema changes and test forward migration/recovery first. Never run `supabase db reset` against the hosted project.
 
 ## Vercel
 
 Authenticate securely, inspect the selected team and its existing projects/plan, and create a new Orbit project only if the name does not belong to an existing deployment. Do not overwrite an existing deployment without owner confirmation. Connect `gubasv93/orbit` through Vercel's GitHub integration and set `main` as the production branch. A GitHub App authorization may require the owner's browser approval.
+
+The owner's replacement token has management access. Project `orbit` (`prj_OEjKW1GPAn5AnBaQbQO75PvI8voj`) was created under `gubasv93s-projects` on its existing Hobby plan, with Node.js 24 and encrypted production runtime settings. Vercel requires the owner to [install its GitHub app](https://github.com/apps/vercel/installations/new) for `gubasv93/orbit` before Git linking and automatic deployments can be configured. The existing portfolio project is untouched. No paid upgrade was made.
 
 Use the Next.js preset, `npm ci`, `npm run build`, Node.js 24, and the repository root. Store these in Vercel's runtime environment settings:
 
@@ -39,7 +41,7 @@ Use the Next.js preset, `npm ci`, `npm run build`, Node.js 24, and the repositor
 
 Set preview variables separately. Preview builds must use their exact origin and explicitly permitted callback URL. Prefer a separate Supabase test project for previews; do not run tests that mutate real production data merely to validate a build.
 
-After the production URL is assigned, configure the exact redirects and password policy:
+Public registration and the password policy are already configured on the selected hosted project. Its original email-confirmation requirement remains enabled, and its original localhost site URL remains unchanged until a deployment URL exists. After the production URL is assigned, configure the exact redirects and verify the password policy:
 
 ```bash
 APP_URL=https://your-assigned-domain node --use-env-proxy scripts/configure-auth.mjs

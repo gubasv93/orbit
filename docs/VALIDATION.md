@@ -30,10 +30,18 @@ The browser suite runs the optimized Next.js build with real GoTrue 2.197.0, Pos
 
 The UI screenshot was visually checked against the reference design. Local browser artifacts are generated under ignored `test-results/`.
 
-## Outstanding external validation
+## Hosted Supabase verification
 
-Hosted Supabase credentials and Vercel credentials have not been supplied. No migration, auth-policy update, or deployment has been applied to the selected hosted project. The Vercel project, live production URL, hosted email-confirmation behavior, production account isolation, and automatic Git deployment are unverified. SMTP and forgot/reset-password are intentionally out of scope by owner instruction.
+The selected project `vvvptboxmyibdfzfqxzz` (gubasv93's Project, eu-west-1) was healthy. Both versioned migrations were applied through the authenticated management API. All 18 private tables have RLS enabled, no anonymous SELECT grants, and no direct authenticated write grants.
 
-GitHub read access is working. The owner explicitly approved publishing source to the existing public `gubasv93/orbit` repository. See the conversation for the latest push and CI status.
+Temporary, explicitly confirmed test accounts exercised real hosted Auth login, empty workspace bootstrap, browser onboarding, a feature save/reload, HttpOnly sessions, logout, full normalized domain roundtrips, identical project IDs across users, cross-user denial on all 18 private tables, direct-write denial, stale-write rejection, and invalid-reference rollback. Test accounts and their workspaces were removed. Administrator confirmation applied only to these test accounts; global email confirmation remains required.
 
-The migration-management and hosted-auth configuration scripts have syntax checks but have not been executed against hosted APIs. Their paths are not described as verified production setup.
+The hosted stale-write check exposed a transport timeout for SQLSTATE `40001`. An additive migration changes business revision conflicts to `PT409`; the hosted API then returned HTTP 409 promptly and retained the saved snapshot. Unit and local real-backend tests cover the updated migration.
+
+Public registration is enabled and passwords require 8 characters, a letter, and a digit, with the native 72-byte maximum. The existing confirmation and sender settings were preserved. A public test registration was rejected with `email_address_invalid`; confirmation delivery is unverified. SMTP and forgot/reset-password remain intentionally deferred by the owner. Public email onboarding must be verified before launch.
+
+## Deployment status
+
+Source is pushed to the owner-approved public `gubasv93/orbit` repository. GitHub CI passed all stages on commit `41bf6ad4b5a98cb5c04d9e4107399743b0734136`; later changes require their own CI result.
+
+Vercel project `orbit` exists in `gubasv93s-projects` on the existing Hobby plan, with Node.js 24 and encrypted production variables. Git linking is blocked until the owner authorizes Vercel's GitHub app. A direct deployment is being prepared; live production journeys and automatic Git deployment are not yet verified. No paid subscription changes were made.

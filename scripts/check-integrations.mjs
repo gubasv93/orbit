@@ -9,5 +9,8 @@ async function check(name, token, url, summarize) {
   } catch { console.log(`${name}: connection failed`); return false; }
 }
 const supabase = await check('Supabase', process.env.SUPABASE_ACCESS_TOKEN, `https://api.supabase.com/v1/projects/${project}`, value => ({ project: value.id, name: value.name, region: value.region, status: value.status }));
-const vercel = await check('Vercel', process.env.VERCEL_TOKEN, 'https://api.vercel.com/v2/teams', value => ({ teams: value.teams?.map(team => ({ id: team.id, slug: team.slug, plan: team.billing?.plan })) }));
-if (!supabase || !vercel) process.exitCode = 1;
+const vercel = await check('Vercel account', process.env.VERCEL_TOKEN, 'https://api.vercel.com/v2/user', value => ({ username: value.user?.username }));
+const team = process.env.VERCEL_TEAM_SLUG || 'gubasv93s-projects';
+const projects = await check('Vercel project metadata', process.env.VERCEL_TOKEN, `https://api.vercel.com/v9/projects?slug=${encodeURIComponent(team)}`, value => ({ team, orbitExists: value.projects?.some(project => project.name === 'orbit') || false }));
+if (vercel && projects) console.log('Vercel: read access verified; project/deployment management permissions require separate verification.');
+if (!supabase || !vercel || !projects) process.exitCode = 1;

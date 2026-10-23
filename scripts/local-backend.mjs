@@ -2,7 +2,7 @@
 // No connection to the owner's hosted Supabase project. Never use these settings in production.
 import { spawn, spawnSync } from 'node:child_process';
 import { createHmac, randomBytes } from 'node:crypto';
-import { mkdtempSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createServer, request as httpRequest } from 'node:http';
@@ -53,7 +53,10 @@ try {
   });
   docker(['run','-d','--name',names.auth,'--network',network,'--env-file',authEnv,'--label','orbit.integration=true','-p','127.0.0.1:54326:9999','ghcr.io/supabase/gotrue:v2.197.0']);
   await wait('http://localhost:54326/health');
-  docker(['exec','-i',names.db,'psql','-U','postgres','-v','ON_ERROR_STOP=1'], readFileSync(new URL('../supabase/migrations/20261023000100_orbit.sql', import.meta.url),'utf8'));
+  const migrations = new URL('../supabase/migrations/', import.meta.url);
+  for (const file of readdirSync(migrations).filter(name => /^\d{14}_[a-z0-9_]+\.sql$/.test(name)).sort()) {
+    docker(['exec','-i',names.db,'psql','-U','postgres','-v','ON_ERROR_STOP=1'], readFileSync(new URL(file,migrations),'utf8'));
+  }
   const restEnv=envfile('rest.env',{PGRST_DB_URI:`postgres://authenticator:${password}@${names.db}:5432/postgres`,PGRST_DB_SCHEMAS:'public',PGRST_DB_ANON_ROLE:'anon',PGRST_JWT_SECRET:secret,PGRST_SERVER_PORT:'3000'});
   docker(['run','-d','--name',names.rest,'--network',network,'--env-file',restEnv,'--label','orbit.integration=true','-p','127.0.0.1:54327:3000','ghcr.io/supabase/postgrest:v16.5']);
   await wait('http://localhost:54327/');

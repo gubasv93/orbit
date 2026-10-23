@@ -28,7 +28,7 @@ export async function PUT(request: NextRequest) {
   if (!parsed.success) return problem(parsed.error.issues[0]?.message || 'Invalid workspace.');
   const { data, error } = await auth.client.rpc('orbit_save_workspace', { p_snapshot: parsed.data.workspace, p_expected_revision: parsed.data.revision });
   if (error) {
-    if (error.code === '40001') return problem('Another tab or device saved newer changes. Export your unsaved work, then reload.', 409);
+    if (error.code === 'PT409' || error.code === '40001') return problem('Another tab or device saved newer changes. Export your unsaved work, then reload.', 409);
     console.error('workspace_save_failed', { code: error.code });
     return problem('Your changes could not be saved. Retry or export a backup.', 503);
   }
