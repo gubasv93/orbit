@@ -2,6 +2,9 @@
 
 ## 0.1.0 — 2026-10-23
 
+- Clarify weekly versus monthly meeting setup, default weekly intervals to one, and preview upcoming occurrence dates.
+- Fix attendee checkbox sizing, add searchable selection counts, and keep meeting dialog actions visible on mobile.
+- Add feature creation directly in the roadmap table and automatic epic effort totals with persistent manual overrides.
 - Temporarily disable email confirmation with owner approval to unblock public sign-up without SMTP; distinguish confirmation-email quota failures from excessive authentication attempts.
 - Migrate Orbit to Next.js, Supabase Auth, and transactional PostgreSQL persistence.
 - Preserve the interactive Gantt, capacity, team, meeting, time-off, dependency, and milestone workflows.

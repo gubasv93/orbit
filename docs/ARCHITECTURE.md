@@ -3,6 +3,7 @@
 - `src/app`: public landing, authentication screens, protected application, and server API routes.
 - `src/planner/planner.js`: preserved interactive DOM planner mounted inside a React lifecycle boundary, with scoped listeners and cleanup. Forms and keyboard behavior retain the prototype's interactions. User text is escaped and rendered HTML is sanitized.
 - `src/planner/engine.js`: pure scheduling calculations extracted from the original prototype. It has no React, browser storage, or Supabase dependency; typed interfaces are in `engine.d.ts`.
+- `src/planner/features.ts` and `meetings.ts`: pure epic-effort summaries and recurrence descriptions shared by the UI and regression tests. Weekly form intervals normalize to the existing `weekly`/`interval` storage model; monthly ordinals stay separate.
 - `src/lib/schema.ts`: shared validation, date/effort bounds, capacity totals, relationships, and dependency-cycle checks.
 - `src/lib/autosave.ts`: serialized writes, coalescing, failure retention, retry, and explicit conflict resolution.
 - `supabase/migrations`: version-controlled additive PostgreSQL schema and ownership functions.
@@ -20,3 +21,5 @@ All private tables have RLS. Authenticated users receive read access only throug
 For this single-owner editing model, a complete validated workspace is saved atomically into normalized rows. A row lock and expected revision protect concurrent tabs/devices. Failed constraints roll back the entire transaction. Full snapshots favor reliability and preserving the prototype's model; large workspaces or future collaboration should introduce finer-grained operations instead of lifting the tested limits without measurement. The UI does not auto-merge conflicting edits.
 
 Browser storage is not the data source. Refresh/login from another browser reads the same database. A failed initial load shows a retry screen and never falls back to demo content. The scheduler's output is derived; visual filters do not modify forecasts or reorder work.
+
+Epic effort defaults to the sum of all child estimates. The optional validated `effortOverride` feature attribute stores a manual estimate, including zero. Removing it restores automatic totals. It is preserved in the existing JSONB feature document and portable backups, so this extension requires no database migration. Manual totals do not duplicate resource allocations or replace work-item-based forecast dates.

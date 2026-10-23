@@ -9,7 +9,8 @@ export const capacitySchema = z.object({
   ongoing: z.number().min(0).max(100), ops: z.number().min(0).max(100),
 }).refine(c => Math.abs(c.feature + c.bugs + c.ongoing + c.ops - 100) < 0.001, 'Capacity must total 100%');
 const feature = z.object({ id, title: text, description: z.string().max(10000).default(''), start: date,
-  baseline: date, collapsed: z.boolean().default(false), color }).refine(f => f.baseline >= f.start, 'Baseline precedes start');
+  baseline: date, collapsed: z.boolean().default(false), color,
+  effortOverride: z.number().min(0).max(10_950_000).optional() }).refine(f => f.baseline >= f.start, 'Baseline precedes start');
 const task = z.object({ id, featureId: id, title: text, platform: text, assignee: id.or(z.literal('')),
   effort: z.number().min(0.1).max(3650), remaining: z.number().min(0).max(3650).optional(), start: date,
   completedDate: date.optional(), status: z.enum(['planned', 'progress', 'hold', 'done']), dependsOn: z.array(id).max(1000) });

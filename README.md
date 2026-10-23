@@ -53,6 +53,12 @@ Docker and Chromium are required. On a machine without system Chromium, run `npx
 
 ## Data and backups
 
+Use **Add feature** in the roadmap's **FEATURE / WORK ITEM** header to create an epic without leaving the table. Each epic shows the total effort of its work items, including work hidden by the current filters. In the epic inspector, **Effort estimate → Manual estimate** sets an override; **Sum of work items** restores automatic calculation. You can also enter an optional manual total while creating a feature. Estimates use work days; delivery dates still follow the scheduled work items.
+
+For an event every Thursday, choose **Repeat → Weekly**, **Repeat every (weeks) → 1**, and **Day of week → Thursday**. Use 2 weeks for every other Thursday, or Monthly for an ordinal such as the second Thursday of each month. The preview shows the saved cadence and upcoming dates. Existing meetings keep their saved cadence until edited.
+
+Meetings include the entire team by default. Clear **Entire team** to select specific attendees; larger teams have a search field, and the selected count remains visible while searching. The meeting cannot be saved with no specific attendees selected.
+
 Every material planner edit is queued to the server and saved in one database transaction. The status bar distinguishes unsaved, saving, saved, failed, and conflicting writes. If a save fails, keep the tab open and retry or export a backup. A stale tab cannot silently overwrite a newer revision.
 
 **Export workspace** includes every project and view preferences. **Import workspace** validates a versioned JSON backup and asks before replacement. Project-only JSON import/export remains in Settings. Imports do not execute HTML. A backup contains planning data, not accounts, passwords, or sessions; store it privately. Importing a full backup replaces the currently signed-in user's workspace only.

@@ -6,8 +6,8 @@ Validated on 2026-10-23 in the Codex Linux cloud workspace using Node.js 24.19.0
 | --- | --- |
 | TypeScript check | Passed |
 | Next.js production build | Passed |
-| Unit and PostgreSQL/RLS suite | 23 tests passed, 0 failed, 0 skipped |
-| Production-build browser journeys with real local backend | 10 tests passed, 0 failed, 0 skipped |
+| Unit and PostgreSQL/RLS suite | 29 tests passed, 0 failed, 0 skipped |
+| Production-build browser journeys with real local backend | 12 journeys covering the preserved product and setup/effort regressions |
 | Full dependency audit, including development dependencies | 0 vulnerabilities reported |
 | GitHub CI for deployed code `076a2e6` | Passed all stages |
 | Live HTTPS release and authenticated journeys | Passed with temporary confirmed accounts; public email delivery unverified |
@@ -31,6 +31,8 @@ The browser suite runs the optimized Next.js build with real GoTrue 2.197.0, Pos
 - Responsive landing/auth screens, protected data routes, cross-origin mutation rejection, and POST-only password submission when JavaScript is unavailable.
 
 The UI screenshot was visually checked against the reference design. Local browser artifacts are generated under ignored `test-results/`.
+
+The setup/effort regression suite distinguishes weekly Thursdays, fortnightly Thursdays, monthly second Thursdays, and Sundays; checks actual preview dates and per-attendee meeting capacity; and exercises search, selection retention, checkbox sizing, mobile dialog actions, saved recurrence edits, and legacy weekly records with an unused interval of two. Epic tests cover total effort across all children, completed work, changes to child estimates, manual overrides (including zero), clearing an override, filtering, creation inside the table, mobile visibility, database persistence, and backup validation. Existing saved meeting cadences are not silently converted.
 
 ## Hosted Supabase verification
 
