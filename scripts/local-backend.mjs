@@ -75,4 +75,12 @@ try {
   await wait('http://localhost:3000/api/health');
   console.log('Local real-auth backend and production app are running. Test-only email confirmation is automatic.');
   console.log('Run ORBIT_E2E_AUTH=1 npm run test:e2e. Stop this process to remove only its disposable containers.');
-} catch(error) { console.error(error.message); await cleanup(); process.exit(1); }
+} catch(error) {
+  console.error(error.message);
+  if (process.env.GITHUB_ACTIONS === 'true') {
+    // Surface startup failures in the check annotations as well as the job log.
+    const message = String(error.message).replaceAll('%','%25').replaceAll('\r','%0D').replaceAll('\n','%0A');
+    console.error(`::error title=Disposable backend startup failed::${message}`);
+  }
+  await cleanup(); process.exit(1);
+}
