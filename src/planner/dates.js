@@ -1,0 +1,11 @@
+export const DAY=86400000;
+export const asDay=s=>{let [y,m,d]=String(s).split('-').map(Number);return Math.floor(Date.UTC(y,m-1,d)/DAY)};
+export const fromDay=n=>new Date(n*DAY).toISOString().slice(0,10);
+export const addDays=(s,n)=>fromDay(asDay(s)+n);
+export const dow=n=>new Date(n*DAY).getUTCDay();
+export const dmy=s=>new Date(asDay(s)*DAY).toLocaleDateString('en-GB',{day:'numeric',month:'short',timeZone:'UTC'});
+export const fullD=s=>new Date(asDay(s)*DAY).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'});
+export const dayName=s=>['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dow(asDay(s))];
+export const today=()=>{let n=new Date();return [n.getFullYear(),String(n.getMonth()+1).padStart(2,'0'),String(n.getDate()).padStart(2,'0')].join('-')};
+export const monday=s=>addDays(s,-((dow(asDay(s))+6)%7));
+export const formatTime=n=>n===null?'—':`${Math.abs(n)} ${Math.abs(n)===1?'day':'days'}`;

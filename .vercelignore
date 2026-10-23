@@ -1,0 +1,11 @@
+.git/
+.env*
+node_modules/
+test-results/
+playwright-report/
+docs/
+tests/
+scripts/
+supabase/
+.github/
+*.tsbuildinfo

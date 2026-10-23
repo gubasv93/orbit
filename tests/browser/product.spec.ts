@@ -1,0 +1,144 @@
+import { test, expect, type BrowserContext, type Page } from '@playwright/test';
+import { randomUUID } from 'node:crypto';
+import { fullWorkspace } from '../fixtures';
+test.skip(process.env.ORBIT_E2E_AUTH !== '1', 'Requires the disposable real Supabase backend or an explicitly configured test project.');
+const email = `orbit-${randomUUID()}@example.com`, otherEmail = `orbit-${randomUUID()}@example.com`, password = `Orbit9${randomUUID()}${randomUUID()}`.slice(0,72);
+let owner: BrowserContext, second: BrowserContext;
+async function saved(page: Page) { await expect(page.locator('.save-bar [role="status"]')).toHaveText('Saved to cloud', { timeout: 15000 }); }
+async function signup(page: Page, address: string) {
+  await page.goto('/signup'); await page.getByLabel('Email address').fill(address);
+  await page.getByLabel('Password', { exact: true }).fill(password); await page.getByLabel('Confirm password').fill(password);
+  await page.getByRole('button', { name: 'Create account' }).click();
+  await expect(page).toHaveURL(/\/app$/, { timeout: 15000 });
+  await expect(page.getByRole('heading', { name: "Let's create your first project." })).toBeVisible();
+}
+test.describe.serial('real authentication, onboarding, planning, and durable ownership', () => {
+  test.beforeAll(async ({ browser }) => { owner = await browser.newContext(); second = await browser.newContext(); });
+  test.afterAll(async () => { await owner?.close(); await second?.close(); });
+  test('signs up into an empty workspace and completes the two-step project setup', async () => {
+    const page = await owner.newPage(); const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
+    await signup(page, email); await expect(page.getByText('Project Atlas')).toHaveCount(0);
+    const cookies = await owner.cookies(); expect(cookies.some(c => c.name.includes('auth-token') && c.httpOnly && c.sameSite === 'Lax')).toBe(true);
+    await page.getByRole('button', { name: 'Create project', exact: true }).click();
+    await page.getByLabel('Project name').fill('Orbit launch'); await page.locator('#modalForm button[type=submit]').click();
+    await expect(page.getByRole('heading', { name: 'Add your team' })).toBeVisible();
+    await page.getByLabel('First name', { exact: true }).fill('Alex'); await page.getByLabel('Last name', { exact: true }).fill('Dev'); await page.getByLabel('Role', { exact: true }).fill('Backend Developer');
+    await page.getByRole('button', { name: 'Add team member', exact: true }).click();
+    await page.getByLabel('First name', { exact: true }).fill('Casey'); await page.getByLabel('Last name', { exact: true }).fill('Ops'); await page.getByLabel('Role', { exact: true }).fill('DevOps Engineer');
+    await page.getByRole('button', { name: 'Add team member', exact: true }).click();
+    await page.getByRole('button', { name: /Continue to meetings/ }).click();
+    await page.getByRole('button', { name: 'Add meeting', exact: true }).click();
+    await page.getByLabel('Meeting name').fill('Daily sync'); await page.getByLabel('Duration (minutes)').fill('30');
+    await page.getByRole('button', { name: 'Create meeting' }).click();
+    await page.getByRole('button', { name: 'Finish setup', exact: true }).click();
+    await page.getByRole('button', { name: 'New feature', exact: true }).click(); await page.getByLabel('Feature name').fill('Secure accounts');
+    await page.getByRole('checkbox', { name: 'Include DevOps', exact: true }).check();
+    await page.getByRole('button', { name: 'Create feature' }).click(); await saved(page);
+    await expect(page.getByText('Secure accounts', { exact: true }).first()).toBeVisible();
+    const before = await (await owner.request.get('/api/workspace')).json();
+    expect(before.workspace.projects[0].data.people).toHaveLength(2); expect(before.workspace.projects[0].data.meetings).toHaveLength(1);
+    expect(before.workspace.projects[0].data.tasks.map((t: { platform: string }) => t.platform)).toContain('DevOps');
+    await page.reload(); await expect(page.getByText('Secure accounts', { exact: true }).first()).toBeVisible(); await saved(page);
+    const after = await (await owner.request.get('/api/workspace')).json(); expect(after.workspace).toEqual(before.workspace);
+    expect(await page.evaluate(() => Object.keys(localStorage).some(key => /auth|orbit/.test(key)))).toBe(false);
+    await page.screenshot({ path: 'test-results/roadmap.png', fullPage: true }); expect(errors).toEqual([]);
+    await page.close();
+  });
+  test('preserves projects across logout/login and isolates a second user', async () => {
+    const page = await owner.newPage(); await page.goto('/app');
+    await page.getByRole('button', { name: 'Log out', exact: true }).click(); await expect(page).toHaveURL('/');
+    await page.goto('/app'); await expect(page).toHaveURL(/\/login/);
+    await page.getByLabel('Email address').fill(email); await page.getByLabel('Password', { exact: true }).fill('Incorrect123');
+    await page.getByRole('button', { name: 'Log in', exact: true }).click(); await expect(page.locator('.auth-error[role=alert]')).toContainText('Email or password is incorrect');
+    await page.getByLabel('Password', { exact: true }).fill(password); await page.getByRole('button', { name: 'Log in', exact: true }).click(); await expect(page).toHaveURL(/\/app$/);
+    await expect(page.getByText('Secure accounts', { exact: true }).first()).toBeVisible();
+    const other = await second.newPage(); await signup(other, otherEmail);
+    const original = await (await owner.request.get('/api/workspace')).json(), fresh = await (await second.request.get('/api/workspace')).json();
+    expect(fresh.workspace.projects).toEqual([]);
+    const copiedIds = structuredClone(original.workspace); copiedIds.projects[0].name = 'Second user project';
+    const result = await second.request.put('/api/workspace', { headers: { Origin: 'http://localhost:3000' }, data: { revision: fresh.revision, workspace: copiedIds } }); expect(result.status()).toBe(200);
+    expect((await (await owner.request.get('/api/workspace')).json()).workspace.projects[0].name).toBe('Orbit launch');
+    await other.reload(); await expect(other.getByRole('button', { name: 'Second user project' })).toBeVisible();
+    const third = await owner.browser()!.newContext();
+    const login = await third.newPage(); await login.goto('/login'); await login.getByLabel('Email address').fill(email); await login.getByLabel('Password', { exact: true }).fill(password); await login.getByRole('button', { name: 'Log in', exact: true }).click(); await expect(login).toHaveURL(/\/app$/); await expect(login.getByText('Secure accounts', { exact: true }).first()).toBeVisible(); await third.close();
+    await page.close(); await other.close();
+  });
+  test('edits work items, capacity, leave, milestones, filters, and scales', async () => {
+    const snapshot = await (await owner.request.get('/api/workspace')).json();
+    const response = await owner.request.put('/api/workspace', { headers: { Origin: 'http://localhost:3000' }, data: { revision: snapshot.revision, workspace: fullWorkspace() } }); expect(response.status()).toBe(200);
+    const page = await owner.newPage(); await page.goto('/app'); await expect(page.getByText('Accounts', { exact: true }).first()).toBeVisible();
+    await page.getByRole('button', { name: 'Show sidebar', exact: true }).click();
+    await page.locator('[data-action=drawer-task][data-id=t1]').first().click();
+    await page.getByLabel('Pure effort (days)', { exact: true }).fill('5'); await page.getByLabel('Pure effort (days)', { exact: true }).press('Tab');
+    await page.getByRole('button', { name: 'Put on hold', exact: true }).click(); await saved(page);
+    let data = (await (await owner.request.get('/api/workspace')).json()).workspace.projects[0].data; expect(data.tasks[0].status).toBe('hold'); expect(data.tasks[0].effort).toBe(5);
+    await page.getByRole('button', { name: 'Resume task', exact: true }).click(); await page.keyboard.press('Escape'); await saved(page);
+    for (const scale of ['day','week','month','quarter','year']) { await page.getByLabel('Timeline scale').selectOption(scale); await expect(page.locator(`.gantt-canvas.scale-${scale}`)).toBeVisible(); }
+    await page.getByLabel('Filter by team member').selectOption('u1'); await page.getByLabel('Filter by platform').selectOption('Backend'); await expect(page.locator('.gantt-row:not(.feature)')).toHaveCount(2);
+    await page.getByLabel('Filter by platform').selectOption('Frontend'); await expect(page.locator('.gantt-row:not(.feature)')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Clear filters' }).first().click(); await expect(page.locator('.gantt-row:not(.feature)')).toHaveCount(3);
+    await page.getByRole('button', { name: 'Team capacity', exact: true }).click(); await page.getByRole('button', { name: 'Configure', exact: true }).click();
+    await page.getByLabel('Feature development %', { exact: true }).first().fill('80'); await page.getByLabel('Bug fixes %', { exact: true }).first().fill('10'); await page.getByLabel('Ongoing work %', { exact: true }).first().fill('5'); await page.getByLabel('Meetings / ops %', { exact: true }).first().fill('5');
+    await page.getByRole('button', { name: 'Save default capacity' }).click(); await page.keyboard.press('Escape'); await saved(page);
+    await page.getByRole('button', { name: 'Time off & holidays', exact: true }).click(); await page.getByRole('button', { name: 'Add time off', exact: true }).click();
+    await page.locator('#modalForm [name=from]').fill('2026-11-09'); await page.locator('#modalForm [name=to]').fill('2026-11-10'); await page.locator('#modalForm button[type=submit]').click(); await saved(page);
+    await page.getByRole('button', { name: 'Milestones', exact: false }).first().click(); await page.getByRole('button', { name: 'New milestone', exact: true }).click();
+    await page.locator('#modalForm [name=name]').fill('Beta'); await page.locator('#modalForm [name=date]').fill('2026-11-30'); await page.locator('#modalForm button[type=submit]').click(); await saved(page);
+    data = (await (await owner.request.get('/api/workspace')).json()).workspace.projects[0].data;
+    expect(data.people[0].capacity.feature).toBe(80); expect(data.leave).toHaveLength(2); expect(data.milestones.some((m: { title: string }) => m.title === 'Beta')).toBe(true);
+    await page.close();
+  });
+
+  test('drags task and milestone dates without changing priorities', async () => {
+    const page = await owner.newPage(); await page.goto('/app'); await page.getByLabel('Timeline scale').selectOption('day'); await saved(page);
+    const before = (await (await owner.request.get('/api/workspace')).json()).workspace;
+    const start = before.projects[0].data.tasks[0].start;
+    const nextDay = (value: string) => new Date(Date.parse(value+'T00:00:00Z')+86400000).toISOString().slice(0,10);
+    const bar = page.locator('.task-bar[data-task=t1]'); await bar.scrollIntoViewIfNeeded(); const box = (await bar.boundingBox())!;
+    await page.mouse.move(box.x+15,box.y+box.height/2); await page.mouse.down(); await page.mouse.move(box.x+53,box.y+box.height/2,{steps:5}); await page.mouse.up();
+    await expect.poll(async () => (await (await owner.request.get('/api/workspace')).json()).workspace.projects[0].data.tasks[0].start).toBe(nextDay(start)); await saved(page);
+    const pin = page.locator('.milestone-pin[data-id=m1]'); await pin.scrollIntoViewIfNeeded(); const position=(await pin.boundingBox())!;
+    await page.mouse.move(position.x+10,position.y+position.height/2); await page.mouse.down(); await page.mouse.move(position.x+48,position.y+position.height/2,{steps:5}); await page.mouse.up();
+    await expect.poll(async () => (await (await owner.request.get('/api/workspace')).json()).workspace.projects[0].data.milestones.find((m: {id: string})=>m.id==='m1').date).toBe(nextDay(before.projects[0].data.milestones[0].date));
+    await saved(page); expect((await (await owner.request.get('/api/workspace')).json()).workspace.projects[0].data.tasks.map((t: {id: string})=>t.id)).toEqual(['t1','t2','t3']); await page.close();
+  });
+  test('copies setup idempotently and exports/restores complete workspace backups', async () => {
+    const page=await owner.newPage(); await page.goto('/app');
+    await page.getByRole('button',{name:'New project',exact:true}).click(); await page.getByLabel('Project name').fill('Second roadmap'); await page.getByLabel('Copy from').selectOption('project-shared-id');
+    await page.locator('#modalForm button[type=submit]').click(); await page.getByRole('button',{name:'Copy team',exact:true}).click();
+    await page.getByRole('button',{name:/Continue to meetings/}).click(); await page.getByRole('button',{name:'Copy meetings',exact:true}).click(); await page.getByRole('button',{name:'Finish setup',exact:true}).click(); await saved(page);
+    const result=await (await owner.request.get('/api/workspace')).json(); const [source,destination]=result.workspace.projects;
+    expect(destination.data.people).toHaveLength(1); expect(destination.data.roles).toHaveLength(2); expect(destination.data.meetings).toHaveLength(1); expect(destination.data.features).toEqual([]);
+    expect(destination.data.people[0].id).not.toBe(source.data.people[0].id); expect(destination.data.meetings[0].attendees).toEqual([destination.data.people[0].id]); expect(destination.data.people[0].capacity).toEqual(source.data.people[0].capacity);
+    const dl=page.waitForEvent('download'); await page.locator('.save-bar').getByRole('button',{name:'Export workspace',exact:true}).click(); const file=await dl;
+    const {readFile}=await import('node:fs/promises'); const exported=JSON.parse(await readFile((await file.path())!,'utf8')); expect(exported.workspace).toEqual(result.workspace);
+    await page.getByLabel('Import workspace backup').setInputFiles({name:'invalid.json',mimeType:'application/json',buffer:Buffer.from('{broken')}); await expect(page.locator('.save-error')).toContainText('Existing data was kept');
+    expect((await (await owner.request.get('/api/workspace')).json()).workspace).toEqual(result.workspace);
+    page.once('dialog',dialog=>dialog.accept()); const saving=page.waitForResponse(response=>response.url().endsWith('/api/workspace')&&response.request().method()==='PUT');
+    await page.getByLabel('Import workspace backup').setInputFiles({name:'workspace.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(exported))}); expect((await saving).status()).toBe(200); await saved(page);
+    expect((await (await owner.request.get('/api/workspace')).json()).workspace).toEqual(result.workspace); await page.close();
+  });
+  test('renders imported HTML-like names as text without executing them', async () => {
+    const before=await (await owner.request.get('/api/workspace')).json(); const malicious=structuredClone(before.workspace); malicious.activeId='project-shared-id';
+    const title='<img src=x onerror="window.orbitXss=true">'; malicious.projects[0].data.features[0].title=title;
+    const platform='Backend" data-action="logout'; malicious.projects[0].data.roles[0].platform=platform; malicious.projects[0].data.people[0].platform=platform; malicious.projects[0].data.tasks.filter((t: {assignee: string})=>t.assignee==='u1').forEach((t: {platform: string})=>t.platform=platform);
+    expect((await owner.request.put('/api/workspace',{headers:{Origin:'http://localhost:3000'},data:{revision:before.revision,workspace:malicious}})).status()).toBe(200);
+    const page=await owner.newPage(); await page.goto('/app'); await expect(page.getByText(title,{exact:true}).first()).toBeVisible(); expect(await page.evaluate(()=>Boolean((window as unknown as {orbitXss?: boolean}).orbitXss))).toBe(false); await expect(page.locator('.planner-root img')).toHaveCount(0);
+    const current=await (await owner.request.get('/api/workspace')).json(); expect((await owner.request.put('/api/workspace',{headers:{Origin:'http://localhost:3000'},data:{revision:current.revision,workspace:before.workspace}})).status()).toBe(200); await page.close();
+  });
+  test('retains unsaved work on a failed save and detects stale tabs', async () => {
+    const page = await owner.newPage(); await page.goto('/app'); await expect(page.getByRole('button', { name: 'New feature', exact: true })).toBeVisible();
+    await page.route('**/api/workspace', async route => { if (route.request().method() === 'PUT') await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Injected test outage' }) }); else await route.continue(); });
+    await page.getByRole('button', { name: 'New feature', exact: true }).click(); await page.getByLabel('Feature name').fill('Keep my unsaved work'); await page.getByRole('button', { name: 'Create feature' }).click();
+    await expect(page.locator('.save-bar [role=status]')).toHaveText('Not saved'); await expect(page.locator('.save-error')).toContainText('Injected test outage');
+    const download = page.waitForEvent('download'); await page.locator('.save-bar').getByRole('button', { name: 'Export workspace' }).click(); expect((await download).suggestedFilename()).toMatch(/^orbit-workspace-/);
+    await page.unroute('**/api/workspace'); await page.getByRole('button', { name: 'Retry saving' }).click(); await saved(page);
+    const stale = await owner.newPage(); await stale.goto('/app'); await expect(stale.getByRole('button', { name: 'New feature', exact: true })).toBeVisible();
+    const current = await (await owner.request.get('/api/workspace')).json(); current.workspace.projects[0].name = 'Newer remote changes';
+    expect((await owner.request.put('/api/workspace', { headers: { Origin: 'http://localhost:3000' }, data: { workspace: current.workspace, revision: current.revision } })).status()).toBe(200);
+    await stale.getByRole('button', { name: 'New feature', exact: true }).click(); await stale.getByLabel('Feature name').fill('Stale tab edit'); await stale.getByRole('button', { name: 'Create feature' }).click();
+    await expect(stale.locator('.save-bar [role=status]')).toHaveText('Newer changes exist');
+    expect((await (await owner.request.get('/api/workspace')).json()).workspace.projects[0].name).toBe('Newer remote changes');
+    page.on('dialog', dialog => dialog.accept()); stale.on('dialog', dialog => dialog.accept()); await page.close(); await stale.close();
+  });
+});

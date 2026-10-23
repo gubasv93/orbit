@@ -1,0 +1,1097 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Orbit — Adaptive Roadmap Planner</title>
+  <style>
+:root{--bg:#f7f8fc;--white:#fff;--ink:#182138;--muted:#8b93a6;--line:#e9edf5;--purple:#7365e8;--purple-soft:#f1efff;--sidebar:#101526;--sidebar-w:220px;--meta-w:350px;--cell:38px;--shadow:0 10px 50px rgba(35,41,76,.09);font-family:'Inter','DM Sans',ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;color:var(--ink);font-size:13px}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);min-width:750px}button,input,select,textarea{font:inherit}button{cursor:pointer}button:disabled{opacity:.48;cursor:not-allowed}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #b7aaff;outline-offset:2px}input,select,textarea{color:var(--ink)}.app{display:flex;min-height:100vh;max-height:100vh;overflow:hidden}.sidebar{width:var(--sidebar-w);flex:0 0 var(--sidebar-w);background:var(--sidebar);color:#f1f4ff;padding:25px 14px 17px;display:flex;flex-direction:column;gap:28px}.brand{display:flex;align-items:center;gap:10px;padding-left:12px;font-weight:800;font-size:18px;letter-spacing:-.7px}.brand-mark{width:30px;height:30px;border-radius:10px;background:linear-gradient(135deg,#8d82ff,#6256dc);display:grid;place-items:center;color:white;box-shadow:0 3px 16px #7468e87a}.brand small{font-size:9px;font-weight:700;letter-spacing:1.2px;color:#858ca4;display:block;margin-top:-2px}.nav-caption{text-transform:uppercase;color:#626a80;font-weight:800;font-size:9px;letter-spacing:1.35px;margin:0 12px 11px}.nav-item{display:flex;align-items:center;gap:11px;border:0;background:transparent;color:#aeb5c7;padding:12px 13px;border-radius:10px;text-align:left;width:100%;font-weight:600;font-size:12px;margin:3px 0}.nav-item svg{width:17px;height:17px}.nav-item.active{background:#292e4b;color:white;box-shadow:inset 3px 0 0 #9c91ff}.nav-item:hover:not(.active){background:#1d2338;color:#fff}.nav-number{margin-left:auto;background:#2c334c;color:#acb5cb;font-size:10px;padding:2px 6px;border-radius:5px}.side-spacer{flex:1}.side-foot{border:1px solid #30364a;border-radius:13px;padding:13px;background:#1a2034}.side-foot h4{font-size:12px;margin:0 0 6px}.side-foot p{font-size:11px;line-height:1.6;color:#8f99b1;margin:0 0 13px}.side-foot button{background:#333a59;color:#fff;border:none;border-radius:8px;padding:8px 10px;font-weight:700;font-size:11px;width:100%}.side-user{display:flex;align-items:center;gap:9px;padding:12px 10px 0;border-top:1px solid #2b3245}.avatar{display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:800;flex:none;width:28px;height:28px;border-radius:10px;letter-spacing:-.5px;font-size:10px}.side-user .avatar{background:#7471d9}.side-user strong{display:block;font-size:12px}.side-user small{display:block;font-size:10px;color:#8e98ad;padding-top:3px}.main{flex:1;min-width:0;overflow:auto;display:flex;flex-direction:column}.topbar{height:67px;flex:0 0 67px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 31px;gap:20px}.breadcrumb{color:#8992a6;font-size:12px;font-weight:600;display:flex;align-items:center;gap:9px}.breadcrumb b{color:#202940}.breadcrumb svg{opacity:.7}.top-right{display:flex;align-items:center;gap:14px}.sync{display:flex;align-items:center;gap:7px;color:#8893a4;font-size:11px;font-weight:600}.sync-dot{width:7px;height:7px;border-radius:50%;background:#4dc9a8}.top-avatar{width:29px;height:29px;background:#e9e4ff;color:#6257ca;border-radius:50%;display:grid;place-items:center;font-weight:800}.content{padding:30px 30px 22px;display:flex;flex-direction:column;gap:22px;min-width:0;min-height:0;flex:1}.heading-row{display:flex;align-items:center;justify-content:space-between;gap:20px}.eyebrow{font-size:10px;color:#9489eb;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;display:flex;align-items:center;gap:7px;margin-bottom:7px}.heading-row h1{font-size:27px;margin:0;letter-spacing:-1.1px;font-weight:800}.heading-row p{font-size:12px;color:#8b93a4;margin:7px 0 0}.heading-actions{display:flex;align-items:center;gap:9px}.btn{border-radius:9px;padding:10px 14px;border:1px solid #e2e6f0;background:white;color:#45506a;font-weight:700;font-size:12px;display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;min-height:36px}.btn svg{width:15px;height:15px}.btn:hover{background:#f7f7fc}.btn.primary{background:#7366e7;color:#fff;border-color:#7366e7;box-shadow:0 5px 14px #7366e733}.btn.primary:hover{background:#6054d1}.btn.ghost{border-color:transparent;background:transparent;color:#768096}.btn.danger{color:#d95566;border-color:#f3dce1}.btn.sm{padding:7px 10px;min-height:31px;font-size:11px}.btn.icon-only{min-width:34px;padding:8px}.stats{display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:13px}.stat{background:#fff;border:1px solid #eaedf5;border-radius:13px;padding:17px 19px;display:flex;align-items:center;justify-content:space-between;min-height:85px}.stat-label{font-size:11px;color:#8992a6;font-weight:600}.stat-value{font-size:24px;font-weight:800;letter-spacing:-1px;margin-top:7px;line-height:1}.stat-meta{font-size:10px;color:#9aa2b3;margin-top:5px}.stat-icon{border-radius:12px;width:40px;height:40px;display:grid;place-items:center}.stat-icon svg{height:19px;width:19px}.lav{background:#f1efff;color:#7667e7}.blu{background:#e9f5ff;color:#4e9cdc}.mint{background:#e8f9f1;color:#42b590}.rose{background:#fff0ef;color:#e38c78}.card{background:#fff;border:1px solid #e8ebf4;border-radius:14px;box-shadow:0 2px 12px rgba(29,37,74,.025)}.board{display:flex;flex-direction:column;min-height:0;flex:1;overflow:hidden}.board-toolbar{padding:15px 17px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border-bottom:1px solid var(--line)}.toolbar-left,.toolbar-right{display:flex;align-items:center;gap:10px}.section-label{font-weight:800;font-size:14px;margin-right:12px}.pills{background:#f4f5fa;border-radius:9px;padding:3px;display:flex;gap:2px}.pill{border:none;background:transparent;padding:8px 12px;border-radius:7px;color:#939aad;font-size:11px;font-weight:800}.pill.active{background:#fff;color:#6559ce;box-shadow:0 1px 6px #212b5a13}.select-inline{border:1px solid #e5e9f2;border-radius:8px;background:#fff;padding:8px 9px;font-size:11px;font-weight:700;color:#5a667d;max-width:190px}.icon-action{background:transparent;border:0;color:#98a2b3;padding:6px;display:grid;place-items:center;border-radius:7px}.icon-action:hover{background:#f2f1ff;color:#6e62e7}.icon-action svg{width:16px;height:16px}.legend{display:flex;gap:17px;padding:9px 17px;border-bottom:1px solid #eef0f7;align-items:center;flex-wrap:wrap}.legend-item{display:flex;align-items:center;gap:6px;color:#9aa2b1;font-size:10px;font-weight:600}.legend-dot{height:8px;width:8px;border-radius:3px;background:#7365e8}.legend-dot.hold{background:#e5a94d}.legend-dot.leave{background:#ffd0a0}.legend-dot.conflict{background:#ec8493}.legend-line{height:13px;border-left:2px dashed #c272e5}.legend-help{margin-left:auto;color:#989fb0;font-size:10px}.gantt-scroller{overflow:auto;flex:1;position:relative;scrollbar-color:#d9ddea transparent;scrollbar-width:thin;min-height:350px}.gantt-canvas{width:max-content;min-width:100%;position:relative}.gantt-header{display:flex;position:sticky;top:0;height:83px;background:white;z-index:15;border-bottom:1px solid #e2e7f0}.gantt-corner{position:sticky;left:0;width:var(--meta-w);flex:0 0 var(--meta-w);background:#fbfcfe;border-right:1px solid #e5eaf3;z-index:18;display:flex;justify-content:space-between;align-items:flex-end;padding:0 15px 12px 20px}.gantt-corner strong{font-size:11px;color:#7f899e;font-weight:800}.gantt-corner small{font-size:10px;color:#9ca5b6}.calendar-head{height:83px;position:relative}.month-head{height:26px;display:flex;border-bottom:1px solid #f0f2f7}.month-label{border-right:1px solid #f0f2f7;padding:7px 12px;color:#505e78;font-weight:800;font-size:10px;white-space:nowrap}.week-head{height:26px;display:flex;border-bottom:1px solid #eff1f5}.week-label{border-right:1px solid #f0f2f6;padding:6px 10px;color:#8e98a8;font-size:9px;font-weight:600}.day-head{height:31px;display:flex}.day-cell{height:31px;flex:0 0 var(--cell);width:var(--cell);display:flex;align-items:center;justify-content:center;color:#778297;font-size:10px;font-weight:700;position:relative;border-right:1px solid #f3f4f9}.day-cell.weekend{background:#f7f8fb;color:#bac2cc}.day-cell.holiday{background:#fff4eb;color:#da9975}.day-cell.today{color:#7365e8;background:#f1efff}.day-cell.today:after{content:'';height:4px;width:4px;border-radius:50%;background:#7266e8;position:absolute;bottom:2px}.day-cell:hover{background:#ece8ff;cursor:crosshair}.gantt-row{display:flex;height:53px;border-bottom:1px solid #eff1f7}.gantt-row.feature{height:63px;background:#fcfdff}.gantt-row:hover .meta,.gantt-row:hover .track{background-color:#f9f9ff}.meta{position:sticky;left:0;flex:0 0 var(--meta-w);width:var(--meta-w);background:#fff;z-index:9;border-right:1px solid #e6eaf2;display:flex;align-items:center;padding:0 12px 0 14px;gap:9px;min-width:0}.feature .meta{background:#fbfcff}.chevron{height:25px;width:23px;display:grid;place-items:center;border:0;border-radius:6px;background:transparent;color:#8a95a9;flex:none}.chevron:hover{background:#eeebff;color:#7062e2}.chevron svg{width:14px}.feature-icon{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-size:13px;font-weight:800;flex:none}.work-name{min-width:0;flex:1;cursor:pointer}.work-name strong{font-size:11px;font-weight:800;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.work-name small{font-size:10px;color:#a1a8b8;display:block;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.task-indent{width:23px;flex:0 0 23px;position:relative}.task-indent:before{content:'';height:1px;width:14px;background:#dce0ed;position:absolute;top:50%;right:0}.platform-pill{font-size:9px;font-weight:700;white-space:nowrap;background:#f4f5f9;padding:4px 6px;border-radius:5px;color:#778096}.tiny-avatar{height:23px;width:23px;flex:0 0 23px;border-radius:50%;font-size:8px;color:white;font-weight:800;display:grid;place-items:center;border:2px solid white}.tiny-avatar.none{background:#eef0f6;color:#9aa3b3;border:1px dashed #d0d6e5}.status-circle{height:16px;width:16px;border-radius:50%;border:1.5px solid #b4bdd0;display:grid;place-items:center;flex:none}.status-circle.progress{border-color:#8776e9;border-style:dashed}.status-circle.done{border-color:#45b493;background:#45b493;color:#fff}.status-circle.hold{background:#fff6e5;border-color:#ebb35e;color:#c88e25}.status-circle svg{height:11px;width:11px}.meta-mini{font-size:9px;color:#a3abbb;white-space:nowrap;min-width:36px;text-align:right}.more-button{height:22px;width:21px;border:0;background:transparent;display:grid;place-items:center;color:#a1aabb;border-radius:6px}.more-button:hover{background:#eeeafa;color:#675bda}.track{position:relative;width:calc(var(--total-days) * var(--cell));flex:0 0 calc(var(--total-days) * var(--cell));background-image:linear-gradient(90deg,transparent calc(100% - 1px),#edf0f7 calc(100% - 1px));background-size:var(--cell) 100%}.feature .track{background-color:#fcfdff}.shade{position:absolute;top:0;bottom:0;pointer-events:none}.shade.weekend{background:#f1f3f8a3}.shade.holiday{background:#ffdfbe77}.shade.leave{background:repeating-linear-gradient(-45deg,#ffc9b551 0,#ffc9b551 4px,#fff0e981 4px,#fff0e981 8px);border-inline:1px solid #ffbd9888;pointer-events:auto}.shade.overload{background:repeating-linear-gradient(135deg,#f7a9ae57 0,#f7a9ae57 4px,transparent 4px,transparent 8px);pointer-events:auto}.task-bar,.feature-bar{position:absolute;top:50%;transform:translateY(-50%);height:29px;border-radius:7px;display:flex;align-items:center;padding:0 8px;gap:6px;white-space:nowrap;overflow:hidden;cursor:grab;box-shadow:0 2px 6px #16234b14;font-size:10px;font-weight:700;z-index:3;min-width:17px;user-select:none;touch-action:pan-y}.task-bar{color:#fff;background:#8981d6;border:1px solid #ffffff31}.task-bar.backend{background:#5e91dc}.task-bar.frontend{background:#8073d6}.task-bar.qa{background:#49b59e}.task-bar.mobile{background:#dc9a63}.task-bar.design{background:#b17bbd}.task-bar.done{background:#80bba6;opacity:.75}.task-bar.hold{background:#f3f3f5;color:#9ea7b6;border:1.5px dashed #aab1c3;box-shadow:none;cursor:default}.task-bar.blocked{background:#f7eff8;color:#b295b9;border:1px dashed #d3bfd7;box-shadow:none;cursor:default}.task-bar.dragging{outline:3px solid #b9affc;opacity:.78;z-index:8;cursor:grabbing}.task-bar .bar-txt{overflow:hidden;text-overflow:ellipsis}.task-bar .bar-tail{margin-left:auto;opacity:.8;font-size:9px}.feature-bar{height:26px;border-radius:6px;background:#e5e1fc;color:#695ed0;border:1px solid #d2ccf7;box-shadow:none;top:50%;font-weight:800;cursor:pointer}.feature-bar:before,.feature-bar:after{content:'';position:absolute;bottom:-4px;height:6px;width:4px;background:#7867da;border-radius:0 0 2px 2px}.feature-bar:before{left:0}.feature-bar:after{right:0}.feature-bar.risk{background:#fff0e8;color:#d18459;border-color:#f4d4c3}.feature-bar.risk:before,.feature-bar.risk:after{background:#d69270}.feature-bar.empty{opacity:.55;border-style:dashed}.bar-placeholder{position:absolute;top:50%;transform:translateY(-50%);font-size:10px;font-weight:700;color:#ba9c9b;white-space:nowrap;display:flex;align-items:center;gap:6px}.milestone-line{position:absolute;top:83px;bottom:0;border-left:1.5px dashed #bd74cc;z-index:6;pointer-events:none}.milestone-line.risk{border-color:#ef777f}.milestone-pin{position:absolute;top:0;z-index:22;display:flex;align-items:center;gap:5px;border:0;color:#9b61ac;background:#fbf0ff;box-shadow:0 1px 8px #5b38641b;padding:5px 8px;border-radius:5px;transform:translateX(-50%);font-size:9px;font-weight:800;white-space:nowrap;cursor:ew-resize;max-width:135px}.milestone-pin span{overflow:hidden;text-overflow:ellipsis}.milestone-pin.risk{background:#fff1f1;color:#d96671}.milestone-pin svg{height:11px;width:11px}.today-line{position:absolute;top:83px;bottom:0;border-left:2px solid #796bea;z-index:7;pointer-events:none}.today-tag{position:absolute;z-index:20;top:61px;color:#fff;background:#796bea;border-radius:4px;font-size:9px;font-weight:800;padding:2px 5px;transform:translateX(-50%);pointer-events:none}.board-footer{display:flex;align-items:center;justify-content:space-between;padding:10px 17px;border-top:1px solid var(--line);font-size:10px;color:#a2a9b7;flex-wrap:wrap;gap:8px}.board-footer b{color:#7669dc}.empty-message{padding:55px;text-align:center;color:#7d879b}.empty-message svg{width:30px;height:30px;color:#7669df}.empty-message h3{color:#24304a}.status-badge{display:inline-flex;align-items:center;gap:5px;border-radius:20px;padding:5px 8px;font-size:10px;font-weight:700;background:#eef5fe;color:#4a8ac0;white-space:nowrap}.status-badge.risk{background:#fff2eb;color:#d08e6c}.status-badge.done{background:#e7f8f2;color:#49a987}.status-badge.hold{background:#fff5e6;color:#c59137}.status-badge.muted{background:#f0f1f5;color:#8993a6}.dot{width:5px;height:5px;border-radius:50%;background:currentColor}.notice{border-radius:10px;padding:11px 13px;font-size:11px;line-height:1.55;background:#f5f3ff;color:#6558c7;border:1px solid #e9e5ff}.notice.warn{background:#fff7ef;color:#b87d41;border-color:#fae4cb}.notice.good{background:#eefaf4;color:#379975;border-color:#d2f4e4}.notice strong{font-weight:800}.panel-body{padding:24px}.panel-title{font-size:17px;letter-spacing:-.5px;font-weight:800;margin:0 0 5px}.panel-sub{color:#97a0b2;font-size:11px;margin:0 0 18px;line-height:1.6}.capacity-layout{display:grid;grid-template-columns:1.65fr 1fr;gap:16px;align-items:start}.table{width:100%;border-collapse:collapse;text-align:left}.table th{font-size:10px;color:#98a1b1;font-weight:800;padding:13px 12px;border-bottom:1px solid #eef0f5;background:#fafbff}.table td{font-size:11px;border-bottom:1px solid #f0f2f7;padding:13px 12px;color:#64718a}.table tr:last-child td{border-bottom:none}.person-cell{display:flex;gap:10px;align-items:center}.person-cell strong{font-size:11px;color:#27314a;display:block}.person-cell small{font-size:9px;color:#a1aabb;display:block;margin-top:4px}.capacity-track{width:100px;height:7px;background:#e8eaf3;border-radius:8px;overflow:hidden;display:flex}.capacity-track i{height:100%;display:block}.capacity-track .dev{background:#8679e9}.capacity-track .bugs{background:#e8ac73}.capacity-track .ongoing{background:#67bbad}.capacity-track .ops{background:#b5bdd3}.mini-btn{color:#7569dc;background:#f3f1ff;border:0;border-radius:7px;padding:7px 9px;font-weight:800;font-size:10px}.resource-row{border:1px solid #eef0f6;padding:12px;border-radius:10px;margin-top:10px}.resource-title{display:flex;justify-content:space-between;font-size:11px;font-weight:700;gap:15px}.resource-title small{color:#929aad;font-size:10px}.load-track{height:8px;background:#e9edf5;border-radius:9px;margin-top:12px;position:relative}.load-fill{height:8px;border-radius:9px;background:#7c70e8}.load-fill.over{background:#e88a97}.load-over{position:absolute;top:-4px;height:16px;left:100%;border-left:1.5px dashed #8896ac}.metric-row{display:flex;justify-content:space-between;gap:8px;margin:12px 0;color:#768198;font-size:11px}.metric-row strong{color:#2b3451}.grid-mini{display:grid;gap:4px;grid-template-columns:repeat(10,minmax(18px,1fr));margin-top:12px}.grid-mini i{height:20px;border-radius:3px;background:#eceff4;display:block;cursor:help}.grid-mini i.free{background:#dcefe8}.grid-mini i.low{background:#e7e2fc}.grid-mini i.high{background:#f7d4b8}.grid-mini i.over{background:#efa1ae}.grid-mini i.off{background:#eff0f4}.grid-mini i:hover{outline:2px solid #7164de}.grid-caption{display:flex;justify-content:space-between;font-size:9px;color:#a1aabc;margin-top:5px}.availability-list,.milestone-list{display:grid;gap:10px}.availability-card,.milestone-card{display:flex;align-items:center;gap:14px;padding:15px 16px;background:#fff;border:1px solid #ebedf4;border-radius:12px}.availability-card .detail,.milestone-card .detail{flex:1;min-width:0}.availability-card .detail strong,.milestone-card .detail strong{font-size:12px}.availability-card .detail small,.milestone-card .detail small{font-size:10px;color:#9aa3b5;display:block;margin-top:5px}.leave-icon{width:37px;height:37px;border-radius:10px;display:grid;place-items:center;background:#fff3e8;color:#d59e67}.leave-icon.sick{background:#fff0f2;color:#df8398}.leave-icon svg{width:18px}.milestone-icon{width:36px;height:36px;display:grid;place-items:center;border-radius:10px;background:#f9ecfc;color:#ad6cbb}.milestone-icon svg{width:16px}.split-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:15px}.soft-tag{background:#f3f5fa;color:#8992a8;padding:5px 8px;border-radius:6px;font-weight:700;font-size:10px}.backdrop{position:fixed;inset:0;background:#10152d56;z-index:90;display:flex;justify-content:center;align-items:center;padding:20px}.dialog{width:min(590px,95vw);background:white;box-shadow:0 26px 85px #0c173f35;border-radius:17px;max-height:calc(100vh - 40px);overflow-y:auto}.dialog.wide{width:min(750px,95vw)}.dialog-head{display:flex;align-items:flex-start;justify-content:space-between;padding:23px 25px 14px;gap:20px}.dialog-head h2{margin:0;font-size:20px;letter-spacing:-.7px}.dialog-head p{font-size:11px;line-height:1.6;color:#99a2b1;margin:7px 0 0}.dialog-body{padding:8px 25px 22px}.dialog-foot{display:flex;align-items:center;justify-content:flex-end;gap:9px;padding:15px 25px 22px;border-top:1px solid #f0f2f6}.field{display:flex;flex-direction:column;gap:7px;margin-bottom:16px;min-width:0}.field label{color:#5e697d;font-weight:800;font-size:11px}.field input,.field select,.field textarea{border:1px solid #e2e6f0;border-radius:9px;padding:11px 12px;font-size:12px;background:#fff;outline:0;width:100%;min-width:0}.field input:focus,.field select:focus,.field textarea:focus{border-color:#9387ee;box-shadow:0 0 0 3px #eae7ff}.field small{font-size:10px;color:#a1a9ba;line-height:1.5}.field-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 13px}.field-grid.thirds{grid-template-columns:repeat(3,minmax(0,1fr))}.switch-row{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:13px 0;border-top:1px solid #f0f1f6}.switch-row strong{font-size:12px}.switch-row small{font-size:10px;color:#9aa3b4;display:block;margin-top:5px}.switch{border:0;border-radius:18px;width:39px;height:22px;background:#e5e7ef;position:relative;flex:none}.switch:after{content:'';position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 4px #0002;transition:.15s}.switch.on{background:#7669e6}.switch.on:after{left:20px}.phase-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px}.phase-tile{border:1px solid #e9eaf3;border-radius:10px;padding:11px 12px;display:flex;gap:9px;align-items:center;cursor:pointer}.phase-tile:has(input:checked){border-color:#aaa2f0;background:#f8f7ff}.phase-tile input{accent-color:#7868ea}.phase-tile strong{font-size:11px}.phase-tile small{font-size:9px;color:#9a9faf;display:block;margin-top:3px}.drawer-wrap{position:fixed;inset:0;z-index:70;pointer-events:none}.drawer-backdrop{background:#0c122a28;inset:0;position:absolute;pointer-events:auto}.drawer{position:absolute;right:0;top:0;bottom:0;width:430px;max-width:90vw;background:#fff;box-shadow:-12px 0 60px #1b22492b;overflow-y:auto;pointer-events:auto}.drawer-header{padding:22px 22px 20px;border-bottom:1px solid #edf0f5;display:flex;align-items:flex-start;justify-content:space-between;gap:15px}.drawer-header h2{font-size:19px;letter-spacing:-.6px;line-height:1.3;margin:8px 0 0}.drawer-content{padding:23px 22px 80px}.drawer-section{border-top:1px solid #eef1f6;padding:19px 0 3px}.drawer-section:first-child{border:0;padding-top:0}.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:15px;font-size:12px;font-weight:800}.drawer-stat{border-radius:10px;background:#f6f5ff;padding:11px 13px;display:flex;justify-content:space-between;margin-bottom:10px;color:#7b70d9;font-size:12px;font-weight:800}.danger-note{padding:10px 12px;border-radius:8px;background:#fff3ef;color:#c77a6f;font-size:11px;margin-bottom:10px}.checkline{display:flex;gap:8px;align-items:center;font-size:11px;color:#69758b;padding:8px 0;cursor:pointer}.checkline input{accent-color:#7365e8}.tag-row{display:flex;gap:5px;flex-wrap:wrap}.tag{background:#f2f3f8;border-radius:6px;padding:5px 7px;color:#7a8599;font-size:10px;font-weight:700}.drawer-bottom{position:sticky;bottom:0;background:#fff;border-top:1px solid #eceef5;padding:13px 22px;display:flex;gap:8px;justify-content:space-between}.progress-mini{height:5px;border-radius:10px;background:#e8e9f2;overflow:hidden;margin-top:10px}.progress-mini>div{height:100%;background:#8c7eeb}.toast{position:fixed;right:20px;bottom:20px;z-index:200;background:#222c45;color:white;box-shadow:0 8px 25px #1522413d;border-radius:10px;padding:12px 17px;font-size:12px;display:flex;gap:10px;align-items:center;animation:toast-in .2s ease}.toast svg{height:16px;width:16px;color:#7bdbc1}@keyframes toast-in{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}.bottom-tip{font-size:10px;color:#99a3b4;margin-top:-6px}.keyboard{font-family:inherit;background:#f3f4f8;padding:2px 4px;border-radius:4px;border:1px solid #e3e6ef;color:#7f8a9d}.timeline-empty{display:grid;place-items:center;padding:60px}.timeline-empty h3{margin-bottom:5px}.text-link{border:0;background:transparent;padding:0;color:#7365d9;font-weight:800;font-size:11px}.text-link:hover{text-decoration:underline}.info-line{display:flex;align-items:center;gap:6px;font-size:10px;color:#959fb0}.info-line svg{width:13px}.field-error{font-size:10px;color:#e1768a}.grouped-note{padding:16px;background:#fafbff;border:1px solid #eff0f7;border-radius:11px;margin-top:13px}.grouped-note strong{display:block;font-size:11px}.grouped-note p{font-size:11px;color:#909bad;line-height:1.6;margin:7px 0 0}.person-availability{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}.person-availability .chip{font-size:9px;padding:5px 7px;border:1px solid #e6e7f0;color:#7c8798;border-radius:6px;display:flex;align-items:center;gap:5px}.weekday-warn{font-size:10px;color:#ae854c;margin-top:5px}.scrollhint{font-size:9px;color:#a6acb9;text-align:center;margin-top:4px}.inline-numbers{display:flex;gap:7px;align-items:center}.number-box{width:63px!important}.hr{height:1px;background:#eff1f6;margin:8px 0 18px}.assignee-option{display:flex;align-items:center;gap:6px}.fake-chart{display:flex;align-items:flex-end;height:80px;gap:5px;padding-top:15px}.fake-chart i{flex:1;border-radius:3px 3px 0 0;background:#e2defb}.fake-chart i:nth-child(3n){background:#998fee}.danger-zone{border:1px solid #fae4e7;background:#fffbfc;border-radius:10px;padding:12px;margin-top:12px}.mobile-message{display:none}@media(max-width:1120px){:root{--sidebar-w:72px;--meta-w:320px}.sidebar{padding-inline:10px}.brand{padding:0;justify-content:center}.brand>span:last-child,.nav-caption,.nav-item span,.nav-number,.side-foot,.side-user>div:not(.avatar){display:none}.nav-item{justify-content:center;padding:12px}.nav-item svg{width:19px;height:19px}.side-user{justify-content:center;padding:12px 0 0}.content{padding:20px}.stats{gap:9px}.stat{padding:14px}.stat-icon{display:none}}@media(max-width:810px){:root{--meta-w:260px}.stats{grid-template-columns:repeat(2,1fr)}.heading-row{align-items:flex-start}.heading-actions .btn:not(.primary){display:none}.content{padding:15px}.topbar{padding:0 15px}.capacity-layout{grid-template-columns:1fr}.gantt-header{height:83px}.meta{padding-left:8px;gap:5px}.platform-pill{display:none}.section-label{display:none}}
+@media(max-width:600px){body{min-width:320px}:root{--sidebar-w:54px;--meta-w:204px}.sidebar{padding:16px 5px}.brand-mark{width:30px;height:30px}.nav-item{padding:11px 8px}.main{min-width:0}.topbar{height:57px;flex-basis:57px;padding:0 11px}.breadcrumb{font-size:10px;gap:3px;white-space:nowrap;overflow:hidden}.sync{display:none}.content{padding:13px 9px;gap:13px}.heading-row{flex-direction:column;align-items:stretch;gap:13px}.heading-row h1{font-size:23px}.heading-row p{font-size:10px}.heading-actions{justify-content:flex-end}.stats{gap:6px}.stat{min-height:73px;padding:11px}.stat-value{font-size:21px}.stat-label,.stat-meta{font-size:9px}.board-toolbar{padding:9px 7px;display:block}.toolbar-left{margin-bottom:9px}.toolbar-right{overflow-x:auto;max-width:100%;padding:2px}.legend{gap:9px;padding:8px}.legend-item{font-size:9px}.legend-help{display:none}.gantt-scroller{min-height:350px}.gantt-corner{padding:0 7px 12px}.gantt-corner strong,.gantt-corner small{font-size:8px}.meta{padding:0 5px;gap:3px}.work-name strong{font-size:10px}.work-name small{font-size:8px}.meta-mini,.meta .tiny-avatar,.meta .status-badge,.meta .more-button{display:none}.feature-icon{width:20px;height:20px}.task-indent{width:9px;flex-basis:9px}.chevron{width:18px}.board-footer{font-size:8px;padding:8px}.panel-body{padding:13px}.capacity-layout{grid-template-columns:1fr}.dialog-head{padding:15px 16px 8px}.dialog-body{padding:8px 16px 14px}.dialog-foot{padding:12px 5px 5px}.dialog-head h2{font-size:17px}.phase-grid{grid-template-columns:1fr}.drawer{max-width:calc(100vw - 30px)}.drawer-content{padding:15px 14px}.sidebar .side-user{border-top:0}}
+
+/* Recurring meeting configuration */
+.meeting-settings-entry{margin-top:12px;display:flex;justify-content:space-between;align-items:center;gap:14px;border:1px solid #e9ebf5;border-radius:11px;padding:15px;background:#fcfbff}
+.meeting-settings-entry strong{font-size:12px;display:flex;gap:8px;align-items:center}
+.meeting-settings-entry small{display:block;color:#9aa2b1;font-size:10px;margin-top:6px;line-height:1.5}
+.meeting-list{display:flex;flex-direction:column;gap:9px;max-height:330px;overflow:auto;padding:2px}
+.meeting-item{display:flex;align-items:center;gap:12px;border:1px solid #ebeef6;border-radius:10px;padding:13px 12px}
+.meeting-item.muted-item{opacity:.54;background:#fafbfe}
+.meeting-symbol{display:grid;place-items:center;background:#f3f1ff;color:#7569dc;border-radius:9px;width:38px;height:38px;flex:none}
+.meeting-main{min-width:0;flex:1}.meeting-main strong{font-size:12px;display:block}.meeting-main small{display:block;color:#96a1b3;font-size:10px;margin-top:5px}
+.meeting-controls{display:flex;gap:5px;align-items:center}.meeting-people{padding:5px 12px;border:1px solid #eceef5;border-radius:9px;display:grid;grid-template-columns:1fr 1fr;gap:2px 14px;max-height:160px;overflow:auto}.meeting-people .person-role{font-size:9px;color:#9aa2b1}.meeting-people .tiny-avatar{height:19px;width:19px;font-size:8px}.meeting-pattern{margin-top:0}.meeting-people[hidden],.meeting-pattern[hidden],[data-pattern-field][hidden]{display:none!important}
+@media(max-width:610px){.meeting-people{grid-template-columns:1fr}.meeting-item{align-items:flex-start}.meeting-controls{flex-direction:column}.meeting-settings-entry{align-items:flex-start;flex-direction:column}}
+
+@media(max-width:810px){.heading-actions .btn[data-action="open-settings"],.heading-actions .btn[data-action="manage-meetings"]{display:inline-flex}}
+
+/* Team administration */
+.team-layout{display:grid;grid-template-columns:minmax(420px,1.3fr) minmax(360px,1fr);gap:17px;align-items:start}
+.team-list{display:flex;flex-direction:column;gap:9px;margin-top:17px}
+.team-row{display:flex;align-items:center;gap:11px;border:1px solid #e9ecf5;background:#fff;border-radius:11px;padding:12px;min-height:68px}
+.team-row .person-cell{flex:1;min-width:0}.team-row .person-cell strong{font-size:12px}.team-row .person-cell small{display:block;font-size:10px;color:#919bb0;margin-top:4px}
+.team-row .soft-tag{white-space:nowrap}.team-actions{display:flex;align-items:center;gap:5px;margin-left:auto}
+.team-role-icon{flex:0 0 35px;height:35px;display:grid;place-items:center;border-radius:10px;background:#f0eeff;color:#7769e6}
+.team-role-name{flex:1;min-width:0}.team-role-name strong{font-size:12px}.team-role-name small{display:block;color:#8e99aa;font-size:10px;margin-top:5px}
+@media(max-width:1250px){.team-layout{grid-template-columns:1fr}}
+@media(max-width:650px){.team-row{flex-wrap:wrap}.team-row .soft-tag{margin-left:auto}}
+
+/* Project picker and lightweight two-step onboarding */
+.project-trigger{margin:0 5px 2px;display:flex;align-items:center;gap:10px;text-align:left;width:calc(100% - 10px);background:#222941;color:#f1f3ff;border:1px solid #353c58;border-radius:11px;padding:12px 10px;font-weight:750;font-size:12px}
+.project-trigger:hover{background:#2b3452}.project-trigger span{min-width:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.project-trigger svg{color:#a39aff}
+.project-new{margin:4px 5px 12px;width:calc(100% - 10px);border:1px dashed #434e70;border-radius:8px;color:#a8b0ce;background:transparent;font-size:11px;padding:9px 12px;text-align:left;display:flex;gap:8px;align-items:center}
+.project-new:hover{color:#fff;border-color:#8479f4;background:#252d4a}
+.project-pick-row{border:1px solid #e9ebf4;border-radius:12px;margin-bottom:9px;padding:12px;display:flex;align-items:center;gap:12px}
+.project-pick-row.is-current{border-color:#cfc9fb;background:#faf9ff}.project-pick-name{flex:1;min-width:0}.project-pick-name strong{font-size:12px;display:block}.project-pick-name small{font-size:10px;color:#98a1b1;display:block;margin-top:5px}
+.setup-shell{min-height:100vh;padding:28px 36px 50px;background:radial-gradient(circle at 94% 3%,#eeebff 0%,#f8f9fc 33%,#f8f9fc 100%)}
+.setup-top{display:flex;align-items:center;justify-content:space-between;max-width:1140px;margin:0 auto 34px;gap:20px}
+.setup-brand{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:850;letter-spacing:-.7px}.setup-brand small{color:#9198ac;font-size:11px;font-weight:600;letter-spacing:0;padding-left:7px}
+.setup-main{max-width:1060px;margin:0 auto}.setup-kicker{font-size:11px;letter-spacing:1.7px;font-weight:800;color:#786be4;margin-bottom:12px;text-transform:uppercase}
+.setup-main h1{font-size:32px;letter-spacing:-1.2px;margin:0 0 9px}.setup-desc{font-size:13px;color:#8690a3;line-height:1.7;margin:0 0 25px;max-width:700px}
+.setup-progress{display:flex;align-items:stretch;gap:12px;margin:0 0 25px}.setup-step{flex:1;display:flex;align-items:center;gap:11px;border:1px solid #e2e6f1;background:#fff;border-radius:12px;padding:14px 17px;color:#9aa2b0}
+.setup-step.is-active{border-color:#c7c0ff;background:#f9f8ff;color:#4d477f}.setup-step.is-past{color:#4e9f83;border-color:#d7eddf}
+.setup-step-num{background:#f0f1f7;color:#808ca4;height:28px;width:28px;display:grid;place-items:center;border-radius:50%;font-weight:800;font-size:11px;flex:0 0 28px}.setup-step.is-active .setup-step-num{background:#7568e8;color:#fff}.setup-step.is-past .setup-step-num{background:#e5f8ee;color:#3fa17e}
+.setup-step strong{font-size:12px;display:block}.setup-step small{font-size:10px;color:#a1a9b8;display:block;margin-top:3px}
+.setup-layout{display:grid;grid-template-columns:minmax(460px,1.48fr) minmax(255px,.72fr);gap:18px;align-items:start}.setup-card{background:white;border:1px solid #e7eaf2;border-radius:16px;box-shadow:0 10px 35px #25294a0c;padding:26px}.setup-card h2{font-size:18px;letter-spacing:-.45px;margin:0 0 5px}.setup-card .setup-sub{font-size:11px;color:#95a0af;line-height:1.65;margin:0 0 21px}.setup-form{border:1px solid #e9ebf5;background:#fbfcff;border-radius:13px;padding:17px}.setup-form .field{margin-bottom:0}.setup-form .field-grid{gap:12px}.setup-form .btn{margin-top:15px}.setup-role-preview{font-size:10px;color:#6b63b5;margin-top:9px;min-height:14px}
+.setup-added-title{font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:850;color:#8e98aa;margin:25px 0 12px}.setup-member{padding:10px 12px;display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #edf0f6;border-radius:10px;margin-bottom:8px}.setup-member strong{font-size:11px;display:block}.setup-member small{display:block;margin-top:3px;color:#97a1b2;font-size:10px}.setup-member>div{flex:1}
+.setup-empty{padding:21px;border:1px dashed #dfe2ef;border-radius:12px;text-align:center;color:#99a3b5;font-size:11px;line-height:1.6}
+.setup-aside{border-radius:15px;padding:23px;background:#f3f1ff;border:1px solid #e6e2ff}.setup-aside h3{font-size:13px;margin:0 0 10px}.setup-aside p{font-size:11px;line-height:1.8;color:#77759e;margin:0 0 16px}.setup-aside .aside-example{font-size:11px;border-radius:10px;padding:12px;background:white;color:#515a75;line-height:2}
+.setup-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:23px}.setup-footer small{color:#9ba4b1;font-size:11px}
+.setup-meeting-list{display:flex;flex-direction:column;gap:9px;margin-top:15px}.setup-meeting-list .meeting-item{background:#fff}
+@media(max-width:970px){.setup-layout{grid-template-columns:1fr}.setup-shell{padding:22px}.setup-main h1{font-size:25px}}
+
+/* Copy team and recurring meeting settings across independent projects */
+.copy-setup-box{border:1px solid #e6e3fa;border-radius:12px;background:#faf9ff;padding:15px 17px;margin-bottom:14px}
+.copy-setup-heading{display:flex;align-items:center;gap:8px;color:#5e57a1;font-size:12px}.copy-setup-heading .soft-tag{margin-left:auto}
+.copy-settings-choices{border-top:1px solid #e8e6f5;margin-top:12px;padding-top:8px;display:grid;grid-template-columns:1fr 1fr;column-gap:15px}
+.copy-settings-choices[hidden]{display:none}.copy-settings-choices .checkline{display:flex;align-items:center;gap:7px;font-size:11px;white-space:nowrap}
+.copy-settings-choices small{grid-column:1/-1;color:#8890aa;line-height:1.65;font-size:10px}
+.setup-import-strip{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 14px;border-radius:12px;border:1px solid #e4e4fa;background:#f9f8ff;margin:14px 0}
+.setup-import-strip strong{font-size:11px;display:flex;gap:7px;align-items:center;color:#5c568d}.setup-import-strip small{display:block;font-size:10px;color:#9696b5;line-height:1.6;margin-top:4px}
+.setup-import-controls{display:flex;gap:7px;flex:none;align-items:center}.setup-import-controls select{max-width:170px;min-width:130px;border:1px solid #e1e0f0;padding:8px;border-radius:8px;background:#fff;font-size:11px}
+.setup-import-controls button{white-space:nowrap}
+@media(max-width:690px){.copy-settings-choices{grid-template-columns:1fr}.setup-import-strip{align-items:stretch;flex-direction:column}.setup-import-controls{width:100%}.setup-import-controls select{max-width:unset;flex:1}}
+
+/* Wide planning canvas: collapse navigation, remove dashboard noise, and give time to the Gantt. */
+.nav-hidden .sidebar{display:none}
+.topbar-start{display:flex;align-items:center;gap:14px;min-width:0}
+.sidebar-toggle{width:33px;height:33px;flex:none;display:grid;place-items:center;background:#f5f6fb;color:#707b91;border:1px solid #eaedf5;border-radius:9px}
+.sidebar-toggle:hover{background:#ebe8ff;color:#6658d7;border-color:#dcd6fc}
+.sidebar-toggle svg{width:17px;height:17px}
+.timeline-page .topbar{height:53px;flex-basis:53px;padding:0 18px}
+.timeline-page .content{padding:11px 13px 12px;gap:11px;overflow:hidden}
+.timeline-page .heading-row h1{font-size:20px;letter-spacing:-.45px}
+.timeline-page .heading-actions .btn{min-height:31px;padding:7px 12px;font-size:11px}
+.timeline-page .board{border-radius:10px}
+.timeline-toolbar{padding:9px 12px;gap:10px;flex-wrap:wrap}
+.timeline-filters,.timeline-tools{display:flex;align-items:center;gap:7px;min-width:0;flex-wrap:wrap}
+.timeline-filters .section-label{font-size:12px;margin-right:7px}
+.filter-select{display:inline-flex;align-items:center;gap:6px;padding:0 6px 0 10px;height:33px;border:1px solid #e5e8f0;background:#fff;border-radius:8px;color:#8994ab;min-width:132px}
+.filter-select:focus-within{border-color:#b9b1f6;box-shadow:0 0 0 2px #f0edff}
+.filter-select svg{flex:none;height:14px;width:14px}
+.filter-select select{border:0;outline:0;background:transparent;font-size:11px;max-width:146px;width:100%;font-weight:700;color:#606b81;cursor:pointer}
+.clear-filters{border:none;background:#f5f2ff;color:#7763dc;border-radius:7px;font-weight:750;font-size:10px;display:inline-flex;align-items:center;gap:4px;padding:7px 9px;white-space:nowrap}
+.clear-filters:hover{background:#ece8ff}
+.clear-filters svg{height:12px;width:12px}
+.timeline-tools .select-inline{max-width:176px;height:32px;padding:5px 8px}
+.timeline-tools .btn.sm{min-height:32px}
+.timeline-tools .toolbar-divider{height:21px;border-left:1px solid #e8eaf1;margin:0 2px}
+.scale-picker{border:1px solid #dcdaf1;background:#f7f5ff;color:#8b82b6;border-radius:8px;display:inline-flex;align-items:center;gap:5px;height:33px;padding:0 7px 0 10px;font-size:10px;font-weight:800;white-space:nowrap}
+.scale-picker select{border:0;background:transparent;color:#6558c8;font-weight:800;font-size:11px;cursor:pointer;outline:0;min-width:73px}
+.risk-action.selected{color:#e0954e;background:#fff4eb}
+.gantt-header.scale-week,.gantt-header.scale-month,.gantt-header.scale-quarter,.gantt-header.scale-year{height:62px}
+.gantt-header.scale-week .calendar-head,.gantt-header.scale-month .calendar-head,.gantt-header.scale-quarter .calendar-head,.gantt-header.scale-year .calendar-head{height:61px}
+.time-band{display:flex;width:100%;height:26px;border-bottom:1px solid #edf0f6}
+.time-band.lower{height:35px;background:#fbfcff}
+.time-band .time-segment{position:relative;height:100%;flex:0 0 auto;display:flex;align-items:center;padding:0 11px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;border-right:1px solid #e7ebf3;font-size:10px;color:#58657b;font-weight:800;cursor:crosshair}
+.time-band.upper .time-segment{background:#fafbfe}
+.time-band.middle .time-segment{font-size:9px;color:#95a0b2;font-weight:700}
+.time-band.lower .time-segment{font-size:11px;color:#6b778d;font-weight:750}
+.time-band .time-segment:hover{background:#f2f0ff;color:#675bcb}
+.gantt-canvas.scale-week .today-tag,.gantt-canvas.scale-month .today-tag,.gantt-canvas.scale-quarter .today-tag,.gantt-canvas.scale-year .today-tag{top:44px}
+.gantt-canvas.scale-month .track,.gantt-canvas.scale-quarter .track,.gantt-canvas.scale-year .track{background-image:none}
+.gantt-canvas.scale-month .task-bar,.gantt-canvas.scale-quarter .task-bar,.gantt-canvas.scale-year .task-bar{min-width:9px;padding:0 2px;border-radius:4px}
+.gantt-canvas.scale-month .task-bar .bar-tail,.gantt-canvas.scale-quarter .task-bar .bar-tail,.gantt-canvas.scale-year .task-bar .bar-tail{display:none}
+.gantt-canvas.scale-quarter .task-bar .bar-txt,.gantt-canvas.scale-year .task-bar .bar-txt{display:none}
+.gantt-canvas.scale-quarter .task-bar,.gantt-canvas.scale-year .task-bar{min-width:9px}
+.gantt-canvas.scale-quarter .feature-bar,.gantt-canvas.scale-year .feature-bar{min-width:9px}
+@media(max-width:1280px){.timeline-toolbar{align-items:flex-start}.timeline-filters,.timeline-tools{width:100%}.timeline-tools{justify-content:flex-end}.timeline-page .content{gap:9px}}
+@media(max-width:810px){.timeline-page .heading-row{flex-direction:row;align-items:center}.timeline-page .heading-actions .btn[data-action="open-settings"]{display:inline-flex}.timeline-page .content{padding:10px 9px}.timeline-tools{justify-content:flex-start}.timeline-page .topbar{padding:0 9px}.timeline-filters .section-label{display:none}}
+@media(max-width:600px){.timeline-page .heading-row h1{font-size:16px}.timeline-page .heading-actions .btn{padding:6px 7px}.timeline-page .content{padding:7px 5px}.timeline-filters,.timeline-tools{flex-wrap:nowrap;overflow-x:auto;width:100%}.filter-select{min-width:124px}.timeline-toolbar{padding:7px}.topbar-start{gap:6px}.sidebar-toggle{width:29px;height:29px}.timeline-page .heading-row{gap:7px}}
+
+/* Milestone and today overlays should align with the shorter two-row headers in broad views. */
+.gantt-canvas.scale-week .today-line,.gantt-canvas.scale-month .today-line,.gantt-canvas.scale-quarter .today-line,.gantt-canvas.scale-year .today-line,.gantt-canvas.scale-week .milestone-line,.gantt-canvas.scale-month .milestone-line,.gantt-canvas.scale-quarter .milestone-line,.gantt-canvas.scale-year .milestone-line{top:62px}
+
+@media(max-width:600px){:root{--meta-w:183px}.timeline-tools .scale-picker{order:-2;flex:none}.timeline-tools>.select-inline{order:-1}.timeline-page .gantt-corner{padding:0 8px 11px}.timeline-page .gantt-corner small{display:none}}
+
+
+/* Online entry prototype — UI only, not authentication */
+.entry-shell{min-height:100vh;background:#fafaff;color:#171d31;overflow:auto;position:relative;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+.entry-top{max-width:1200px;margin:auto;height:86px;padding:0 34px;display:flex;justify-content:space-between;align-items:center;gap:20px;position:relative;z-index:2}
+.entry-logo{display:flex;gap:10px;align-items:center;font-weight:850;letter-spacing:-.9px;font-size:23px;color:#182038;cursor:pointer}
+.entry-logo .brand-mark{height:36px;width:36px}
+.entry-nav{display:flex;align-items:center;gap:12px}
+.entry-button{border:1px solid #dedff0;border-radius:11px;background:#fff;padding:12px 20px;font-weight:750;color:#39445c;cursor:pointer;font-size:13px}
+.entry-button.primary{background:#7668e8;color:#fff;border-color:#7668e8;box-shadow:0 8px 25px #7365e828}
+.entry-button:hover{filter:brightness(.97)}
+.entry-main{max-width:1200px;margin:0 auto;min-height:calc(100vh - 160px);padding:42px 34px 90px;display:flex;align-items:center;gap:55px}
+.entry-copy{flex:1 1 500px;max-width:540px}
+.entry-label{display:inline-flex;gap:8px;align-items:center;background:#efecff;border:1px solid #e7e2ff;color:#6657d4;padding:8px 13px;border-radius:99px;font-size:11px;letter-spacing:.15px;font-weight:800}
+.entry-copy h1{font-size:clamp(41px,5vw,68px);letter-spacing:-3.6px;line-height:1.07;margin:22px 0;max-width:580px}
+.entry-copy h1 em{font-style:normal;color:#7869e7}
+.entry-copy p{font-size:16px;color:#67728a;line-height:1.8;max-width:470px;margin:0 0 30px}
+.entry-copy .entry-cta{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.entry-proof{display:flex;flex-wrap:wrap;gap:22px;margin-top:55px;color:#65718a;font-weight:650;font-size:12px}
+.entry-proof span{display:flex;align-items:center;gap:7px}.entry-proof svg{color:#6c60d3}
+.entry-preview{flex:1 1 490px;min-width:0;border:1px solid #e4e3ef;border-radius:22px;box-shadow:0 35px 95px #3b39731c;background:white;padding:15px;transform:rotate(-1deg);position:relative}
+.entry-preview:after{content:'';position:absolute;z-index:-1;left:10%;right:10%;bottom:-25px;height:45px;background:#a4a0ef50;filter:blur(32px)}
+.entry-preview-top{height:38px;display:flex;align-items:center;border-bottom:1px solid #f0f0f6;gap:8px;padding:0 13px;color:#697287;font-size:10px;font-weight:750}
+.preview-dot{height:7px;width:7px;border-radius:50%;background:#d9dbe7}
+.entry-preview-grid{padding:22px 17px;display:grid;grid-template-columns:105px 1fr;gap:0}
+.preview-axis{display:grid;grid-template-columns:repeat(6,1fr);text-align:center;color:#9ba3b2;font-size:10px;height:30px;border-bottom:1px solid #f0f2f8}
+.preview-row-label{height:48px;display:flex;align-items:center;font-weight:750;font-size:10px;color:#48536c;border-bottom:1px solid #f3f3f8;padding-left:4px}
+.preview-bar-row{position:relative;height:48px;border-bottom:1px solid #f3f3f8;background:repeating-linear-gradient(90deg,transparent 0,transparent calc(16.666% - 1px),#f0f1f6 calc(16.666% - 1px),#f0f1f6 16.666%)}
+.preview-bar{position:absolute;height:17px;top:15px;border-radius:5px;background:#8e85f0;box-shadow:0 2px 6px #7368da2a}.preview-bar.blue{background:#68a3dd}.preview-bar.mint{background:#64c6ab}.preview-bar.orange{background:#d4ac7b}
+.preview-milestone{position:absolute;left:75%;top:30px;bottom:18px;border-left:1px dashed #e8a0a6;pointer-events:none}.preview-milestone:before{content:'Release';position:absolute;color:#d48590;font-size:8px;top:-13px;left:-13px;font-weight:750}
+.entry-note{position:absolute;bottom:22px;left:0;right:0;text-align:center;color:#a1a7b5;font-size:11px}
+.auth-layout{max-width:1000px;margin:0 auto;display:grid;grid-template-columns:1fr 430px;align-items:center;gap:95px;min-height:calc(100vh - 140px);padding:30px 34px 80px}
+.auth-intro h1{font-size:48px;line-height:1.13;letter-spacing:-2.1px;margin:18px 0}.auth-intro p{color:#747f95;font-size:15px;line-height:1.8;max-width:390px}.auth-intro .entry-proof{display:grid;gap:17px;margin-top:42px}
+.auth-card{background:#fff;border:1px solid #e9e9f3;border-radius:22px;padding:38px;box-shadow:0 22px 70px #2b265614}
+.auth-card h2{font-size:26px;letter-spacing:-.9px;margin:0 0 9px}
+.auth-card .auth-description{color:#778198;font-size:13px;line-height:1.65;margin:0 0 26px}
+.auth-form label{font-weight:760;font-size:12px;color:#3f495f;display:block;margin:18px 0 8px}
+.auth-form input{height:44px;width:100%;border-radius:10px;border:1px solid #e0e4ee;padding:0 13px;background:#fff;color:#18223b;font-size:13px}
+.auth-form input:focus{outline:3px solid #d6d2ff;border-color:#968aff}
+.auth-form .auth-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.auth-form .auth-row label{margin:12px 0 8px}
+.auth-link{border:0;background:transparent;color:#6d5cdd;text-decoration:none;font-size:12px;font-weight:800;padding:0;cursor:pointer}
+.auth-submit{width:100%;margin:24px 0 0;padding:14px;background:#7365e8;color:white;font-size:13px;font-weight:800;border:0;border-radius:11px;cursor:pointer}
+.auth-bottom{text-align:center;font-size:12px;color:#777f93;margin:22px 0 0}.auth-bottom .auth-link{margin-left:4px}
+.auth-error{padding:11px 13px;background:#fff1f2;border:1px solid #ffd3d8;color:#c7435d;border-radius:9px;font-size:12px;margin:12px 0}
+.auth-hint{font-size:11px;color:#8992a2;line-height:1.5;margin-top:8px}
+.prototype-disclaimer{font-size:11px;color:#9a9fae;border-radius:9px;background:#f6f6fb;padding:11px 12px;line-height:1.5;margin-top:21px}
+.auth-feedback{font-size:12px;line-height:1.7;color:#6a7389}
+.auth-success{width:49px;height:49px;display:grid;place-items:center;background:#edfaf5;color:#39b48e;border-radius:15px;margin-bottom:18px}
+.entry-footer{max-width:1200px;margin:0 auto;padding:15px 34px 23px;border-top:1px solid #e8e9f1;color:#8a93a5;font-size:11px;display:flex;justify-content:space-between;gap:15px}
+.empty-workspace{height:100vh;overflow:auto;background:#fbfbff;display:flex;flex-direction:column;align-items:center}
+.empty-top{width:100%;height:72px;background:#fff;border-bottom:1px solid #ebedf5;display:flex;align-items:center;justify-content:space-between;padding:0 33px}
+.empty-content{flex:1;max-width:680px;padding:50px 20px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.empty-icon{height:82px;width:82px;border-radius:25px;background:#eae7ff;color:#7365e8;display:grid;place-items:center;margin-bottom:29px}
+.empty-content h1{font-size:41px;letter-spacing:-2px;margin:0 0 13px}.empty-content p{font-size:15px;line-height:1.8;color:#7b8599;margin:0 0 28px;max-width:490px}
+.empty-steps{display:flex;gap:20px;flex-wrap:wrap;color:#788397;font-size:12px;justify-content:center;margin-top:48px}.empty-steps b{color:#7365e8;margin-right:5px}
+.entry-shell .entry-button,.entry-shell .auth-submit{min-height:42px}
+@media(max-width:950px){.entry-main{flex-direction:column;align-items:flex-start;padding-top:30px;gap:36px}.entry-copy{flex-basis:auto}.entry-preview{width:100%;flex-basis:auto}.auth-layout{grid-template-columns:1fr;max-width:500px;gap:20px}.auth-intro{display:none}.entry-shell{min-width:0}.entry-copy h1{font-size:48px}}
+@media(max-width:600px){body:has(.entry-shell),body:has(.empty-workspace){min-width:0}.entry-top{height:70px;padding:0 19px}.entry-main{padding:28px 19px 70px}.entry-copy h1{font-size:42px;letter-spacing:-2px}.entry-preview-grid{grid-template-columns:90px 1fr}.auth-layout{padding:16px 17px 60px}.auth-card{padding:25px}.entry-footer{padding:15px 20px}.entry-nav{gap:6px}.entry-button{padding:10px 14px}.empty-top{padding:0 16px}.empty-content h1{font-size:32px}.empty-steps{gap:12px}}
+
+</style>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="toast-root" aria-live="polite"></div>
+  <script>
+(() => {
+'use strict';
+const STORAGE='orbit-roadmap-v1', PROJECTS_STORAGE='orbit-projects-v1', DAY=86400000;
+
+const DEMO_ACCOUNT_KEY='orbit-ui-demo-accounts-v1', DEMO_SESSION_KEY='orbit-ui-demo-session-v1';
+let authEmail='',authPage='landing',authError='',authResetAddress='';
+try{const saved=sessionStorage.getItem(DEMO_SESSION_KEY);if(saved){authEmail=saved;authPage='app'}}catch(e){}
+const authWorkspaceKey=email=>'orbit-ui-demo-workspace:'+String(email).toLowerCase();
+function getDemoAccounts(){try{return JSON.parse(localStorage.getItem(DEMO_ACCOUNT_KEY)||'[]')||[]}catch(e){return []}}
+function authBrand(){return `<span class="entry-logo" data-action="auth-landing"><span class="brand-mark">${icon('target',20)}</span>orbit</span>`}
+function landingPreview(){return `<div class="entry-preview" aria-label="Illustrative roadmap preview"><div class="entry-preview-top"><span class="preview-dot"></span><span class="preview-dot"></span><span class="preview-dot"></span><span style="margin-left:12px">Product roadmap <span style="color:#b7bcc9">/</span> Q4 planning</span></div><div class="entry-preview-grid"><div></div><div class="preview-axis"><span>OCT</span><span>NOV</span><span>DEC</span><span>JAN</span><span>FEB</span><span>MAR</span></div>${[['Registration',6,50,''],['Payment flow',22,48,'blue'],['User profiles',40,42,'mint'],['Analytics',56,37,'orange'],['Launch readiness',68,22,'']].map(([name,left,width,shade])=>`<div class="preview-row-label">${name}</div><div class="preview-bar-row"><span class="preview-bar ${shade}" style="left:${left}%;width:${width}%"></span></div>`).join('')}</div><span class="preview-milestone"></span></div>`}
+function authMarkup(){if(authPage==='landing')return `<div class="entry-shell"><header class="entry-top">${authBrand()}<div class="entry-nav"><button class="entry-button" data-action="auth-signin">Log in</button><button class="entry-button primary" data-action="auth-signup">Get started</button></div></header><main class="entry-main"><div class="entry-copy"><span class="entry-label">✦ A smarter way to plan delivery</span><h1>Roadmaps that <em>adapt to reality.</em></h1><p>Plan features, people, and dependencies in one place. Orbit adjusts your timeline around meetings, time off, and your team's real capacity.</p><div class="entry-cta"><button class="entry-button primary" data-action="auth-signup">Start planning ${icon('chevron',16)}</button><button class="entry-button" data-action="auth-sample">Explore sample roadmap</button></div><div class="entry-proof"><span>${icon('timeline',16)} One live timeline</span><span>${icon('users',16)} Capacity-aware</span><span>${icon('refresh',16)} Dates that adapt</span></div></div>${landingPreview()}</main><footer class="entry-footer"><span>Orbit · Product roadmap planning</span><span>Interactive prototype · not a live hosted product</span></footer></div>`;
+const pages={signup:['Create your account','Get started with Orbit. No credit card, no complicated setup.'],signin:['Welcome back','Log in to continue planning your roadmap.'],forgot:['Reset your password','Enter your email and we’ll show you the reset flow.'],sent:['Check your inbox','This preview demonstrates the email recovery flow.'],reset:['Choose a new password','Create a new password to continue.'],resetdone:['Password updated','Your password reset flow is complete.']};let [title,desc]=pages[authPage]||pages.signin;
+let fields='';
+if(authPage==='signup')fields=`<label for="authEmail">Email address</label><input id="authEmail" type="email" autocomplete="email" name="email" placeholder="you@company.com" required><label for="authPassword">Password</label><input id="authPassword" type="password" autocomplete="new-password" name="password" minlength="8" maxlength="128" placeholder="Minimum 8 characters" required><div class="auth-hint">At least 8 characters, including letters and numbers.</div><label for="authConfirm">Confirm password</label><input id="authConfirm" type="password" autocomplete="new-password" name="confirm" placeholder="Repeat your password" required>`;
+else if(authPage==='signin')fields=`<label for="authEmail">Email address</label><input id="authEmail" type="email" autocomplete="email" name="email" placeholder="you@company.com" required><div class="auth-row"><label for="authPassword">Password</label><button type="button" class="auth-link" data-action="auth-forgot">Forgot password?</button></div><input id="authPassword" type="password" autocomplete="current-password" name="password" required placeholder="Your password">`;
+else if(authPage==='forgot')fields=`<label for="authEmail">Email address</label><input id="authEmail" type="email" autocomplete="email" name="email" placeholder="you@company.com" required>`;
+else if(authPage==='reset')fields=`<label for="authPassword">New password</label><input id="authPassword" type="password" autocomplete="new-password" name="password" minlength="8" maxlength="128" required placeholder="Minimum 8 characters"><div class="auth-hint">At least 8 characters, including letters and numbers.</div><label for="authConfirm">Confirm password</label><input id="authConfirm" type="password" autocomplete="new-password" name="confirm" required placeholder="Repeat the new password">`;
+let actions={signup:'Create account',signin:'Log in',forgot:'Continue',reset:'Reset password'};
+let form=actions[authPage]?`<form class="auth-form" id="authForm" data-auth-form="${authPage}">${authError?`<div class="auth-error" role="alert">${esc(authError)}</div>`:''}${fields}<button class="auth-submit" type="submit">${actions[authPage]} ${icon('chevron',15)}</button></form>`:'';
+let success=authPage==='sent'?`<div class="auth-success">${icon('check',23)}</div><p class="auth-feedback">If an account exists for <b>${esc(authResetAddress)}</b>, a real app would email a time-limited reset link. No message is sent from this local UI prototype.</p><button class="auth-submit" data-action="auth-preview-reset">Preview reset link</button>`:authPage==='resetdone'?`<div class="auth-success">${icon('check',23)}</div><button class="auth-submit" data-action="auth-signin">Go to log in</button>`:'';
+let bottom=authPage==='signup'?`Already have an account? <button class="auth-link" data-action="auth-signin">Log in</button>`:authPage==='signin'?`New to Orbit? <button class="auth-link" data-action="auth-signup">Sign up</button>`:`<button class="auth-link" data-action="auth-signin">← Back to log in</button>`;
+return `<div class="entry-shell"><header class="entry-top">${authBrand()}<div class="entry-nav"><button class="entry-button" data-action="auth-landing">Back to website</button></div></header><main class="auth-layout"><div class="auth-intro"><span class="entry-label">✦ Your planning workspace</span><h1>Less planning overhead.<br>More clarity.</h1><p>Keep your team, roadmap, and delivery dates together. Your first project starts with a simple two-step setup.</p><div class="entry-proof"><span>${icon('check',16)} Effort-based planning</span><span>${icon('check',16)} Recurring meetings and holidays</span><span>${icon('check',16)} Gantt and resource capacity</span></div></div><section class="auth-card"><h2>${title}</h2><p class="auth-description">${desc}</p>${form}${success}<p class="auth-bottom">${bottom}</p><div class="prototype-disclaimer"><strong>UI prototype only.</strong> Authentication and email delivery are simulated. Use a test email and test password only; no password is stored or verified.</div></section></main><footer class="entry-footer"><span>Orbit · Adaptive Roadmap Planner</span><span>Preview · not production authentication</span></footer></div>`;
+}
+function welcomeMarkup(){return `<div class="empty-workspace"><header class="empty-top">${authBrand()}<div style="display:flex;gap:14px;align-items:center"><span style="color:#8590a4;font-size:12px">${esc(authEmail)}</span><button class="entry-button" data-action="auth-logout">Log out</button></div></header><main class="empty-content"><div class="empty-icon">${icon('layers',38)}</div><span class="entry-label">Your workspace is ready</span><h1>Let's create your first project.</h1><p>Give your project a name, add your team and their roles, then reserve recurring meeting time. Both setup steps are optional, and you can adjust everything later.</p><button class="entry-button primary" data-action="new-project">${icon('plus',16)} Create your first project</button><div class="empty-steps"><span><b>01</b> Create project</span><span><b>02</b> Add team</span><span><b>03</b> Add meetings</span><span><b>04</b> Open roadmap</span></div></main></div>`;}
+function activateDemoUser(email,sample=false){
+ authEmail=email;authPage='app';authError='';
+ try{sessionStorage.setItem(DEMO_SESSION_KEY,email)}catch(e){}
+ let saved;try{saved=JSON.parse(localStorage.getItem(authWorkspaceKey(email))||'null')}catch(e){}
+ if(saved&&Array.isArray(saved.projects))workspace=saved;
+ else if(sample)workspace={version:1,activeId:'project-atlas',projects:[{id:'project-atlas',name:'Project Atlas',data:seed()}]};
+ else workspace={version:1,activeId:null,projects:[]};
+ let project=workspace.projects.find(p=>p.id===workspace.activeId)||workspace.projects[0];
+ if(project){workspace.activeId=project.id;data=project.data;}else{data=newProjectData();}
+ migrateTeam();view.setupStep=0;view.modal=null;view.drawer=null;view.page='timeline';view.filterPerson='';view.filterPlatform='';view.iteration=data.iterations[0]?.id;
+ if(project)persist();render();
+}
+function handleAuthForm(form){const F=new FormData(form),route=String(form.dataset.authForm),email=String(F.get('email')||'').trim().toLowerCase(),password=String(F.get('password')||''),confirm=String(F.get('confirm')||'');
+ const badPwd=()=>password.length<8||!/[a-zA-Z]/.test(password)||!/[0-9]/.test(password);
+ authError='';
+ if(route==='signup'){
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))authError='Enter a valid email address.';
+  else if(getDemoAccounts().some(a=>a.email===email))authError='This demo email already exists. Try logging in.';
+  else if(badPwd())authError='Use 8–128 characters, including at least one letter and one number.';
+  else if(password!==confirm)authError='Passwords do not match.';
+  if(!authError){const accounts=getDemoAccounts();accounts.push({email,createdAt:new Date().toISOString()});try{localStorage.setItem(DEMO_ACCOUNT_KEY,JSON.stringify(accounts))}catch(e){}activateDemoUser(email);return;}
+ }else if(route==='signin'){
+  if(!getDemoAccounts().some(a=>a.email===email))authError='No demo account found for this email. Create an account first.';
+  else if(!password)authError='Enter a test password.';
+  if(!authError){activateDemoUser(email);return;}
+ }else if(route==='forgot'){
+  authResetAddress=email;authPage='sent';render();return;
+ }else if(route==='reset'){
+  if(badPwd())authError='Use 8–128 characters, including at least one letter and one number.';
+  else if(password!==confirm)authError='Passwords do not match.';
+  if(!authError){authPage='resetdone';render();return;}
+ }
+ render();
+}
+
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num=(n,dp=0)=>Number(n||0).toFixed(dp).replace(/\.0+$/,'');
+const asDay=s=>{let [y,m,d]=String(s).split('-').map(Number);return Math.floor(Date.UTC(y,m-1,d)/DAY)};
+const fromDay=n=>new Date(n*DAY).toISOString().slice(0,10);
+const addDays=(s,n)=>fromDay(asDay(s)+n);
+const dow=n=>new Date(n*DAY).getUTCDay();
+const dmy=s=>new Date(asDay(s)*DAY).toLocaleDateString('uk-UA',{day:'numeric',month:'short',timeZone:'UTC'});
+const fullD=s=>new Date(asDay(s)*DAY).toLocaleDateString('uk-UA',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'});
+const dayName=s=>['Нд','Пн','Вт','Ср','Чт','Пт','Сб'][dow(asDay(s))];
+const today=()=>{let n=new Date();return [n.getFullYear(),String(n.getMonth()+1).padStart(2,'0'),String(n.getDate()).padStart(2,'0')].join('-')};
+const monday=s=>addDays(s,-((dow(asDay(s))+6)%7));
+const formatTime=n=>n===null?'—':`${Math.abs(n)} ${Math.abs(n)===1?'день':'дн.'}`;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const copy=obj=>JSON.parse(JSON.stringify(obj));
+const uid=p=>p+Math.random().toString(36).slice(2,9);
+function icon(name,sz=16){const paths={
+ menu:'<path d="M4 6h16M4 12h16M4 18h16"/>',
+ layers:'<path d="m12 3 9 5-9 5-9-5 9-5zm-9 9 9 5 9-5m-18 5 9 5 9-5"/>',
+ grid:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+ timeline:'<path d="M4 5v14M8 8h12M8 16h8"/><rect x="8" y="6" width="8" height="4" rx="1"/><rect x="8" y="14" width="12" height="4" rx="1"/>',
+ users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+ calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/>',
+ flag:'<path d="M4 22V4m0 1c6-5 10 5 16 0v12c-6 5-10-5-16 0"/>',
+ plus:'<path d="M12 5v14M5 12h14"/>',
+ chevron:'<path d="m9 18 6-6-6-6"/>',
+ chevrondown:'<path d="m6 9 6 6 6-6"/>',
+ chevronleft:'<path d="m15 18-6-6 6-6"/>',
+ more:'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
+ settings:'<path d="M12 8a4 4 0 1 0 0 8 4 4 0 1 0 0-8"/><path d="M19 13.5V10.5l2-1.5-2-3.5-2.5 1a9 9 0 0 0-2.5-1.5L13.5 2h-3L10 5a9 9 0 0 0-2.5 1.5L5 5.5 3 9l2 1.5v3L3 15l2 3.5 2.5-1a9 9 0 0 0 2.5 1.5l.5 3h3l.5-3a9 9 0 0 0 2.5-1.5l2.5 1L21 15z"/>',
+ refresh:'<path d="M20 11a8 8 0 0 0-14-5L4 8M4 4v4h4M4 13a8 8 0 0 0 14 5l2-2m0 4v-4h-4"/>',
+ download:'<path d="M12 3v12m-4-4 4 4 4-4M4 17v4h16v-4"/>',
+ upload:'<path d="M12 21V9m-4 4 4-4 4 4M4 7V3h16v4"/>',
+ check:'<path d="m5 12 5 5L20 7"/>',
+ warning:'<path d="m12 3 10 18H2z"/><path d="M12 9v5m0 3v.5"/>',
+ info:'<circle cx="12" cy="12" r="10"/><path d="M12 11v6m0-10v1"/>',
+ bolt:'<path d="m13 2-9 12h7l-1 8 10-12h-7z"/>',
+ clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l4 3"/>',
+ sliders:'<path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3" fill="white"/><circle cx="16" cy="17" r="3" fill="white"/>',
+ close:'<path d="M18 6 6 18M6 6l12 12"/>',
+ search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>',
+ lock:'<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
+ edit:'<path d="m16 4 4 4-12 12H4v-4L16 4z"/>',
+ trash:'<path d="M3 6h18M8 6V4h8v2M5 6l1 15h12l1-15M10 11v6m4-6v6"/>',
+ pause:'<rect x="5" y="4" width="5" height="16" rx="1"/><rect x="14" y="4" width="5" height="16" rx="1"/>',
+ play:'<path d="m7 4 14 8-14 8z"/>',
+ target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+ vacation:'<path d="M2 20h20M12 20V9m-8 7a8 8 0 0 1 16 0M8 20l-2-4m10 4 2-4"/>',
+ suitcase:'<rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V4h8v3M3 13h18"/>',
+ heart:'<path d="M20.8 4.6a5 5 0 0 0-7.1 0L12 6.3l-1.7-1.7a5 5 0 0 0-7.1 7.1L12 20.4l8.8-8.7a5 5 0 0 0 0-7.1z"/>',
+ move:'<path d="M12 2v20M2 12h20m-6-6 6 6-6 6M6 6 0 12l6 6M6 6l6-6 6 6M6 18l6 6 6-6"/>',
+ save:'<path d="M4 3h14l3 3v15H3V3h1m4 0v6h8V3M7 21v-9h10v9"/>',
+ copy:'<rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/>',
+ link:'<path d="M10 13a5 5 0 0 0 8 .5l2-2a5 5 0 0 0-7-7l-2 2M14 11a5 5 0 0 0-8-.5l-2 2a5 5 0 0 0 7 7l2-2"/>',
+ eye:'<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'};return `<svg width="${sz}" height="${sz}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name]||paths.info}</svg>`;}
+const colorList=['#7769e6','#468ec9','#45a992','#d89464','#ba82ca','#df8399'];
+function initials(s){return String(s||'').split(' ').map(x=>x[0]||'').slice(0,2).join('').toUpperCase()}
+function getPerson(id){return data.people.find(p=>p.id===id)}
+function getFeature(id){return data.features.find(f=>f.id===id)}
+function getTask(id){return data.tasks.find(t=>t.id===id)}
+function personAvatar(id,cls='tiny-avatar'){let p=getPerson(id);return p?`<span class="${cls}" style="background:${p.color}" title="${esc(p.name)}">${esc(initials(p.name))}</span>`:`<span class="${cls} none" title="Не призначено">?</span>`}
+const statusLabels={planned:'Planned',progress:'In Progress',hold:'On Hold',done:'Done'};
+function seed(){
+ const base=addDays(monday(today()),7), at=n=>addDays(base,n); // first upcoming Monday
+ const people=[
+ {id:'u1',name:'Святослав',role:'Backend developer',platform:'Backend',color:'#508fd0',capacity:{feature:55,bugs:15,ongoing:20,ops:10}},
+ {id:'u2',name:'Ігор',role:'Frontend developer',platform:'Frontend',color:'#826ed6',capacity:{feature:60,bugs:15,ongoing:15,ops:10}},
+ {id:'u3',name:'Артем',role:'QA engineer',platform:'QA',color:'#3fb194',capacity:{feature:65,bugs:15,ongoing:10,ops:10}},
+ {id:'u4',name:'Катерина',role:'Frontend developer',platform:'Frontend',color:'#cc85b8',capacity:{feature:55,bugs:20,ongoing:15,ops:10}},
+ {id:'u5',name:'Денис',role:'Backend developer',platform:'Backend',color:'#d5956b',capacity:{feature:60,bugs:15,ongoing:15,ops:10}}
+ ];
+ const features=[
+ {id:'f1',title:'Sign-up & authentication',description:'Email registration, social providers and QA validation.',start:at(0),baseline:at(24),collapsed:false,color:'#7567df'},
+ {id:'f2',title:'Dictionary management',description:'Organization and user dictionaries in one interface.',start:at(7),baseline:at(34),collapsed:false,color:'#518ed5'},
+ {id:'f3',title:'In-app feedback',description:'Collect and review product feedback.',start:at(-7),baseline:at(23),collapsed:false,color:'#4caf9b'},
+ {id:'f4',title:'Analytics dashboard',description:'Product usage and insights.',start:at(14),baseline:at(45),collapsed:true,color:'#d99b69'}
+ ];
+ const tasks=[
+ {id:'t1',featureId:'f1',title:'Email registration API',platform:'Backend',assignee:'u1',effort:3,start:at(0),dependsOn:[],status:'progress'},
+ {id:'t2',featureId:'f1',title:'Sign-up screens & validation',platform:'Frontend',assignee:'u2',effort:4,start:at(0),dependsOn:[],status:'progress'},
+ {id:'t3',featureId:'f1',title:'Social OAuth providers',platform:'Backend',assignee:'u1',effort:2,start:at(0),dependsOn:['t1'],status:'planned'},
+ {id:'t4',featureId:'f1',title:'E2E tests & regression',platform:'QA',assignee:'u3',effort:2,start:at(0),dependsOn:['t2','t3'],status:'planned'},
+ {id:'t5',featureId:'f2',title:'Dictionary permissions API',platform:'Backend',assignee:'u5',effort:4,start:at(7),dependsOn:[],status:'planned'},
+ {id:'t6',featureId:'f2',title:'Dictionary admin UI',platform:'Frontend',assignee:'u4',effort:5,start:at(7),dependsOn:['t5'],status:'planned'},
+ {id:'t7',featureId:'f2',title:'Functional QA',platform:'QA',assignee:'u3',effort:2,start:at(7),dependsOn:['t6'],status:'planned'},
+ {id:'t8',featureId:'f3',title:'Feedback backend',platform:'Backend',assignee:'u5',effort:2,start:at(-7),dependsOn:[],status:'done',completedDate:at(-4)},
+ {id:'t9',featureId:'f3',title:'Feedback popup',platform:'Frontend',assignee:'u2',effort:2.5,start:at(3),dependsOn:['t8'],status:'planned'},
+ {id:'t10',featureId:'f3',title:'Feedback QA',platform:'QA',assignee:'u3',effort:1.5,start:at(7),dependsOn:['t9'],status:'planned'},
+ {id:'t11',featureId:'f4',title:'Metrics event pipeline',platform:'Backend',assignee:'u1',effort:4,start:at(14),dependsOn:[],status:'planned'},
+ {id:'t12',featureId:'f4',title:'Dashboard visualizations',platform:'Frontend',assignee:'u4',effort:5,start:at(14),dependsOn:['t11'],status:'planned'},
+ {id:'t13',featureId:'f4',title:'Legacy metrics importer',platform:'Backend',assignee:'u5',effort:3,start:at(14),dependsOn:[],status:'hold'}
+ ];
+ const meetings=[
+ {id:'mt1',title:'Daily team sync',recurrence:'workdays',weekday:1,interval:1,nth:1,startDate:at(0),endDate:'',startTime:'09:30',duration:15,allTeam:true,attendees:[],enabled:true},
+ {id:'mt2',title:'Sprint planning',recurrence:'interval',weekday:1,interval:2,nth:1,startDate:at(0),endDate:'',startTime:'10:00',duration:60,allTeam:true,attendees:[],enabled:true},
+ {id:'mt3',title:'Language models sync',recurrence:'weekly',weekday:4,interval:1,nth:1,startDate:at(0),endDate:'',startTime:'15:00',duration:30,allTeam:false,attendees:['u1','u5'],enabled:true}
+ ];
+ return {version:3,features,tasks,people,roles:[{id:'r1',name:'Backend Developer',platform:'Backend'},{id:'r2',name:'Frontend Developer',platform:'Frontend'},{id:'r3',name:'QA Engineer',platform:'QA'}],meetings,
+ leave:[{id:'l1',person:'u2',type:'vacation',from:at(8),to:at(11),note:'Запланована відпустка'}, {id:'l2',person:'u3',type:'sick',from:at(16),to:at(17),note:'Sick days'}, {id:'l3',person:'u1',type:'dayoff',from:at(4),to:at(4),note:'Personal day'}],
+ iterations:[{id:'i1',name:'Iteration 21',start:at(0),end:at(11),overrides:{}},{id:'i2',name:'Iteration 22',start:at(14),end:at(25),overrides:{}},{id:'i3',name:'Iteration 23',start:at(28),end:at(39),overrides:{}}],
+ milestones:[{id:'m1',title:'Release 2.5',date:at(25),color:'#ad72ca',featureIds:['f1','f3']},{id:'m2',title:'Stakeholder demo',date:at(38),color:'#aa77bb',featureIds:['f2']}],
+ holidays:[{date:'2026-10-01',name:'День захисників і захисниць України'},{date:'2026-12-25',name:'Різдво'},{date:'2027-01-01',name:'Новий рік'},{date:'2027-03-08',name:'Міжнародний жіночий день'}],
+ settings:{observeHolidays:true,defaultCapacity:{feature:55,bugs:15,ongoing:20,ops:10},workHours:8},createdAt:today()};
+}
+// Existing single-project data is migrated on first launch, without changing that project's roadmap.
+let workspace,data;
+try{
+ workspace=JSON.parse(localStorage.getItem(PROJECTS_STORAGE));
+ if(!workspace||!Array.isArray(workspace.projects)||!workspace.projects.length)throw Error('invalid projects');
+ const selected=workspace.projects.find(p=>p.id===workspace.activeId)||workspace.projects[0];
+ workspace.activeId=selected.id;data=selected.data;
+ if(!data?.features||!data?.tasks||!data?.people)throw Error('invalid project data');
+}catch(e){
+ let original;
+ try{original=JSON.parse(localStorage.getItem(STORAGE));if(!original?.people||!original?.tasks||!original?.features)throw Error('invalid')}catch(err){original=seed()}
+ workspace={version:1,activeId:'project-atlas',projects:[{id:'project-atlas',name:'Project Atlas',data:original}]};data=original;
+}
+if(!Array.isArray(data.meetings))data.meetings=[];
+function currentProject(){return workspace.projects.find(p=>p.id===workspace.activeId)}
+function newProjectData(){
+ const start=monday(today());return {version:4,features:[],tasks:[],people:[],roles:[],meetings:[],leave:[],
+ iterations:[{id:uid('i'),name:'Iteration 1',start,end:addDays(start,13),overrides:{}},{id:uid('i'),name:'Iteration 2',start:addDays(start,14),end:addDays(start,27),overrides:{}}],
+ milestones:[],holidays:copy(seed().holidays),settings:{observeHolidays:true,defaultCapacity:{feature:55,bugs:15,ongoing:20,ops:10},workHours:8},createdAt:today()};
+}
+function guessPlatform(role){
+ let r=role.toLowerCase().trim();
+ if(/(back.?end|server.side)/.test(r))return 'Backend';
+ if(/(front.?end|ui developer|web developer)/.test(r))return 'Frontend';
+ if(/(android)/.test(r))return 'Android';
+ if(/(ios|swift)/.test(r))return 'iOS';
+ if(/(qa|quality assurance|test engineer|tester|sdet)/.test(r))return 'QA';
+ if(/(devops|sre|infrastructure)/.test(r))return 'DevOps';
+ if(/(design|ux|ui artist)/.test(r))return 'Design';
+ if(/(data|ml|machine learning|ai engineer)/.test(r))return 'Data / ML';
+ if(/(product manag|product owner)/.test(r))return 'Product';
+ return role.trim(); // new free-text roles also become usable workstreams
+}
+function migrateTeam(){
+ if(!Array.isArray(data.roles)){
+  const roles=new Map();
+  data.people.forEach(p=>{const name=p.role||p.platform||'Team member',platform=p.platform||name,key=name.toLowerCase()+'|'+platform.toLowerCase();if(!roles.has(key))roles.set(key,{id:uid('r'),name,platform});p.roleId=roles.get(key).id});
+  data.roles=[...roles.values()];
+ }
+ data.people.forEach(p=>{
+  if(!p.roleId){let r=data.roles.find(r=>r.name===p.role&&r.platform===p.platform)||data.roles.find(r=>r.platform===p.platform);if(r)p.roleId=r.id}
+  let r=data.roles.find(r=>r.id===p.roleId);if(r){p.role=r.name;p.platform=r.platform}
+  if(p.firstName===undefined){const parts=String(p.name||'').trim().split(/\s+/);p.firstName=parts.shift()||'';p.lastName=parts.join(' ')}
+  if(!p.capacity)p.capacity=copy(data.settings.defaultCapacity);
+ });
+}
+migrateTeam(); // previous snapshots continue working, including their tasks and capacity
+
+const UI_STORAGE='orbit-view-preferences-v2';
+const SCALES={day:{label:'Days',zoom:38,days:91},week:{label:'Weeks',zoom:14,days:224},month:{label:'Months',zoom:5,days:640},quarter:{label:'Quarters',zoom:2.2,days:1150},year:{label:'Years',zoom:1.05,days:2192}};
+let uiPreferences={};try{uiPreferences=JSON.parse(localStorage.getItem(UI_STORAGE)||'{}')||{}}catch(e){}
+const initialScale=SCALES[uiPreferences.scale]?uiPreferences.scale:'day';
+let view={page:'timeline',scale:initialScale,zoom:SCALES[initialScale].zoom,rangeStart:alignScaleStart(today(),initialScale),days:SCALES[initialScale].days,sidebarHidden:typeof uiPreferences.sidebarHidden==='boolean'?uiPreferences.sidebarHidden:window.innerWidth<=600,filterPerson:'',filterPlatform:'',scaleFocusDate:today(),scrollToStart:false,iteration:data.iterations[0]?.id,drawer:null,modal:null,toast:null,showOnlyRisks:false,drag:null,setupStep:0};
+function saveUiPreferences(){try{localStorage.setItem(UI_STORAGE,JSON.stringify({sidebarHidden:view.sidebarHidden,scale:view.scale}))}catch(e){}}
+function alignScaleStart(date,scale){let d=new Date(asDay(date)*DAY);if(scale==='day'||scale==='week')return monday(date);let year=d.getUTCFullYear(),month=d.getUTCMonth();if(scale==='month')return fromDay(Date.UTC(year,month,1)/DAY);if(scale==='quarter')return fromDay(Date.UTC(year,Math.floor(month/3)*3,1)/DAY);return fromDay(Date.UTC(year,0,1)/DAY)}
+function setScale(scale){if(!SCALES[scale])return;view.scale=scale;view.zoom=SCALES[scale].zoom;view.days=SCALES[scale].days;view.rangeStart=alignScaleStart(view.scaleFocusDate||today(),scale);view.scrollToStart=true;saveUiPreferences();render()}
+function moveTimeline(direction){let d=new Date(asDay(view.rangeStart)*DAY),s=view.scale;if(s==='day'||s==='week')view.rangeStart=addDays(view.rangeStart,direction*(s==='day'?14:28));else{let jump=s==='month'?3:s==='quarter'?6:12;d.setUTCMonth(d.getUTCMonth()+direction*jump);view.rangeStart=fromDay(d.getTime()/DAY)}view.scaleFocusDate=view.rangeStart;view.scrollToStart=true;render()}
+
+function persist(){try{const current=currentProject();if(current)current.data=data;if(authEmail)localStorage.setItem(authWorkspaceKey(authEmail),JSON.stringify(workspace));else localStorage.setItem(PROJECTS_STORAGE,JSON.stringify(workspace))}catch(e){}}
+function switchProject(id){
+ const project=workspace.projects.find(p=>p.id===id);if(!project)return;
+ persist();workspace.activeId=id;data=project.data;data.meetings||=[];migrateTeam();
+ view.page='timeline';view.iteration=data.iterations[0]?.id;view.drawer=null;view.modal=null;view.setupStep=0;view.rangeStart=alignScaleStart(today(),view.scale);view.scaleFocusDate=today();view.scrollToStart=true;view.showOnlyRisks=false;view.filterPerson='';view.filterPlatform='';
+ persist();render();notify('Switched to '+project.name);
+}
+// Reuse setup from a different project without cloning its roadmap, work items, leave or milestones.
+const normalized=s=>String(s||'').trim().toLocaleLowerCase();
+const personKey=p=>normalized(p.name||[p.firstName,p.lastName].filter(Boolean).join(' '));
+function sourceProjectOptions(){
+ return workspace.projects.filter(p=>p.id!==workspace.activeId).map(p=>`<option value="${esc(p.id)}">${esc(p.name)} · ${p.data.people.length} people, ${(p.data.meetings||[]).length} meetings</option>`).join('');
+}
+function teamIdMap(source){
+ const result=new Map();
+ (source.data.people||[]).forEach(person=>{const match=data.people.find(p=>personKey(p)===personKey(person));if(match)result.set(person.id,match.id)});
+ return result;
+}
+function copyTeamSetup(source){
+ const roles=source.data.roles||[],roleMap=new Map();let membersAdded=0,rolesAdded=0;
+ roles.forEach(r=>{
+  let dest=data.roles.find(x=>normalized(x.name)===normalized(r.name)&&normalized(x.platform)===normalized(r.platform));
+  if(!dest){dest={...copy(r),id:uid('r')};data.roles.push(dest);rolesAdded++}
+  roleMap.set(r.id,dest);
+ });
+ (source.data.people||[]).forEach(person=>{
+  if(data.people.some(p=>personKey(p)===personKey(person)))return;
+  let role=roleMap.get(person.roleId)||data.roles.find(r=>normalized(r.name)===normalized(person.role)&&normalized(r.platform)===normalized(person.platform));
+  if(!role){role={id:uid('r'),name:person.role||person.platform||'Team member',platform:person.platform||guessPlatform(person.role||'Team member')};data.roles.push(role);rolesAdded++}
+  const first=person.firstName??String(person.name||'').trim().split(/\s+/)[0]??'';
+  const last=person.lastName??String(person.name||'').trim().split(/\s+/).slice(1).join(' ');
+  data.people.push({...copy(person),id:uid('u'),name:person.name||[first,last].filter(Boolean).join(' '),firstName:first,lastName:last,roleId:role.id,role:role.name,platform:role.platform,capacity:copy(person.capacity||source.data.settings?.defaultCapacity||data.settings.defaultCapacity)});
+  membersAdded++;
+ });
+ return {membersAdded,rolesAdded};
+}
+function copyMeetingSetup(source){
+ let meetingsAdded=0,needsReview=0;const ids=teamIdMap(source);
+ (source.data.meetings||[]).forEach(mt=>{
+  if(data.meetings.some(m=>m.copiedFromProjectId===source.id&&m.copiedFromMeetingId===mt.id))return;
+  // This fallback also avoids duplicates when the same event was created manually.
+  if(data.meetings.some(m=>normalized(m.title)===normalized(mt.title)&&m.recurrence===mt.recurrence&&m.startTime===mt.startTime&&m.startDate===mt.startDate))return;
+  let people=(mt.attendees||[]),attendees=[...new Set(people.map(pid=>ids.get(pid)).filter(Boolean))];
+  const unmatched=!mt.allTeam&&attendees.length!==people.length;
+  data.meetings.push({...copy(mt),id:uid('mt'),attendees,enabled:unmatched?false:mt.enabled!==false,requiresAttendeeReview:unmatched,copiedFromProjectId:source.id,copiedFromMeetingId:mt.id});
+  meetingsAdded++;if(unmatched)needsReview++;
+ });
+ return {meetingsAdded,needsReview};
+}
+function importSetup(sourceId,includeTeam,includeMeetings){
+ const source=workspace.projects.find(p=>p.id===sourceId&&p.id!==workspace.activeId);
+ if(!source)return null;
+ const result={membersAdded:0,rolesAdded:0,meetingsAdded:0,needsReview:0};
+ if(includeTeam)Object.assign(result,copyTeamSetup(source));
+ if(includeMeetings)Object.assign(result,copyMeetingSetup(source));
+ return result;
+}
+function importSummary(result){
+ if(!result)return 'Choose a source project';
+ let details=[];
+ if(result.membersAdded)details.push(`${result.membersAdded} team member(s)`);
+ if(result.rolesAdded)details.push(`${result.rolesAdded} role(s)`);
+ if(result.meetingsAdded)details.push(`${result.meetingsAdded} meeting(s)`);
+ if(!details.length)details.push('Nothing new to copy · duplicates skipped');
+ if(result.needsReview)details.push(`${result.needsReview} paused meeting(s) need attendee review`);
+ return 'Copied: '+details.join(' · ');
+}
+function createProject(name,sourceId='',includeTeam=false,includeMeetings=false){
+ const p={id:uid('proj'),name,data:newProjectData()};workspace.projects.push(p);workspace.activeId=p.id;data=p.data;
+ const copied=sourceId?importSetup(sourceId,includeTeam,includeMeetings):null;
+ view.page='timeline';view.iteration=data.iterations[0].id;view.drawer=null;view.modal=null;view.setupStep=1;view.rangeStart=monday(today());view.showOnlyRisks=false;
+ persist();render();if(copied)notify(importSummary(copied));
+}
+
+function notify(msg){let root=$('#toast-root');if(!root)return;root.innerHTML=`<div class="toast">${icon('check',16)} ${esc(msg)}</div>`;clearTimeout(notify.t);notify.t=setTimeout(()=>root.innerHTML='',2900)}
+function isHoliday(n){return data.settings.observeHolidays&&data.holidays.some(h=>asDay(h.date)===n)}
+function nonwork(n,person){if(dow(n)===0||dow(n)===6||isHoliday(n))return true;return !!person&&data.leave.some(l=>l.person===person&&n>=asDay(l.from)&&n<=asDay(l.to))}
+function nextWork(n,person){let j=0;while(nonwork(n,person)&&j++<550)n++;return n}
+function capacityParts(pid,date){const p=getPerson(pid),base=p?.capacity||data.settings.defaultCapacity,iter=data.iterations.find(i=>asDay(i.start)<=asDay(date)&&asDay(i.end)>=asDay(date));return iter?.overrides?.[pid]||base}
+// Meetings are reserved before capacity allocation. Ops % represents other overhead,
+// so regular calendar meetings must NOT also be included in the ops percentage.
+const meetingDayCache=new Map();
+function meetingOccurs(m,date){
+ if(!m.enabled||!m.startDate||date<m.startDate||(m.endDate&&date>m.endDate))return false;
+ const n=asDay(date),day=dow(n);
+ if(m.recurrence==='workdays')return day>=1&&day<=5;
+ if(m.recurrence==='monthly'){
+  if(day!==Number(m.weekday))return false;
+  const dayOfMonth=Number(date.slice(8)),ordinal=Math.ceil(dayOfMonth/7);
+  if(Number(m.nth)===-1)return fromDay(n+7).slice(0,7)!==date.slice(0,7);
+  return ordinal===Number(m.nth);
+ }
+ if(day!==Number(m.weekday))return false;
+ const weeks=Math.floor((asDay(monday(date))-asDay(monday(m.startDate)))/7);
+ return weeks>=0&&weeks%Math.max(1,Number(m.recurrence==='interval'?m.interval:1)||1)===0;
+}
+function meetingMinutes(pid,date){
+ if(!pid)return 0;
+ const key=pid+':'+date;
+ if(meetingDayCache.has(key))return meetingDayCache.get(key);
+ const intervals=[];
+ for(const m of(data.meetings||[])){
+  if(!m.allTeam&&!(m.attendees||[]).includes(pid))continue;
+  if(!meetingOccurs(m,date))continue;
+  const [hour,min]=String(m.startTime||'09:00').split(':').map(Number),start=hour*60+min;
+  if(!Number.isFinite(start))continue;
+  intervals.push([start,start+Math.max(0,Number(m.duration)||0)]);
+ }
+ intervals.sort((a,b)=>a[0]-b[0]);
+ let total=0,earliest=null,latest=null;
+ for(const [start,end] of intervals){
+  if(earliest===null){earliest=start;latest=end}
+  else if(start<=latest)latest=Math.max(latest,end);
+  else{total+=latest-earliest;earliest=start;latest=end}
+ }
+ if(earliest!==null)total+=latest-earliest;
+ const result=Math.min(Math.max(0,total),Math.max(1,Number(data.settings.workHours)||8)*60);
+ meetingDayCache.set(key,result);return result;
+}
+function meetingHoursInIteration(pid,iteration){
+ let minutes=0;
+ for(let n=asDay(iteration.start);n<=asDay(iteration.end);n++){
+  if(!nonwork(n,pid))minutes+=meetingMinutes(pid,fromDay(n));
+ }
+ return minutes/60;
+}
+function featureCapacity(pid,date){
+ const hours=Math.max(1,Number(data.settings.workHours)||8);
+ const timeAfterMeetings=Math.max(0,(hours*60-meetingMinutes(pid,date))/(hours*60));
+ return Math.max(0,Number(capacityParts(pid,date).feature||0)/100)*timeAfterMeetings;
+}
+const weekDayLabels=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+function meetingRecurrenceLabel(m){
+ const day=weekDayLabels[Number(m.weekday)||1];
+ if(m.recurrence==='workdays')return 'Every working day';
+ if(m.recurrence==='monthly')return `${m.nth==-1?'Last':({1:'1st',2:'2nd',3:'3rd',4:'4th',5:'5th'}[Number(m.nth)]||'1st')} ${day} of each month`;
+ if(m.recurrence==='interval')return `Every ${Number(m.interval)||2} weeks · ${day}`;
+ return `Every ${day}`;
+}
+function meetingPeopleLabel(m){
+ return m.allTeam?'Entire team':(m.attendees||[]).map(id=>getPerson(id)?.name).filter(Boolean).join(', ')||'No attendees';
+}
+function calcSchedule(){meetingDayCache.clear();const schedule={},working=new Map(),errors=[];
+ function calc(t,depth=0,seen=new Set()){
+  if(schedule[t.id])return schedule[t.id];
+  if(depth>100||seen.has(t.id)){let s={start:null,end:null,blocked:true,reason:'Circular dependency',alloc:{}};schedule[t.id]=s;errors.push(t.id);return s}
+  seen=new Set(seen);seen.add(t.id);
+  if(t.status==='hold'){return (schedule[t.id]={start:asDay(t.start),end:null,hold:true,blocked:false,alloc:{}})}
+  let initial=asDay(t.start||getFeature(t.featureId)?.start||today());let depBlocked=false;
+  for(const depId of(t.dependsOn||[])){
+   const dep=getTask(depId);if(!dep)continue;
+   const info=calc(dep,depth+1,seen);
+   if(info.end===null){depBlocked=true;continue}
+   initial=Math.max(initial,info.end+1);
+  }
+  if(depBlocked)return (schedule[t.id]={start:initial,end:null,blocked:true,reason:'Waiting for dependency',alloc:{}});
+  let current=nextWork(initial,t.assignee),first=current,last=current,allocation={};
+  if(t.status==='done'){
+   last=asDay(t.completedDate||t.start);first=asDay(t.start);if(last<first)first=last;
+   return (schedule[t.id]={start:first,end:last,blocked:false,done:true,alloc:{}})
+  }
+  let remaining=Math.max(.1,Number(t.remaining??t.effort??1)),guard=0;
+  while(remaining>0.0001&&guard++<600){
+   if(!nonwork(current,t.assignee)){
+    if(Object.keys(allocation).length===0)first=current;
+    let available=t.assignee?featureCapacity(t.assignee,fromDay(current)):1;
+    const used=Math.min(available,remaining);
+    allocation[fromDay(current)]=used;remaining-=used;last=current;
+   }
+   if(remaining>0.0001)current++;
+  }
+  if(guard>=600){errors.push(t.id);return schedule[t.id]={start:first,end:null,blocked:true,reason:'Could not schedule',alloc:{}}}
+  for(let [date,effort] of Object.entries(allocation)){
+   const k=`${t.assignee||'_'}:${date}`;working.set(k,(working.get(k)||0)+effort)
+  }
+  return (schedule[t.id]={start:first,end:last,blocked:false,alloc:allocation});
+ }
+ data.tasks.forEach(t=>calc(t));
+ const conflicts={};for(let t of data.tasks){let p=schedule[t.id],bad=[];for(let dt of Object.keys(p?.alloc||{})){let val=working.get(`${t.assignee||'_'}:${dt}`)||0;if(t.assignee&&val>featureCapacity(t.assignee,dt)+.001)bad.push(dt)}if(bad.length)conflicts[t.id]=bad}
+ let featureInfo={};data.features.forEach(f=>{
+   let arr=data.tasks.filter(t=>t.featureId===f.id);
+   let entries=arr.map(t=>schedule[t.id]).filter(Boolean);
+   let blocked=entries.some(s=>s.blocked||s.hold),starts=entries.map(s=>s.start).filter(x=>x!==null),ends=entries.map(s=>s.end).filter(x=>x!==null);
+   let start=starts.length?Math.min(...starts):asDay(f.start),end=blocked?null:ends.length?Math.max(...ends):null;
+   let allDone=arr.length>0&&arr.every(t=>t.status==='done');
+   featureInfo[f.id]={start,end,blocked,allDone,atRisk:blocked||(end!==null&&end>asDay(f.baseline)),delta:end!==null?end-asDay(f.baseline):null}
+ });
+ return {schedule,conflicts,working,featureInfo,errors};
+}
+let computed=calcSchedule();
+function roleById(id){return data.roles.find(r=>r.id===id)}
+function platformNames(extra=''){return [...new Set([...data.roles.map(r=>r.platform).filter(Boolean),...data.tasks.map(t=>t.platform).filter(Boolean),...(extra?[extra]:[])])].sort((a,b)=>a.localeCompare(b))}
+function platformChoices(selected=''){return platformNames(selected).map(x=>[x,x])}
+function personOptions(selected='',includeNone=false,platform=null){
+ const people=platform?data.people.filter(p=>p.platform===platform):data.people;
+ return `${includeNone?'<option value="">Unassigned</option>':''}${people.map(p=>`<option value="${esc(p.id)}" ${p.id===selected?'selected':''}>${esc(p.name)} · ${esc(p.role)}</option>`).join('')}`;
+}
+function roleOptions(selected=''){return data.roles.map(r=>`<option value="${esc(r.id)}" ${r.id===selected?'selected':''}>${esc(r.name)} · ${esc(r.platform)}</option>`).join('')}
+function roleAssignmentCount(id){return data.people.filter(p=>p.roleId===id).length}
+
+const dateField=(label,key,value,extra='')=>`<div class="field"><label for="${key}">${label}</label><input type="date" id="${key}" name="${key}" value="${esc(value||today())}" ${extra}></div>`;
+const textField=(label,key,value,extra='')=>`<div class="field"><label for="${key}">${label}</label><input type="text" id="${key}" name="${key}" value="${esc(value||'')}" ${extra}></div>`;
+const numberField=(label,key,value,min=0,max=200,step='.5')=>`<div class="field"><label for="${key}">${label}</label><input type="number" id="${key}" name="${key}" value="${esc(value)}" min="${min}" max="${max}" step="${step}"></div>`;
+const selectField=(label,key,options,value)=>`<div class="field"><label for="${key}">${label}</label><select id="${key}" name="${key}">${options.map(o=>`<option value="${esc(o[0])}" ${o[0]===value?'selected':''}>${esc(o[1])}</option>`).join('')}</select></div>`;
+function workdayCount(a,b,pid){let x=0;for(let d=asDay(a);d<=asDay(b);d++){if(!nonwork(d,pid))x++}return x}
+function iter(){return data.iterations.find(i=>i.id===view.iteration)||data.iterations[0]}
+function resourceStats(pid,i=iter()){
+ const assigned=data.tasks.filter(t=>t.assignee===pid&&t.status!=='hold'&&t.status!=='done');let load=0,capacity=0;
+ for(let n=asDay(i.start);n<=asDay(i.end);n++){
+  let dt=fromDay(n);if(nonwork(n,pid))continue;
+  capacity+=featureCapacity(pid,dt);load+=computed.working.get(`${pid}:${dt}`)||0;
+ }
+ let days=workdayCount(i.start,i.end,pid);
+ return {capacity,load,pct:capacity?Math.round(load/capacity*100):load?999:0,days,items:assigned.length};
+}
+function statCards(){const arr=Object.values(computed.featureInfo),missed=arr.filter(x=>x.atRisk).length,active=data.tasks.filter(t=>t.status==='progress').length;
+ let overloaded=data.people.filter(p=>resourceStats(p.id).pct>100).length;
+ return `<div class="stats">
+ ${stat('Active features',data.features.length,'In current roadmap','grid','lav')}
+ ${stat('In progress',active,'Tasks being delivered','bolt','blu')}
+ ${stat('At risk',missed,'Beyond baseline / blocked','warning','rose')}
+ ${stat('Over capacity',overloaded,'People in selected iteration','users','mint')}
+ </div>`}
+function stat(label,value,desc,ico,cl){return `<div class="stat"><div><div class="stat-label">${esc(label)}</div><div class="stat-value">${value}</div><div class="stat-meta">${esc(desc)}</div></div><div class="stat-icon ${cl}">${icon(ico,19)}</div></div>`}
+function sideNav(){let nav=[['timeline','Roadmap','timeline'],['capacity','Team capacity','users'],['team','Team settings','settings'],['availability','Time off & holidays','calendar'],['milestones','Milestones','flag']];return `<aside class="sidebar"><div class="brand"><span class="brand-mark">${icon('target',20)}</span><span>orbit<small>PLANNER</small></span></div><nav><div class="nav-caption">Workspace</div><button class="project-trigger" data-action="projects" title="Switch project">${icon('grid',16)}<span>${esc(currentProject().name)}</span>${icon('chevrondown',13)}</button><button class="project-new" data-action="new-project">${icon('plus',13)} New project</button>${nav.map(([id,name,ico])=>`<button class="nav-item ${view.page===id?'active':''}" data-action="page" data-id="${id}" title="${name}">${icon(ico,17)}<span>${name}</span>${id==='milestones'?`<b class="nav-number">${data.milestones.length}</b>`:''}</button>`).join('')}</nav><div class="side-spacer"></div><div class="side-foot"><h4>✦ Simple by design</h4><p>One roadmap. Real capacity. No status meetings required.</p><button data-action="help">${icon('info',13)} &nbsp; How it works</button></div><div class="side-user"><span class="avatar">PM</span><div><strong>${esc(authEmail==='__sample__'?'Sample roadmap':authEmail)}</strong><small>Demo workspace · local only</small></div></div></aside>`}
+function mainHeader(){let titles={timeline:'Roadmap',capacity:'Team capacity',availability:'Time off & holidays',milestones:'Milestones',team:'Team settings'};return `<header class="topbar"><div class="topbar-start"><button class="sidebar-toggle" data-action="toggle-sidebar" aria-label="${view.sidebarHidden?'Show':'Hide'} sidebar" title="${view.sidebarHidden?'Show':'Hide'} sidebar">${icon('menu',17)}</button><div class="breadcrumb">Workspace ${icon('chevron',12)} ${esc(currentProject().name)} ${icon('chevron',12)} <b>${titles[view.page]}</b></div></div><div class="top-right"><span class="sync"><i class="sync-dot"></i> Local preview</span><button class="btn sm" data-action="auth-logout" title="Sign out">${icon('lock',13)} Log out</button><span class="top-avatar">${esc(initials(authEmail==='__sample__'?'Demo':authEmail))}</span></div></header>`}
+function heading(){const t={timeline:['Product roadmap','Strategic clarity. Tactical precision.'],capacity:['Team capacity','Know what your team can realistically deliver.'],availability:['Availability calendar','Time off is automatically reflected in every estimate.'],milestones:['Release milestones','Thin vertical markers, not extra Gantt rows.'],team:['Team settings','Maintain your team and roles. Work item options update automatically.']};let [name,description]=t[view.page];let btn=view.page==='timeline'?`<button class="btn" data-action="open-settings">${icon('sliders')} Settings</button><button class="btn primary" data-action="open-feature">${icon('plus')} New feature</button>`:view.page==='capacity'?`<button class="btn" data-action="open-iteration">${icon('calendar')} Edit iteration</button><button class="btn" data-action="manage-meetings">${icon('clock')} Recurring meetings</button><button class="btn primary" data-action="open-person" data-id="${data.people[0]?.id||''}">${icon('sliders')} Configure capacity</button>`:view.page==='team'?`<button class="btn" data-action="open-role">${icon('plus')} New role</button><button class="btn primary" data-action="open-team-member">${icon('plus')} Add member</button>`:view.page==='availability'?`<button class="btn" data-action="open-holiday">${icon('plus')} Holiday</button><button class="btn primary" data-action="open-leave">${icon('plus')} Add time off</button>`:`<button class="btn primary" data-action="open-milestone">${icon('plus')} New milestone</button>`;
+ return `<div class="heading-row"><div>${view.page==='timeline'?'':`<div class="eyebrow">${icon('target',11)} PRODUCT PLANNING · PERSONAL WORKSPACE</div>`}<h1>${name}</h1>${view.page==='timeline'?'':`<p>${description}</p>`}</div><div class="heading-actions">${btn}</div></div>`}
+function selectionBar(){return `<select class="select-inline" data-change="iteration" aria-label="Iteration">${data.iterations.map(i=>`<option value="${i.id}" ${view.iteration===i.id?'selected':''}>${esc(i.name)} · ${dmy(i.start)}–${dmy(i.end)}</option>`).join('')}</select>`}
+function timelineView(){const filtered=isFiltered(),availablePeople=data.people.map(p=>`<option value="${esc(p.id)}" ${view.filterPerson===p.id?'selected':''}>${esc(p.name)}</option>`).join(''),platforms=[...new Set([...platformNames(),...data.tasks.map(t=>t.platform)].filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+ return `<section class="card board"><div class="board-toolbar timeline-toolbar">
+ <div class="timeline-filters"><span class="section-label">Timeline</span><label class="filter-select">${icon('users',14)}<select data-change="filter-person" aria-label="Filter by team member"><option value="">All people</option>${availablePeople}</select></label><label class="filter-select">${icon('layers',14)}<select data-change="filter-platform" aria-label="Filter by platform"><option value="">All platforms</option>${platforms.map(p=>`<option value="${esc(p)}" ${view.filterPlatform===p?'selected':''}>${esc(p)}</option>`).join('')}</select></label>${filtered?`<button class="clear-filters" data-action="clear-filters">${icon('close',13)} Clear filters</button>`:''}</div>
+ <div class="timeline-tools">${selectionBar()}<div class="toolbar-divider"></div><button class="btn sm icon-only" data-action="prev" title="Earlier">${icon('chevronleft')}</button><button class="btn sm" data-action="today">Today</button><button class="btn sm icon-only" data-action="next" title="Later">${icon('chevron')}</button><label class="scale-picker">View <select data-change="scale" aria-label="Timeline scale">${Object.entries(SCALES).map(([key,scale])=>`<option value="${key}" ${view.scale===key?'selected':''}>${scale.label}</option>`).join('')}</select></label><button class="icon-action risk-action ${view.showOnlyRisks?'selected':''}" data-action="riskfilter" title="Only at-risk features" aria-label="Only at-risk features">${icon('warning',16)}</button></div>
+ </div>${renderGantt()}</section>`;
+}
+function isFiltered(){return Boolean(view.filterPerson||view.filterPlatform)}
+function matchingTasks(featureId){return data.tasks.filter(t=>t.featureId===featureId&&(!view.filterPerson||t.assignee===view.filterPerson)&&(!view.filterPlatform||t.platform===view.filterPlatform))}
+function grouping(start,count,kind){let segments=[],last=null;for(let i=0;i<count;i++){let stamp=start+i,dt=new Date(stamp*DAY),year=dt.getUTCFullYear(),mon=dt.getUTCMonth(),key='',label='';
+ if(kind==='decade'){let decade=Math.floor(year/10)*10;key=''+decade;label=decade+'–'+(decade+9)}
+ else if(kind==='year'){key=''+year;label=''+year}
+ else if(kind==='month'){key=year+'-'+mon;label=dt.toLocaleDateString('en-US',{month:'short',year:'numeric',timeZone:'UTC'})}
+ else if(kind==='quarter'){let q=Math.floor(mon/3)+1;key=year+'-Q'+q;label='Q'+q+' '+year}
+ else if(kind==='week'){let monDay=stamp-((dow(stamp)+6)%7);key=''+monDay;label='Wk '+dmy(fromDay(monDay))}
+ else {key=''+stamp;label=''+dt.getUTCDate()}
+ if(last!==key){segments.push({date:fromDay(stamp),label,count:0});last=key}segments[segments.length-1].count++}
+ return segments;
+}
+function timeBand(groups,kind){return `<div class="time-band ${kind}">${groups.map(g=>`<div class="time-segment" style="width:${g.count*view.zoom}px" data-date="${g.date}" title="${fullD(g.date)} · Double-click to add milestone">${esc(g.label)}</div>`).join('')}</div>`}
+function headings(){let start=asDay(view.rangeStart),days=view.days,scale=view.scale,cell=view.zoom;
+ let header='';
+ if(scale==='day'){const month=grouping(start,days,'month'),week=grouping(start,days,'week');header=timeBand(month,'upper')+timeBand(week,'middle')+`<div class="day-head">${Array.from({length:days},(_,i)=>{let d=start+i,s=fromDay(d),off=dow(d)===0||dow(d)===6,h=isHoliday(d);return `<div class="day-cell ${off?'weekend':''} ${h?'holiday':''} ${s===today()?'today':''}" data-date="${s}" title="${fullD(s)} · Double-click for milestone">${new Date(d*DAY).getUTCDate()}</div>`}).join('')}</div>`}
+ else if(scale==='week')header=timeBand(grouping(start,days,'month'),'upper')+timeBand(grouping(start,days,'week'),'lower');
+ else if(scale==='month')header=timeBand(grouping(start,days,'year'),'upper')+timeBand(grouping(start,days,'month'),'lower');
+ else if(scale==='quarter')header=timeBand(grouping(start,days,'year'),'upper')+timeBand(grouping(start,days,'quarter'),'lower');
+ else header=timeBand(grouping(start,days,'decade'),'upper')+timeBand(grouping(start,days,'year'),'lower');
+ return `<div class="gantt-header scale-${scale}"><div class="gantt-corner"><strong>FEATURE / WORK ITEM</strong><small>${isFiltered()?'Filtered view':data.tasks.length+' stories'}</small></div><div class="calendar-head" style="width:${days*cell}px">${header}</div></div>`;
+}
+function leftPct(n){return (n-asDay(view.rangeStart))*view.zoom}
+function widthSpan(start,end){return Math.max(6,(end-start+1)*view.zoom-5)}
+function shades(pid){let start=asDay(view.rangeStart),end=start+view.days,cell=view.zoom,out='';
+ // In wider planning horizons do not render thousands of tiny weekend bands.
+ if(view.scale==='day'||view.scale==='week')for(let n=start;n<end;n++){
+  let weekend=dow(n)===0||dow(n)===6,holiday=isHoliday(n);
+  if(weekend||holiday)out+=`<div class="shade ${holiday?'holiday':'weekend'}" style="left:${(n-start)*cell}px;width:${cell}px" title="${holiday?esc(data.holidays.find(h=>h.date===fromDay(n))?.name):'Weekend'}"></div>`;
+ }
+ if(pid)for(const leave of data.leave.filter(l=>l.person===pid)){
+  let first=Math.max(start,asDay(leave.from)),last=Math.min(end-1,asDay(leave.to));if(first>last)continue;
+  out+=`<div class="shade leave" style="left:${(first-start)*cell}px;width:${Math.max(2,(last-first+1)*cell)}px" title="${esc((getPerson(pid)?.name||'')+' · '+leave.type)}"></div>`;
+ }
+ return out;
+}
+function featureRow(f,visibleCount=null){let info=computed.featureInfo[f.id],taskList=data.tasks.filter(t=>t.featureId===f.id),count=taskList.length,status=info.allDone?'done':info.blocked?'hold':info.atRisk?'risk':'ok';
+ let text=info.end!==null?dmy(fromDay(info.end)):'TBD';let pills=info.blocked?'<span class="status-badge hold">Uncertain</span>':info.atRisk?'<span class="status-badge risk">At risk</span>':'';
+ let bar='';if(info.end!==null){let l=leftPct(info.start),w=widthSpan(info.start,info.end);bar=`<div class="feature-bar ${info.atRisk?'risk':''} ${count===0?'empty':''}" style="left:${l}px;width:${w}px;--color:${f.color}" data-action="drawer-feature" data-id="${f.id}" title="${esc(f.title)} — ${text}"><span class="bar-txt">${esc(f.title)} · ${text}</span></div>`}
+ else if(!count){let l=leftPct(info.start),w=widthSpan(info.start,asDay(f.baseline));bar=`<div class="feature-bar empty" style="left:${l}px;width:${w}px" data-action="open-task" data-id="${f.id}" title="Add work items">+ Add work items · target ${dmy(f.baseline)}</div>`}
+ else if(info.blocked)bar=`<div class="bar-placeholder" style="left:${Math.max(0,leftPct(info.start))}px">${icon('pause',13)} Awaiting resumption · TBD</div>`;
+ return `<div class="gantt-row feature"><div class="meta"><button class="chevron" data-action="collapse" data-id="${f.id}" title="Collapse / expand">${icon(f.collapsed?'chevron':'chevrondown',14)}</button><span class="feature-icon" style="background:${f.color}1d;color:${f.color}">${icon('grid',15)}</span><div class="work-name" data-action="drawer-feature" data-id="${f.id}"><strong>${esc(f.title)}</strong><small>${visibleCount!==null?`${visibleCount} of ${count} tasks`:`${count} tasks`} · Baseline ${dmy(f.baseline)}</small></div>${pills}<span class="meta-mini">${text}</span><button class="more-button" data-action="open-task" data-id="${f.id}" title="Add child task">${icon('plus',14)}</button></div><div class="track">${shades(null)}${bar}</div></div>`}
+function taskRow(t){let info=computed.schedule[t.id],conf=computed.conflicts[t.id]||[],none=!t.assignee;
+ let status=t.status==='hold'?'hold':info.blocked?'blocked':t.status==='done'?'done':'';
+ let l=leftPct(info.start??asDay(t.start)),width=info.end!==null?widthSpan(info.start,info.end):Math.max(2*view.zoom,74);
+ let bar=info.end!==null?`<div class="task-bar ${String(t.platform).toLowerCase()} ${status}" style="left:${l}px;width:${width}px" draggable="false" data-task="${t.id}" data-action="drawer-task" data-id="${t.id}" title="${esc(t.title)} · ${num(t.effort,1)}d effort · ${info.start!==null?dmy(fromDay(info.start)):'—'}–${dmy(fromDay(info.end))}"><span class="bar-txt">${esc(t.title)}</span>${conf.length?`${icon('warning',11)}`:''}<span class="bar-tail">${num(t.effort,1)}d</span></div>`:`<div class="task-bar ${status}" style="left:${l}px;width:${width}px" data-action="drawer-task" data-id="${t.id}" title="${esc(t.title)}"><span>${status==='hold'?'⏸ Paused':'⌛ Blocked'}</span></div>`;
+ let helper=t.status==='hold'?'Paused':info.blocked?'Blocked':info.end!==null?dmy(fromDay(info.end)):'—';
+ let circle=t.status==='done'?`<span class="status-circle done">${icon('check',10)}</span>`:t.status==='hold'?`<span class="status-circle hold">${icon('pause',10)}</span>`:`<span class="status-circle ${t.status==='progress'?'progress':''}"></span>`;
+ let bad=conf.length?`<span title="Conflicting capacity on ${conf.length} day(s)" style="color:#e27f8e">${icon('warning',13)}</span>`:'';
+ return `<div class="gantt-row"><div class="meta"><span class="task-indent"></span>${circle}<div class="work-name" data-action="drawer-task" data-id="${t.id}"><strong>${esc(t.title)}</strong><small>${esc(t.platform)} · ${num(t.effort,1)}d effort ${t.dependsOn?.length?' · '+t.dependsOn.length+' dep.':''}</small></div>${bad}${personAvatar(t.assignee)}<span class="meta-mini">${helper}</span><button class="more-button" data-action="drawer-task" data-id="${t.id}" title="Edit task">${icon('more',15)}</button></div><div class="track">${shades(t.assignee)}${view.scale==='day'||view.scale==='week'?conf.map(s=>`<div class="shade overload" style="left:${leftPct(asDay(s))}px;width:${view.zoom}px" title="Overbooked: ${s}"></div>`).join(''):''}${bar}</div></div>`}
+function ganttOverlay(){let arr=[],range=asDay(view.rangeStart),max=range+view.days,cell=view.zoom,meta=350; // CSS --meta-w handles responsive
+ if(asDay(today())>=range&&asDay(today())<max){let left=`calc(var(--meta-w) + ${leftPct(asDay(today()))+cell/2}px)`;arr.push(`<div class="today-line" style="left:${left}"></div><div class="today-tag" style="left:${left}">Today</div>`)}
+ for(let m of data.milestones){let day=asDay(m.date);if(day<range||day>=max)continue;let missed=m.featureIds?.some(id=>{let f=computed.featureInfo[id];return f&&f.end!==null&&f.end>day})||false;let x=`calc(var(--meta-w) + ${leftPct(day)+cell/2}px)`;
+ arr.push(`<div class="milestone-line ${missed?'risk':''}" style="left:${x};border-color:${missed?'#ed7d89':m.color}"></div><button class="milestone-pin ${missed?'risk':''}" style="left:${x}" data-action="drawer-milestone" data-id="${m.id}" title="${esc(m.title)} · ${fullD(m.date)} · Drag to move">${icon('flag',11)} <span>${esc(m.title)}</span></button>`)}
+ return arr.join('')}
+function renderGantt(){
+ let list=data.features.filter(f=>(!view.showOnlyRisks||computed.featureInfo[f.id].atRisk)&&(!isFiltered()||matchingTasks(f.id).length));
+ let rows=list.flatMap(f=>{let tasks=matchingTasks(f.id);return [featureRow(f,isFiltered()?tasks.length:null),...(f.collapsed?[]:tasks.map(taskRow))]});
+ let filtered=isFiltered()||view.showOnlyRisks;
+ let empty=`<div class="empty-message"><h3>${filtered?'No matching work items':'Your roadmap is ready'}</h3><p>${filtered?'Try clearing the filters or choosing another team member.':'Create your first feature to begin planning.'}</p>${isFiltered()?'<button class="btn sm" data-action="clear-filters">Clear filters</button>':''}</div>`;
+ return `<div class="gantt-scroller" id="ganttScroller"><div class="gantt-canvas scale-${view.scale}" style="--total-days:${view.days};--cell:${view.zoom}px;min-width:calc(var(--meta-w) + ${view.days*view.zoom}px)">${headings()}${rows.join('')||empty}${ganttOverlay()}</div></div>`;
+}
+function capacityView(){const i=iter();return `<section class="card"><div class="board-toolbar"><div class="toolbar-left"><span class="section-label">Allocation by team member</span>${selectionBar()}</div><div class="toolbar-right"><button class="btn sm" data-action="open-iteration">${icon('edit')} Iteration settings</button></div></div><div class="panel-body"><div class="notice" style="margin-bottom:16px">${icon('info',15)} <strong>Pure effort ≠ elapsed time.</strong> A 3-day estimate includes development, unit tests & review. Meetings, bugs and ongoing work are deducted from availability automatically.</div><div class="capacity-layout"><div><table class="table"><thead><tr><th>TEAM MEMBER</th><th>ALLOCATION</th><th>FEATURE CAPACITY</th><th>LOAD</th><th></th></tr></thead><tbody>${data.people.map(p=>{let r=resourceStats(p.id,i),a=p.capacity,ratio=capacityParts(p.id,i.start).feature;return `<tr><td><div class="person-cell">${personAvatar(p.id,'avatar')}<div><strong>${esc(p.name)}</strong><small>${esc(p.role)}</small></div></div></td><td><div class="capacity-track"><i class="dev" style="width:${a.feature}%"></i><i class="bugs" style="width:${a.bugs}%"></i><i class="ongoing" style="width:${a.ongoing}%"></i><i class="ops" style="width:${a.ops}%"></i></div><small style="color:#9ca6b8">${ratio}% features</small></td><td>${num(r.capacity,1)}d / ${r.days} work days<small style="display:block;color:#929db0;margin-top:4px">${num(meetingHoursInIteration(p.id,i),1)}h in meetings</small></td><td><span class="status-badge ${r.pct>100?'risk':'muted'}">${r.pct}%</span></td><td><button class="mini-btn" data-action="open-person" data-id="${p.id}">Configure</button></td></tr>`}).join('')}</tbody></table><div class="grouped-note"><strong>What goes into an estimate?</strong><p>Engineering effort = coding + unit tests + code review. Recurring meetings first reduce each person’s working hours; feature allocation is then applied to the remaining time. Ops % should cover other overhead, not these meetings. Leaves, weekends and dependencies are also applied.</p></div></div><div class="card" style="padding:18px;box-shadow:none"><h3 class="panel-title">Capacity vs scheduled</h3><p class="panel-sub">${esc(i.name)} · ${dmy(i.start)} – ${dmy(i.end)}</p>${data.people.map(p=>{let r=resourceStats(p.id,i);return `<div class="resource-row"><div class="resource-title"><span>${esc(p.name)}</span><small>${num(r.load,1)} / ${num(r.capacity,1)}d</small></div><div class="load-track"><div class="load-fill ${r.pct>100?'over':''}" style="width:${Math.min(r.pct,100)}%"></div><div class="load-over"></div></div></div>`}).join('')}<div class="split-head" style="margin-top:20px;margin-bottom:5px"><strong style="font-size:11px">Daily load heatmap</strong><small style="color:#99a2b1">each cell = 1 day</small></div>${data.people.map(p=>{let html=[];for(let d=asDay(i.start);d<=asDay(i.end);d++){let date=fromDay(d),load=computed.working.get(`${p.id}:${date}`)||0,cap=featureCapacity(p.id,date);let cls=nonwork(d,p.id)?'off':load>cap+.001?'over':load>cap*.88?'high':load>0?'low':'free';html.push(`<i class="${cls}" title="${p.name} · ${date}: ${num(load,2)} / ${num(nonwork(d,p.id)?0:cap,2)}d feature capacity"></i>`)}return `<div style="margin:9px 0 14px"><div class="resource-title" style="font-size:10px"><span>${esc(p.name)}</span><small>${resourceStats(p.id,i).pct}%</small></div><div class="grid-mini" style="grid-template-columns:repeat(${html.length},minmax(12px,1fr))">${html.join('')}</div></div>`}).join('')}<div class="tag-row"><span class="tag">Free</span><span class="tag" style="background:#e7e2fc">Booked</span><span class="tag" style="background:#efa1ae;color:#85404a">Conflict</span><span class="tag">Off</span></div></div></div></div></section>`}
+function teamView(){
+ return `<div class="team-layout">
+ <section class="card panel-body"><div class="split-head"><div><h2 class="panel-title">Team members <span class="soft-tag">${data.people.length}</span></h2><p class="panel-sub">Names, roles and workstreams are maintained here.</p></div><button class="btn sm primary" data-action="open-team-member">${icon('plus')} Add member</button></div>
+ <div class="team-list">${data.people.map(p=>{let r=roleById(p.roleId),assigned=data.tasks.filter(t=>t.assignee===p.id).length;return `<div class="team-row"><div class="person-cell">${personAvatar(p.id,'avatar')}<div><strong>${esc(p.name)}</strong><small>${esc(r?.name||p.role||'No role')} · ${esc(r?.platform||p.platform||'Unassigned')}</small></div></div><span class="soft-tag">${assigned} work items</span><div class="team-actions"><button class="mini-btn" data-action="edit-team-member" data-id="${p.id}">Edit</button><button class="icon-action" data-action="delete-team-member" data-id="${p.id}" title="Remove member">${icon('trash',15)}</button></div></div>`}).join('')||'<div class="grouped-note">No team members yet. Start by creating a role, then add your first teammate.</div>'}</div>
+ </section><section class="card panel-body"><div class="split-head"><div><h2 class="panel-title">Roles & workstreams <span class="soft-tag">${data.roles.length}</span></h2><p class="panel-sub">Every role maps to a platform shown on work items.</p></div><button class="btn sm" data-action="open-role">${icon('plus')} Add role</button></div><div class="team-list">${data.roles.map(r=>`<div class="team-row"><div class="team-role-icon">${icon('users',17)}</div><div class="team-role-name"><strong>${esc(r.name)}</strong><small>Workstream: ${esc(r.platform)}</small></div><span class="soft-tag">${roleAssignmentCount(r.id)} people</span><div class="team-actions"><button class="mini-btn" data-action="edit-role" data-id="${r.id}">Edit</button><button class="icon-action" data-action="delete-role" data-id="${r.id}" title="Remove role">${icon('trash',15)}</button></div></div>`).join('')||'<div class="grouped-note">Create a role, e.g. iOS Engineer → iOS.</div>'}</div>
+ <div class="grouped-note" style="margin-top:16px"><strong>How it works</strong><p>1. Create a role and link it to a workstream (Backend, iOS, Design, etc.). 2. Add people with that role. 3. Work item Platform shows those workstreams, and Assignee shows only matching teammates. Team capacity, leave and meeting allocation follow each person.</p></div>
+ </section></div>`;
+}
+function availabilityView(){let ordered=[...data.leave].sort((a,b)=>a.from.localeCompare(b.from));return `<div class="capacity-layout"><section class="card panel-body"><div class="split-head"><div><h2 class="panel-title">Team time off</h2><p class="panel-sub">Vacation, sick days and personal leave block scheduling automatically.</p></div><button class="btn sm" data-action="open-leave">${icon('plus')} Add</button></div><div class="availability-list">${ordered.map(l=>`<div class="availability-card"><div class="leave-icon ${l.type==='sick'?'sick':''}">${icon(l.type==='sick'?'heart':l.type==='vacation'?'suitcase':'calendar')}</div><div class="detail"><strong>${esc(getPerson(l.person)?.name||'Unknown')} · ${l.type==='vacation'?'Vacation':l.type==='sick'?'Sick leave':'Day off'}</strong><small>${fullD(l.from)} ${l.from!==l.to?' – '+fullD(l.to):''} · ${workdayCount(l.from,l.to)} calendar workdays${l.note?' · '+esc(l.note):''}</small></div><button class="icon-action" data-action="edit-leave" data-id="${l.id}" title="Edit">${icon('edit')}</button><button class="icon-action" data-action="delete-leave" data-id="${l.id}" title="Delete">${icon('trash')}</button></div>`).join('')||'<div class="empty-message">No planned absences.</div>'}</div></section><div style="display:grid;gap:15px"><section class="card panel-body"><h2 class="panel-title">Workweek & holidays</h2><p class="panel-sub">Ukraine · Monday–Friday · ${data.settings.workHours} hours/day</p><div class="switch-row"><div><strong>Exclude public holidays</strong><small>Use holiday calendar as non-working days</small></div><button class="switch ${data.settings.observeHolidays?'on':''}" data-action="holiday-switch" aria-label="Toggle holidays"></button></div><div class="notice warn" style="margin-top:13px">Under martial law, statutory Ukrainian holidays may not be mandatory days off. Configure this switch to match your company policy.</div><h3 style="font-size:12px;margin:20px 0 8px">Custom holiday dates</h3>${data.holidays.map(h=>`<div class="metric-row"><span>${dmy(h.date)} · ${esc(h.name)}</span><button class="icon-action" data-action="delete-holiday" data-id="${h.date}" title="Delete">${icon('trash',14)}</button></div>`).join('')}<button class="btn sm" data-action="open-holiday">${icon('plus')} Add holiday</button></section><section class="card panel-body"><h3 class="panel-title">Planning rules</h3><div class="metric-row"><span>Default working days</span><strong>Mon–Fri</strong></div><div class="metric-row"><span>Personal leave</span><strong>Always excluded</strong></div><div class="metric-row"><span>Dependent tasks</span><strong>Shift automatically</strong></div><div class="metric-row"><span>Conflicting parallel tasks</span><strong>Flag, don't reorder</strong></div></section></div></div>`}
+function milestoneView(){return `<section class="card panel-body"><div class="split-head"><div><h2 class="panel-title">Release & stakeholder dates</h2><p class="panel-sub">Milestones overlay every row of the timeline. Drag a pin to move it; the date never forces tasks to shift.</p></div><button class="btn sm" data-action="open-milestone">${icon('plus')} Add milestone</button></div><div class="milestone-list">${[...data.milestones].sort((a,b)=>a.date.localeCompare(b.date)).map(m=>{let missed=m.featureIds?.some(id=>computed.featureInfo[id]?.end!==null&&computed.featureInfo[id]?.end>asDay(m.date));return `<div class="milestone-card"><div class="milestone-icon">${icon('flag')}</div><div class="detail"><strong>${esc(m.title)}</strong><small>${fullD(m.date)} · ${m.featureIds?.length||0} linked features</small></div>${missed?'<span class="status-badge risk">Deadline risk</span>':'<span class="status-badge muted">On timeline</span>'}<button class="btn sm" data-action="drawer-milestone" data-id="${m.id}">${icon('edit')} Edit</button><button class="icon-action" data-action="delete-milestone" data-id="${m.id}">${icon('trash')}</button></div>`}).join('')||'<div class="empty-message">No milestones yet.</div>'}</div><div class="grouped-note"><strong>Tip: create directly on the timeline</strong><p>Return to Roadmap and double-click any date in the top date header. Add a title, then link relevant features to highlight potential release misses.</p></div></section>`}
+function drawerMarkup(){if(!view.drawer)return '';let d=view.drawer,body='',heading='',sub='';
+ if(d.type==='task'){let t=getTask(d.id);if(!t)return '';heading=t.title;sub='WORK ITEM · '+t.platform;body=taskInspector(t)}
+ else if(d.type==='feature'){let f=getFeature(d.id);if(!f)return '';heading=f.title;sub='FEATURE · PRODUCT ROADMAP';body=featureInspector(f)}
+ else if(d.type==='person'){let p=getPerson(d.id);if(!p)return '';heading=p.name;sub='TEAM MEMBER · CAPACITY';body=personInspector(p)}
+ else if(d.type==='milestone'){let m=data.milestones.find(m=>m.id===d.id);if(!m)return '';heading=m.title;sub='MILESTONE · DATE MARKER';body=milestoneInspector(m)}
+ return `<div class="drawer-wrap"><div class="drawer-backdrop" data-action="close-drawer"></div><aside class="drawer"><div class="drawer-header"><div><div class="eyebrow">${esc(sub)}</div><h2>${esc(heading)}</h2></div><button class="icon-action" data-action="close-drawer" title="Close">${icon('close',20)}</button></div><div class="drawer-content">${body}</div></aside></div>`}
+function taskInspector(t){let s=computed.schedule[t.id],deps=data.tasks.filter(x=>x.id!==t.id),conf=computed.conflicts[t.id]||[],holidayNum=(t.status==='hold'||s.end===null)?null:s.end-s.start+1;
+ let predicted=t.status==='hold'?'Paused':s.blocked?'Blocked':s.end!==null?fullD(fromDay(s.end)):'TBD';let status=selectField('Status','taskStatus',Object.entries(statusLabels),t.status);
+ let dependencyHtml=deps.length?deps.map(x=>`<label class="checkline"><input type="checkbox" data-dependency="${x.id}" ${t.dependsOn?.includes(x.id)?'checked':''}><span>${esc(x.title)}</span><small style="color:#abb2c1"> · ${esc(getFeature(x.featureId)?.title||'')}</small></label>`).join(''):'No other tasks available';
+ return `<div class="drawer-section"><div class="drawer-stat"><span>${icon('clock',14)} Forecast</span><span>${predicted}</span></div>${conf.length?`<div class="notice warn" style="margin-bottom:12px">${icon('warning',14)} Capacity conflict on ${conf.length} day(s). Check overlapping assignments.</div>`:''}${s.blocked?`<div class="notice warn" style="margin-bottom:12px">${icon('lock',14)} This task cannot be forecast until its dependencies are resumed.</div>`:''}<div class="field"> <label>Task title</label><input data-update-task="title" value="${esc(t.title)}"></div>${status}<div class="field-grid">${numberField('Pure effort (days)','taskEffort',t.effort,.5,120)}${numberField('Remaining effort (days)','taskRemaining',t.remaining??t.effort,.5,120)}</div><div class="field-grid"><div class="field"><label>Team member</label><select data-update-task="assignee">${personOptions(t.assignee,true,t.platform)}</select></div>${selectField('Platform','taskPlatform',platformChoices(t.platform),t.platform)}</div>${dateField('Earliest start','taskStart',t.start)}${t.status==='done'?dateField('Completed on','taskCompleted',t.completedDate||today()):''}<div class="notice">${icon('info',13)} <span>Elapsed span: <strong>${holidayNum??'—'} calendar days</strong>. Estimate includes development, unit tests and code review, but not meetings or reserved capacity.</span></div></div><div class="drawer-section"><div class="section-head">Dependencies <span class="soft-tag">${t.dependsOn?.length||0} selected</span></div><div style="max-height:155px;overflow:auto">${dependencyHtml}</div><small style="font-size:10px;color:#a5adba">You choose the order. Orbit only adjusts dates. Circular dependencies are not allowed.</small></div><div class="drawer-section"><div class="section-head">Quick actions</div><div style="display:flex;gap:7px;flex-wrap:wrap">${t.status==='hold'?`<button class="btn sm primary" data-action="quick-resume" data-id="${t.id}">${icon('play',12)} Resume task</button>`:`<button class="btn sm" data-action="quick-hold" data-id="${t.id}">${icon('pause',12)} Put on hold</button>`}<button class="btn sm" data-action="duplicate-task" data-id="${t.id}">${icon('copy',12)} Duplicate</button><button class="btn sm danger" data-action="delete-task" data-id="${t.id}">${icon('trash',12)} Delete</button></div></div>`}
+function featureInspector(f){let s=computed.featureInfo[f.id],children=data.tasks.filter(t=>t.featureId===f.id),status=s.allDone?'All tasks done':s.blocked?'Uncertain · on hold / blocked':s.atRisk?'At risk':'On track';
+ return `<div class="drawer-section"><div class="drawer-stat"><span>Current forecast</span><span>${s.end!==null?fullD(fromDay(s.end)):'TBD'}</span></div><div class="notice ${s.atRisk?'warn':'good'}" style="margin-bottom:12px">${s.blocked?'One or more tasks are blocked / paused. Forecast has no reliable end date.':s.atRisk?`Forecast is ${Math.max(0,s.delta)} calendar days past the baseline.`:'This feature is currently within its baseline.'}</div><div class="field"><label>Feature name</label><input data-update-feature="title" value="${esc(f.title)}"></div><div class="field"><label>Description</label><textarea rows="3" data-update-feature="description">${esc(f.description||'')}</textarea></div><div class="field-grid">${dateField('Earliest start','featureStart',f.start)}${dateField('Baseline deadline','featureBaseline',f.baseline)}</div><div class="metric-row"><span>Status</span><span class="status-badge ${s.atRisk?'risk':s.allDone?'done':'muted'}">${esc(status)}</span></div><div class="metric-row"><span>Child tasks</span><strong>${children.length}</strong></div><div class="metric-row"><span>Pure effort</span><strong>${num(children.reduce((a,t)=>a+Number(t.effort),0),1)}d</strong></div></div><div class="drawer-section"><div class="section-head">Work breakdown<button class="mini-btn" data-action="open-task" data-id="${f.id}">+ Add task</button></div>${children.map(t=>`<div class="metric-row" style="cursor:pointer" data-action="drawer-task" data-id="${t.id}"><span>${esc(t.title)}</span><span>${personAvatar(t.assignee)} ${icon('chevron',11)}</span></div>`).join('')||'<div class="panel-sub">No tasks yet. Click Add task to begin.</div>'}</div><div class="drawer-section"><button class="btn danger sm" data-action="delete-feature" data-id="${f.id}">${icon('trash')} Delete feature & tasks</button></div>`}
+function personInspector(p){const i=iter(),r=resourceStats(p.id,i),base=p.capacity,override=i.overrides?.[p.id];return `<div class="drawer-section"><div class="notice" style="margin-bottom:16px">${icon('info',14)} Configure percent reserved for ongoing responsibilities. All 4 categories should total 100%.</div><div class="section-head">Default weekly allocation</div><div class="field-grid">${numberField('Feature development %','cpFeature',base.feature,0,100,1)}${numberField('Bug fixes %','cpBugs',base.bugs,0,100,1)}${numberField('Ongoing work %','cpOngoing',base.ongoing,0,100,1)}${numberField('Meetings / ops %','cpOps',base.ops,0,100,1)}</div><button class="btn primary" data-action="save-capacity" data-id="${p.id}">${icon('save')} Save default capacity</button></div><div class="drawer-section"><div class="section-head">${esc(i.name)} override</div><p class="panel-sub">Use a temporary allocation for this iteration only. Other iterations keep the default.</p><div class="field-grid">${numberField('Feature development %','opFeature',override?.feature??base.feature,0,100,1)}${numberField('Bug fixes %','opBugs',override?.bugs??base.bugs,0,100,1)}${numberField('Ongoing work %','opOngoing',override?.ongoing??base.ongoing,0,100,1)}${numberField('Meetings / ops %','opOps',override?.ops??base.ops,0,100,1)}</div><div style="display:flex;gap:8px"><button class="btn primary sm" data-action="save-override" data-id="${p.id}">${icon('save')} Apply iteration override</button>${override?`<button class="btn sm" data-action="clear-override" data-id="${p.id}">Clear override</button>`:''}</div></div><div class="drawer-section"><div class="section-head">Current iteration</div><div class="metric-row"><span>Available for feature work</span><strong>${num(r.capacity,1)}d</strong></div><div class="metric-row"><span>Scheduled workload</span><strong>${num(r.load,1)}d</strong></div><div class="metric-row"><span>Utilization</span><strong>${r.pct}%</strong></div><button class="btn sm" data-action="open-leave" data-id="${p.id}">${icon('calendar')} Add time off</button></div>`}
+function milestoneInspector(m){let risk=(m.featureIds||[]).map(id=>({f:getFeature(id),s:computed.featureInfo[id]})).filter(x=>x.f&&x.s&&x.s.end!==null&&x.s.end>asDay(m.date));return `<div class="drawer-section"><div class="field"><label>Milestone name</label><input data-update-milestone="title" value="${esc(m.title)}"></div>${dateField('Date','milestoneDate',m.date)}<div class="field"><label>Marker color</label><input type="color" id="milestoneColor" value="${esc(m.color)}" style="height:43px;padding:5px"></div><div class="section-head">Linked features</div>${data.features.map(f=>`<label class="checkline"><input type="checkbox" data-milestone-feature="${f.id}" ${m.featureIds?.includes(f.id)?'checked':''}>${esc(f.title)}</label>`).join('')}<div style="margin-top:14px;display:flex;gap:9px"><button class="btn primary" data-action="save-milestone" data-id="${m.id}">${icon('save')} Save milestone</button><button class="btn danger" data-action="delete-milestone" data-id="${m.id}">${icon('trash')}</button></div></div><div class="drawer-section"><div class="section-head">Milestone health</div>${risk.length?`<div class="notice warn">${risk.length} linked feature(s) forecast beyond this marker: ${risk.map(x=>x.f.title).join(', ')}</div>`:'<div class="notice good">No linked feature currently misses this milestone.</div>'}</div>`}
+function modalMarkup(){if(!view.modal)return '';let m=view.modal,content='',title='',subtitle='',footer='',wide=false;
+ const dismiss=`<button type="button" class="btn" data-action="close-modal">Cancel</button>`;
+ const submit=(name)=>`${dismiss}<button type="submit" class="btn primary">${icon('check')} ${name}</button>`;
+ if(m.type==='new-project'){
+ title='Create a new project';subtitle='Each project has its own roadmap, team, roles, and meeting schedules.';
+ content=`<form id="modalForm" data-form="new-project">${textField('Project name','projectName','','required autofocus maxlength="100" placeholder="e.g. Mobile app 2027"')}
+  <div class="copy-setup-box"><div class="copy-setup-heading">${icon('copy',16)} <strong>Reuse setup from an existing project</strong><span class="soft-tag">Optional</span></div>
+  <div class="field" style="margin:14px 0 7px"><label for="newProjectSource">Copy from</label><select name="sourceProject" id="newProjectSource"><option value="">Start from scratch</option>${workspace.projects.map(p=>`<option value="${esc(p.id)}">${esc(p.name)} · ${p.data.people.length} people, ${(p.data.meetings||[]).length} meetings</option>`).join('')}</select></div>
+  <div id="newProjectCopyOptions" class="copy-settings-choices" hidden><label class="checkline"><input type="checkbox" name="copyTeam" checked> ${icon('users',14)} Copy team, roles and capacity</label><label class="checkline"><input type="checkbox" name="copyMeetings" checked> ${icon('clock',14)} Copy all recurring meetings</label><small>Only setup is copied — not tasks, time off, milestones or existing features. You can review everything in the next two steps.</small></div></div>
+  <div class="grouped-note"><strong>Next: quick setup</strong><p>Step 1: team and roles · Step 2: recurring meetings. Both steps are optional. Your existing projects stay intact.</p></div><div class="dialog-foot">${submit('Create & set up')}</div></form>`;
+ }else if(m.type==='projects'){
+ title='Your projects';subtitle='Switch between independent roadmaps, or start a new one.';
+ content=`${workspace.projects.map(p=>`<div class="project-pick-row ${p.id===workspace.activeId?'is-current':''}"><span class="team-role-icon">${icon('grid',17)}</span><div class="project-pick-name"><strong>${esc(p.name)}</strong><small>${p.data.features.length} features · ${p.data.people.length} team members</small></div>${p.id===workspace.activeId?'<span class="soft-tag">Current</span>':`<button class="btn sm" data-action="switch-project" data-id="${p.id}">Open project ${icon('chevron',12)}</button>`}</div>`).join('')}<div class="dialog-foot"><button class="btn" data-action="close-modal">Close</button><button class="btn primary" data-action="new-project">${icon('plus',14)} New project</button></div>`;
+ }else if(m.type==='feature'){
+ title='Create a feature';subtitle='Add an epic and optionally generate engineering tasks in one step.';wide=true;
+ let phases=platformNames().map(p=>[p,data.people.find(person=>person.platform===p)?.id||'',p==='Backend'?3:p==='Frontend'?4:2]);
+ content=`<form id="modalForm" data-form="feature"><div class="field-grid">${textField('Feature name','name','', 'required placeholder="e.g. New onboarding"')}${dateField('Earliest start','start',addDays(monday(today()),7))}</div>${textField('Description','description','','placeholder="What are we delivering?"')}${dateField('Baseline target date','baseline',addDays(monday(today()),28))}<div class="hr"></div><div class="section-head">Generate sub-tasks <span class="soft-tag">Optional quick setup</span></div><p class="panel-sub">Choose roles/workstreams to generate. Chain dependencies in the order shown, and edit anytime.</p><div class="phase-grid">${phases.map(([p,person,days],i)=>`<div class="phase-tile"><input type="checkbox" name="phase_${i}" ${['Backend','Frontend','QA'].includes(p)?'checked':''} aria-label="Include ${p}"><div style="min-width:0;flex:1"><strong>${p}</strong><small>Pure engineering effort</small><div style="display:flex;gap:5px;margin-top:7px"><input aria-label="${p} estimated days" type="number" name="phase_days_${i}" min=".5" step=".5" value="${days}" style="width:65px;border:1px solid #e1e5ef;border-radius:6px;padding:5px;font-size:10px"><select aria-label="${p} owner" name="phase_owner_${i}" style="width:105px;min-width:0;border:1px solid #e1e5ef;border-radius:6px;padding:5px;font-size:10px">${personOptions(person,true,p)}</select></div></div></div>`).join('')}</div><label class="checkline"><input type="checkbox" name="sequential" checked> Chain selected phases as dependencies</label><div class="dialog-foot">${submit('Create feature')}</div></form>`;
+ }else if(m.type==='task'){
+ let f=getFeature(m.featureId),defaultPlatform=platformNames()[0]||'',assignee=data.people.find(p=>p.platform===defaultPlatform)?.id||'';
+ title='Add work item';subtitle=`Add a task inside ${f?.title||'feature'}.`;
+ content=`<form id="modalForm" data-form="task"><div class="field"> <label>Task name</label><input name="name" placeholder="What needs to be delivered?" required autofocus></div><div class="field-grid">${selectField('Platform','platform',platformChoices(),defaultPlatform)}${numberField('Pure effort (days)','effort',2,.5,180)}</div><div class="field-grid"><div class="field"><label>Assignee</label><select name="assignee">${personOptions(assignee,true,defaultPlatform)}</select></div>${dateField('Earliest start','start',f?.start||today())}</div>${selectField('Initial status','status',Object.entries(statusLabels),'planned')}<div class="field"><label>Dependency (optional)</label><select name="dependency"><option value="">None</option>${data.tasks.filter(t=>t.featureId===m.featureId).map(t=>`<option value="${t.id}">${esc(t.title)}</option>`).join('')}</select></div><div class="dialog-foot">${submit('Add task')}</div></form>`;
+ }else if(m.type==='member'){
+ let p=data.people.find(x=>x.id===m.id),parts=p?{first:p.firstName||p.name.split(' ')[0],last:p.lastName||p.name.split(' ').slice(1).join(' ')}:{first:'',last:''};
+ title=p?'Edit team member':'Add team member';subtitle='Select a role. Platform and matching work item assignments update automatically.';
+ content=`<form id="modalForm" data-form="member"><div class="field-grid">${textField('First name','firstName',parts.first,'required placeholder="e.g. Oleksandr"')}${textField('Last name','lastName',parts.last,`${p?'':'required '}placeholder="e.g. Shevchenko"`)}</div><div class="field"><label>Role</label><select name="roleId" required>${!data.roles.length?'<option value="">Create a role first</option>':roleOptions(p?.roleId||data.roles[0].id)}</select></div><div class="grouped-note"><strong>Capacity settings stay separate</strong><p>New members inherit the workspace default capacity. You can customize their allocation later on the Team capacity page.</p></div><div class="dialog-foot"><button type="button" class="btn" data-action="go-team">Cancel</button><button type="submit" class="btn primary" ${!data.roles.length?'disabled':''}>${icon('check')} ${p?'Save changes':'Add member'}</button></div></form>`;
+ }else if(m.type==='role'){
+ let r=data.roles.find(x=>x.id===m.id);title=r?'Edit role':'Create a role';subtitle='A role defines what workstream a person can be assigned to.';
+ content=`<form id="modalForm" data-form="role">${textField('Role name','roleName',r?.name||'','required placeholder="e.g. Android Engineer"')}${textField('Platform / workstream','platformName',r?.platform||'','required placeholder="e.g. Android" list="suggested-platforms"')}<datalist id="suggested-platforms">${platformNames().map(x=>`<option value="${esc(x)}"></option>`).join('')}</datalist><div class="grouped-note"><strong>Examples</strong><p>Backend Developer → Backend; QA Engineer → QA; iOS Developer → iOS. Multiple roles can share the same platform.</p></div><div class="dialog-foot"><button type="button" class="btn" data-action="go-team">Cancel</button><button type="submit" class="btn primary">${icon('check')} ${r?'Save role':'Create role'}</button></div></form>`;
+ }else if(m.type==='leave'){
+ let x=data.leave.find(l=>l.id===m.id),start=addDays(monday(today()),9);
+ title=x?'Edit time off':'Add time off';subtitle='Reschedules the person’s assigned tasks and all downstream dependencies.';
+ content=`<form id="modalForm" data-form="leave"><div class="field"><label>Team member</label><select name="person">${personOptions(x?.person||m.person||data.people[0]?.id)}</select></div>${selectField('Type','type',[['vacation','Vacation'],['sick','Sick leave'],['dayoff','Day off']],x?.type||'vacation')}<div class="field-grid">${dateField('From','from',x?.from||start)}${dateField('To (inclusive)','to',x?.to||addDays(start,4))}</div>${textField('Note','note',x?.note||'','placeholder="Optional"')}<div class="dialog-foot">${submit(x?'Save time off':'Add time off')}</div></form>`;
+ }else if(m.type==='milestone'){
+ title='Add a milestone';subtitle='A vertical date marker layered over the roadmap (not a task).';
+ content=`<form id="modalForm" data-form="milestone">${textField('Milestone name','name','', 'required placeholder="e.g. Release 3.0"')}${dateField('Date','date',m.date||addDays(today(),14))}<div class="field"><label>Link features (optional)</label>${data.features.map(f=>`<label class="checkline"><input type="checkbox" name="link_${f.id}">${esc(f.title)}</label>`).join('')}</div><div class="dialog-foot">${submit('Add milestone')}</div></form>`;
+ }else if(m.type==='holiday'){
+ title='Add a calendar holiday';subtitle='When enabled, dates on this calendar are excluded from task schedules.';
+ content=`<form id="modalForm" data-form="holiday">${textField('Holiday title','name','', 'required placeholder="e.g. Company day off"')}${dateField('Date','date',today())}<div class="dialog-foot">${submit('Add holiday')}</div></form>`;
+ }else if(m.type==='settings'){
+ title='Workspace settings';subtitle='Small defaults that make scheduling feel effortless.';
+ content=`<form id="modalForm" data-form="settings"><div class="field-grid">${numberField('Working hours / day','workHours',data.settings.workHours,1,24,1)}<div class="field"><label>Working week</label><input value="Monday – Friday" disabled></div></div><div class="switch-row"><div><strong>Account for Ukrainian public holidays</strong><small>During martial law, your actual company policy may differ.</small></div><input style="width:20px;height:20px;accent-color:#7669e6" type="checkbox" name="holidays" ${data.settings.observeHolidays?'checked':''}></div><div class="meeting-settings-entry"><div><strong>${icon('users',17)} Team & roles</strong><small>${data.people.length} members · ${data.roles.length} roles · dynamically generated work item platforms</small></div><button type="button" class="btn sm" data-action="go-team">${icon('edit')} Manage team</button></div><div class="meeting-settings-entry"><div><strong>${icon('clock',17)} Recurring meetings</strong><small>${(data.meetings||[]).filter(m=>m.enabled).length} active recurring events · deducted from the appropriate people’s capacity</small></div><button class="btn sm" type="button" data-action="manage-meetings">${icon('edit')} Manage meetings</button></div><div class="grouped-note"><strong>Roadmap data</strong><p>Local browser storage · Export or import JSON to back up this project.</p><div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px"><button type="button" class="btn sm" data-action="export">${icon('download')} Export JSON</button><button type="button" class="btn sm" data-action="import">${icon('upload')} Import JSON</button><input id="jsonImport" type="file" accept=".json,application/json" hidden><button type="button" class="btn sm danger" data-action="reset">Reset project</button></div></div><div class="grouped-note"><strong>Scheduling behavior</strong><p>We never auto-prioritize your tasks or change status. Task estimates reflect pure engineering work. Dependents reflow on calendar changes; overload is displayed without silently altering your priorities.</p></div><div class="dialog-foot">${submit('Save settings')}</div></form>`;
+ }else if(m.type==='meetings'){
+ title='Recurring meetings';subtitle='Reserve team time once. Every future iteration and dependent roadmap date adjusts automatically.';wide=true;
+ content=`<div class="notice" style="margin-bottom:14px">${icon('info',15)} <div><strong>How meetings affect estimates</strong><div style="margin-top:4px">Daily feature capacity = (working hours − scheduled meeting hours) × feature allocation %. Meeting overlaps count only once. The operations buffer should exclude these recurring events.</div></div></div><div class="meeting-list">${(data.meetings||[]).map(mt=>`<div class="meeting-item ${mt.enabled?'':'muted-item'}"><div class="meeting-symbol">${icon('clock',18)}</div><div class="meeting-main"><strong>${esc(mt.title)}</strong><small>${esc(meetingRecurrenceLabel(mt))} · ${esc(mt.startTime)} · ${esc(mt.duration)} min</small><small>${esc(meetingPeopleLabel(mt))}${mt.requiresAttendeeReview?' · Needs attendee review':''}</small></div><div class="meeting-controls"><button class="mini-btn" data-action="toggle-meeting" data-id="${mt.id}" title="${mt.enabled?'Disable':'Enable'}">${mt.enabled?'Enabled':'Paused'}</button><button class="mini-btn" data-action="edit-meeting" data-id="${mt.id}">Edit</button><button class="icon-action" data-action="delete-meeting" data-id="${mt.id}" title="Delete meeting">${icon('trash',15)}</button></div></div>`).join('')||'<div class="grouped-note">No meetings yet. Add a regular event to reserve time automatically.</div>'}</div><div class="dialog-foot"><button class="btn" data-action="close-modal">Close</button><button class="btn primary" data-action="new-meeting">${icon('plus')} Add meeting</button></div>`;
+ }else if(m.type==='meeting'){
+ let mt=(data.meetings||[]).find(x=>x.id===m.id),edit=!!mt;
+ const recur=mt?.recurrence||'workdays',weekday=Number(mt?.weekday??4),interval=Math.max(2,Number(mt?.interval||2)),nth=Number(mt?.nth||3);
+ title=edit?'Edit recurring meeting':'New recurring meeting';subtitle='Select the people and frequency. Changes immediately reflow the roadmap.';wide=true;
+ content=`<form id="modalForm" data-form="meeting">${textField('Meeting name','title',mt?.title||'', 'required placeholder="e.g. Sprint planning"')}<div class="field-grid thirds"><div class="field"><label>Start time</label><input name="startTime" type="time" value="${esc(mt?.startTime||'09:30')}" required></div>${numberField('Duration (minutes)','duration',mt?.duration||30,5,480,5)}${selectField('Repeat','recurrence',[['workdays','Every working day'],['weekly','Every week'],['interval','Every N weeks'],['monthly','Monthly · Nth weekday']],recur)}</div><div class="field-grid meeting-pattern" data-pattern="weekly interval monthly" ${recur==='workdays'?'hidden':''}>${selectField('Day of week','weekday',[['1','Monday'],['2','Tuesday'],['3','Wednesday'],['4','Thursday'],['5','Friday'],['6','Saturday'],['0','Sunday']],String(weekday))}<div class="field" data-pattern-field="interval" ${recur!=='interval'?'hidden':''}><label>Every N weeks</label><input type="number" name="interval" min="2" max="12" value="${interval}"></div><div class="field" data-pattern-field="monthly" ${recur!=='monthly'?'hidden':''}><label>Which occurrence</label><select name="nth">${[[1,'1st'],[2,'2nd'],[3,'3rd'],[4,'4th'],[5,'5th'],[-1,'Last']].map(([x,l])=>`<option value="${x}" ${nth===x?'selected':''}>${l} of the month</option>`).join('')}</select></div></div><div class="field-grid">${dateField('Active from','startDate',mt?.startDate||today())}<div class="field"><label>Until (optional)</label><input type="date" name="endDate" value="${esc(mt?.endDate||'')}"></div></div><div class="field"><label>Attendees</label><label class="checkline"><input type="checkbox" name="allTeam" data-meeting-all ${mt?.allTeam!==false?'checked':''}> Entire team</label><div class="meeting-people" ${mt?.allTeam!==false?'hidden':''}>${data.people.map(p=>`<label class="checkline"><input type="checkbox" name="person_${esc(p.id)}" ${mt?.attendees?.includes(p.id)?'checked':''}> ${personAvatar(p.id)} ${esc(p.name)} <span class="person-role">${esc(p.platform)}</span></label>`).join('')}</div></div><div class="grouped-note" style="margin-top:4px"><strong>Example</strong><p>A 30-minute meeting on an 8-hour workday leaves 7.5 hours. At 60% feature allocation, that day offers 4.5 hours of engineering effort.</p></div><div class="dialog-foot"><button type="button" class="btn" data-action="${view.setupStep===2?'setup-close-meeting':'manage-meetings'}">${view.setupStep===2?'Back to setup':'Back to meetings'}</button><button type="submit" class="btn primary">${icon('check')} ${edit?'Save changes':'Create meeting'}</button></div></form>`;
+ }else if(m.type==='iteration'){
+ let i=iter();title='Iteration settings';subtitle='Define the cadence. Override capacity per person in their inspector.';
+ content=`<form id="modalForm" data-form="iteration"><div class="field"><label>Iteration</label><select name="iterationId">${data.iterations.map(it=>`<option value="${it.id}" ${it.id===i.id?'selected':''}>${esc(it.name)}</option>`).join('')}<option value="new">+ New iteration</option></select></div>${textField('Iteration name','name',i.name,'required')}<div class="field-grid">${dateField('Start','start',i.start)}${dateField('End','end',i.end)}</div><div class="dialog-foot">${submit('Save iteration')}</div></form>`;
+ }else if(m.type==='help'){
+ title='How Orbit works';subtitle='A quick tour of your resource-aware roadmap.';wide=true;
+ content=`<div class="dialog-body" style="padding:0 0 5px"><div class="notice"><strong>One roadmap, two levels.</strong> Features are your strategic overview; expand any feature to see the actual stories and owners.</div><div class="grouped-note"><strong>1. Create a feature</strong><p>Give it a name, baseline deadline and 3 optional phases with owners and estimates. Double-click the date axis to add a milestone.</p></div><div class="grouped-note"><strong>2. Let the plan calculate itself</strong><p>Orbit uses task dependencies, individual feature capacity, recurring meetings, weekends, holidays and planned absences. The feature bar is a direct roll-up of its child tasks.</p></div><div class="grouped-note"><strong>3. Stay in control</strong><p>Drag a task bar to shift its earliest start, or use the side inspector to edit effort, status, ownership and dependencies. Overlaps are warned about — never secretly reordered.</p></div><div class="grouped-note"><strong>4. Demo mode with local changes</strong><p>Your changes persist in this browser. Use Reset demo to restore the sample roadmap; Export JSON downloads a reusable snapshot.</p></div><div class="dialog-foot"><button class="btn primary" data-action="close-modal">Got it</button></div></div>`;
+ }else if(m.type==='reset'){
+ title='Reset this project?';subtitle=currentProject().id==='project-atlas'?'Restore the original demo features, people, leave and milestones.':'Clear this project’s features, team, meetings and milestones. Other projects remain untouched.';
+ content=`<div class="notice warn" style="margin-bottom:15px">Only this project will be reset. Export JSON first if you want a backup.</div><div class="dialog-foot"><button class="btn" data-action="close-modal">Keep my changes</button><button class="btn danger" data-action="reset-confirm">Reset everything</button></div>`;
+ }
+ return `<div class="backdrop" data-action="modal-backdrop"><section class="dialog ${wide?'wide':''}" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="dialog-head"><div><h2>${esc(title)}</h2><p>${esc(subtitle)}</p></div><button class="icon-action" data-action="close-modal" title="Close">${icon('close',20)}</button></div><div class="dialog-body">${content}</div></section></div>`;
+}
+function footerTools(){return `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:0 0 9px"><span class="bottom-tip">Everything is stored locally in this browser; no backend is required for this prototype.</span><div style="flex:1"></div><button class="text-link" data-action="export">Export JSON</button><span style="color:#cfd4df">·</span><button class="text-link" data-action="import">Import JSON</button><input id="jsonImport" type="file" accept=".json,application/json" hidden><span style="color:#cfd4df">·</span><button class="text-link" data-action="reset">${currentProject().id==='project-atlas'?'Reset demo':'Reset project'}</button></div>`}
+function setupWizard(){
+ const step=view.setupStep,memberCount=data.people.length,meetingCount=data.meetings.length;
+ const steps=[['1','Add your team','Names and roles'],['2','Recurring meetings','Protect focus time']];
+ const stepper=steps.map(([n,label,detail],idx)=>`<div class="setup-step ${step===idx+1?'is-active':step>idx+1?'is-past':''}"><span class="setup-step-num">${step>idx+1?icon('check',14):n}</span><span><strong>${label}</strong><small>${detail}</small></span></div>`).join('');
+ let main,aside,foot;
+ if(step===1){
+  main=`<h2>Add your team</h2><p class="setup-sub">Start with people's names and job roles. If a role doesn't exist, Orbit creates it automatically.</p>
+   <form class="setup-form" id="onboardingMemberForm"><div class="field-grid thirds">
+   <div class="field"><label for="onboardFirst">First name</label><input id="onboardFirst" name="firstName" required placeholder="e.g. Ihor" autofocus maxlength="90"></div>
+   <div class="field"><label for="onboardLast">Last name</label><input id="onboardLast" name="lastName" required placeholder="e.g. Shevchenko" maxlength="90"></div>
+   <div class="field"><label for="onboardRole">Role</label><input id="onboardRole" name="role" required placeholder="e.g. Backend Developer" list="onboardingRoles" maxlength="120" autocomplete="off"><datalist id="onboardingRoles">${data.roles.map(r=>`<option value="${esc(r.name)}"></option>`).join('')}</datalist></div></div>
+   <div class="setup-role-preview" id="setupRolePreview">A new role will automatically create its workstream.</div><button type="submit" class="btn primary">${icon('plus',15)} Add team member</button></form>
+   ${sourceProjectOptions()?`<div class="setup-import-strip"><div><strong>${icon('copy',14)} Or copy an existing team</strong><small>Imports people, roles and their default capacity. Existing members will not be duplicated.</small></div><div class="setup-import-controls"><select id="teamImportSource" aria-label="Source project for team">${sourceProjectOptions()}</select><button class="btn sm" data-action="setup-import-team">${icon('copy',13)} Copy team</button></div></div>`:''}
+   <div class="setup-added-title">Team members added <span class="soft-tag">${memberCount}</span></div>
+   ${memberCount?data.people.map(p=>`<div class="setup-member">${personAvatar(p.id,'avatar')}<div><strong>${esc(p.name)}</strong><small>${esc(p.role)} · ${esc(p.platform)}</small></div><button class="icon-action" data-action="setup-remove-member" data-id="${p.id}" title="Remove from this project">${icon('trash',15)}</button></div>`).join(''):'<div class="setup-empty">No team members yet. Add someone above, or skip this step.</div>'}`;
+  aside=`<h3>${icon('bolt',15)} Roles become workstreams</h3><p>No need to set up a role directory first. Type a role and Orbit will create it, then use its workstream in the Platform selector when you add work items.</p><div class="aside-example"><b>Backend Developer</b> → Backend<br><b>QA Engineer</b> → QA<br><b>iOS Developer</b> → iOS</div><p style="margin-top:15px;margin-bottom:0">You can rename roles or adjust their workstreams later under Team settings.</p>`;
+  foot=`<span>${memberCount?`${memberCount} member${memberCount===1?'':'s'} added`:'You can configure your team later.'}</span><div style="display:flex;gap:9px"><button class="btn ghost" data-action="setup-next">Skip for now</button><button class="btn primary" data-action="setup-next">Continue to meetings ${icon('chevron',14)}</button></div>`;
+ }else{
+  main=`<div class="split-head"><div><h2>Add recurring meetings</h2><p class="setup-sub">Meetings reduce each attendee's available development capacity and automatically update task forecasts.</p></div><button class="btn primary" data-action="setup-add-meeting">${icon('plus',15)} Add meeting</button></div>
+   ${sourceProjectOptions()?`<div class="setup-import-strip"><div><strong>${icon('copy',14)} Or copy meeting schedules</strong><small>Copies recurrence, timing and attendees. Unmatched participants require review.</small></div><div class="setup-import-controls"><select id="meetingImportSource" aria-label="Source project for meetings">${sourceProjectOptions()}</select><button class="btn sm" data-action="setup-import-meetings">${icon('copy',13)} Copy meetings</button></div></div>`:''}
+   <div class="setup-meeting-list">${meetingCount?data.meetings.map(mt=>`<div class="meeting-item"><div class="meeting-symbol">${icon('clock',18)}</div><div class="meeting-main"><strong>${esc(mt.title)}</strong><small>${esc(meetingRecurrenceLabel(mt))} · ${esc(mt.startTime)} · ${mt.duration} min</small><small>${esc(meetingPeopleLabel(mt))}${mt.requiresAttendeeReview?' · Needs attendee review':''}</small></div><button class="mini-btn" data-action="setup-edit-meeting" data-id="${mt.id}">Edit</button><button class="icon-action" data-action="delete-meeting" data-id="${mt.id}" title="Delete meeting">${icon('trash',15)}</button></div>`).join(''):'<div class="setup-empty">No meetings configured. Add a daily, weekly, biweekly or monthly meeting — or skip for now.</div>'}</div>
+   <div class="grouped-note" style="margin-top:18px"><strong>Capacity calculation</strong><p>Recurring meeting time is deducted before feature capacity is applied, so it won't be counted twice through your operations buffer.</p></div>`;
+  aside=`<h3>${icon('clock',15)} Plan with real availability</h3><p>Configure daily standups, weekly syncs, every second Thursday, or the third Thursday of each month. Choose duration and attendees.</p><div class="aside-example"><b>Daily sync</b> · Every workday · 15 min<br><b>Planning</b> · Every 2 weeks · 60 min<br><b>Demo</b> · 3rd Thursday · 45 min</div><p style="margin-top:15px;margin-bottom:0">Edit these later in Settings → Recurring meetings.</p>`;
+  foot=`<button class="btn" data-action="setup-back">${icon('chevronleft',14)} Back to team</button><div style="display:flex;gap:9px"><button class="btn ghost" data-action="setup-finish">Skip for now</button><button class="btn primary" data-action="setup-finish">${icon('check',15)} Finish setup</button></div>`;
+ }
+ return `<div class="setup-shell"><div class="setup-top"><div class="setup-brand"><span class="brand-mark">${icon('target',19)}</span>orbit<small>PLANNER</small></div><button class="btn sm ghost" data-action="setup-finish">Finish setup & open roadmap ${icon('chevron',14)}</button></div>
+ <main class="setup-main"><div class="setup-kicker">NEW PROJECT · ${esc(currentProject().name)}</div><h1>Make your roadmap work for your team.</h1><p class="setup-desc">Two quick setup steps. Add your people and reserve their recurring meeting time so Orbit can forecast realistic delivery dates. You can skip either one.</p>
+ <div class="setup-progress" aria-label="Setup progress">${stepper}</div><div class="setup-layout"><section class="setup-card">${main}</section><aside class="setup-aside">${aside}</aside></div><div class="setup-footer">${foot}</div></main></div>`;
+}
+function render(){if(!authEmail){$('#app').innerHTML=authMarkup();return;}if(!workspace.projects.length){$('#app').innerHTML=welcomeMarkup()+modalMarkup();return;}computed=calcSchedule();let scroll=$('#ganttScroller'),left=scroll?.scrollLeft||0,top=scroll?.scrollTop||0;
+ let content=view.page==='timeline'?timelineView():view.page==='capacity'?capacityView():view.page==='availability'?availabilityView():view.page==='team'?teamView():milestoneView();
+ $('#app').innerHTML=view.setupStep?`${setupWizard()}${modalMarkup()}`:`<div class="app ${view.sidebarHidden?'nav-hidden':''} ${view.page==='timeline'?'timeline-page':''}">${sideNav()}<main class="main">${mainHeader()}<div class="content">${heading()}${content}${view.page==='timeline'?'':footerTools()}</div></main></div>${drawerMarkup()}${modalMarkup()}`;
+ let newer=$('#ganttScroller');if(newer){newer.scrollLeft=view.scrollToStart?0:left;newer.scrollTop=top}view.scrollToStart=false
+}
+function change(mutator,notif){mutator();persist();render();if(notif)notify(notif)}
+function openModal(type,extras={}){view.modal={type,...extras};render();const f=$('#modalForm input[autofocus]');if(f)f.focus()}
+function openDrawer(type,id){view.drawer={type,id};view.modal=null;render()}
+function closeModal(){view.modal=null;render()}
+function closeDrawer(){view.drawer=null;render()}
+function deleteDependency(id){data.tasks.forEach(t=>t.dependsOn=(t.dependsOn||[]).filter(x=>x!==id))}
+function validateCapacity(parts){let sum=Object.values(parts).reduce((a,b)=>a+Number(b),0);if(Math.abs(sum-100)>.001){notify(`Allocation must total 100% (currently ${sum}%)`);return false}return true}
+function getCapacityFromForm(prefix){return {feature:+$('#'+prefix+'Feature').value,bugs:+$('#'+prefix+'Bugs').value,ongoing:+$('#'+prefix+'Ongoing').value,ops:+$('#'+prefix+'Ops').value}}
+function applyForm(form){let m=view.modal;const F=new FormData(form),g=k=>F.get(k);if(!m)return;
+ if(m.type==='new-project'){
+  const name=String(g('projectName')||'').trim();if(!name){notify('Enter a project name');return}
+  if(workspace.projects.some(p=>p.name.toLowerCase()===name.toLowerCase())){notify('A project with this name already exists');return}
+  const sourceId=String(g('sourceProject')||''),withTeam=Boolean(sourceId&&g('copyTeam')),withMeetings=Boolean(sourceId&&g('copyMeetings'));
+  createProject(name,sourceId,withTeam,withMeetings);
+ }else if(m.type==='feature'){
+  let name=String(g('name')||'').trim();if(!name){notify('Feature name is required');return}
+  let id=uid('f'),f={id,title:name,description:g('description')||'',start:g('start')||today(),baseline:g('baseline')||today(),collapsed:false,color:colorList[data.features.length%colorList.length]};
+  if(f.baseline<f.start){notify('Baseline must not precede start');return}
+  change(()=>{data.features.push(f);let previous=null;platformNames().forEach((p,ix)=>{if(!g('phase_'+ix))return;let t={id:uid('t'),featureId:id,title:p==='QA'?'Test & validate':`${p} implementation`,platform:p,assignee:g('phase_owner_'+ix)||'',effort:Math.max(.5,Number(g('phase_days_'+ix)||2)),start:f.start,dependsOn:g('sequential')&&previous?[previous]:[],status:'planned'};data.tasks.push(t);previous=t.id});view.modal=null;view.page='timeline'},'Feature created');
+ }else if(m.type==='task'){
+ let name=String(g('name')||'').trim();if(!name){notify('Task name is required');return}
+ let t={id:uid('t'),featureId:m.featureId,title:name,platform:g('platform')||platformNames()[0]||'Other',assignee:g('assignee')||'',effort:Math.max(.5,+g('effort')||1),start:g('start')||today(),dependsOn:g('dependency')?[g('dependency')]:[],status:g('status')||'planned'};
+ if(t.assignee&&getPerson(t.assignee)?.platform!==t.platform){notify('Assignee must match the selected platform');return}change(()=>{data.tasks.push(t);view.modal=null;view.drawer={type:'task',id:t.id}},'Task added');
+ }else if(m.type==='member'){
+  let first=String(g('firstName')||'').trim(),last=String(g('lastName')||'').trim(),r=roleById(g('roleId'));
+  if(!first||(!last&&!m.id)||!r){notify('First name, last name and role are required');return}
+  let oldPerson=data.people.find(x=>x.id===m.id),affected=oldPerson?data.tasks.filter(t=>t.assignee===oldPerson.id&&t.platform!==r.platform).length:0;
+  if(affected&&!confirm(`Changing this role will unassign ${affected} work item(s) from ${oldPerson.name}. Continue?`))return;
+  change(()=>{let p=data.people.find(x=>x.id===m.id),values={firstName:first,lastName:last,name:[first,last].filter(Boolean).join(' '),roleId:r.id,role:r.name,platform:r.platform};if(p){Object.assign(p,values);data.tasks.forEach(t=>{if(t.assignee===p.id&&t.platform!==r.platform)t.assignee=''})}else data.people.push({id:uid('u'),...values,color:colorList[data.people.length%colorList.length],capacity:copy(data.settings.defaultCapacity)});view.modal=null;view.page='team'},'Team member saved');
+ }else if(m.type==='role'){
+  let name=String(g('roleName')||'').trim(),platform=String(g('platformName')||'').trim();
+  if(!name||!platform){notify('Role name and workstream are required');return}
+  if(data.roles.some(r=>r.id!==m.id&&r.name.toLowerCase()===name.toLowerCase())){notify('A role with this name already exists');return}
+  let previousRole=roleById(m.id),members=data.people.filter(p=>p.roleId===m.id),affected=members.reduce((count,p)=>count+data.tasks.filter(t=>t.assignee===p.id&&t.platform!==platform).length,0);
+  if(affected&&!confirm(`Changing the workstream will unassign ${affected} work item(s). Continue?`))return;
+  change(()=>{let r=roleById(m.id),old=r?.platform;if(r){Object.assign(r,{name,platform})}else{r={id:uid('r'),name,platform};data.roles.push(r)}data.people.filter(p=>p.roleId===r.id).forEach(p=>{p.role=name;p.platform=platform;data.tasks.filter(t=>t.assignee===p.id&&t.platform!==platform).forEach(t=>t.assignee='')});view.modal=null;view.page='team'},'Role saved');
+ }else if(m.type==='leave'){
+ let from=g('from'),to=g('to');if(to<from){notify('End date must be on or after start');return}
+ change(()=>{let x=data.leave.find(x=>x.id===m.id),values={person:g('person'),type:g('type'),from,to,note:g('note')||''};if(x)Object.assign(x,values);else data.leave.push({id:uid('l'),...values});view.modal=null},'Availability updated');
+ }else if(m.type==='milestone'){
+ let name=String(g('name')||'').trim();if(!name){notify('Milestone name is required');return}
+ change(()=>{data.milestones.push({id:uid('m'),title:name,date:g('date')||today(),color:'#ad72ca',featureIds:data.features.filter(f=>g('link_'+f.id)).map(f=>f.id)});view.modal=null;view.page='timeline'},'Milestone added');
+ }else if(m.type==='holiday'){
+ let date=g('date'),name=String(g('name')||'').trim();if(!date||!name){notify('Name and date are required');return}
+ change(()=>{data.holidays=data.holidays.filter(h=>h.date!==date);data.holidays.push({date,name});view.modal=null},'Holiday calendar updated');
+ }else if(m.type==='settings'){
+ change(()=>{data.settings.observeHolidays=!!g('holidays');data.settings.workHours=Math.max(1,Math.min(24,+g('workHours')||8));view.modal=null},'Settings updated');
+ }else if(m.type==='meeting'){
+  let title=String(g('title')||'').trim(),startDate=g('startDate'),endDate=g('endDate')||'',allTeam=!!g('allTeam');
+  let attendees=data.people.filter(p=>g('person_'+p.id)).map(p=>p.id);
+  if(!title||!startDate){notify('Meeting name and start date are required');return}
+  if(endDate&&endDate<startDate){notify('Meeting end date cannot be earlier than its start');return}
+  if(!allTeam&&!attendees.length){notify('Select at least one attendee');return}
+  let duration=Number(g('duration')),interval=Number(g('interval')||2);
+  if(!Number.isFinite(duration)||duration<5||duration>480||!Number.isInteger(duration)){notify('Duration must be 5–480 whole minutes');return}
+  if(g('recurrence')==='interval'&&(!Number.isInteger(interval)||interval<2||interval>12)){notify('Weekly interval must be between 2 and 12');return}
+  const values={title,recurrence:g('recurrence'),weekday:Number(g('weekday')||1),interval,nth:Number(g('nth')||1),startDate,endDate,startTime:g('startTime')||'09:00',duration,allTeam,attendees};
+  change(()=>{let existing=(data.meetings||[]).find(x=>x.id===m.id);if(existing){const wasMissing=!!existing.requiresAttendeeReview;Object.assign(existing,values,{requiresAttendeeReview:false});if(wasMissing)existing.enabled=true;}else data.meetings.push({id:uid('mt'),enabled:true,...values});view.modal=view.setupStep===2?null:{type:'meetings'}},'Meeting schedule updated');
+ }else if(m.type==='iteration'){
+ let start=g('start'),end=g('end');if(start>end){notify('Iteration end date must follow start date');return}
+ change(()=>{let id=g('iterationId');if(id==='new'){let item={id:uid('i'),name:g('name')||'New iteration',start,end,overrides:{}};data.iterations.push(item);view.iteration=item.id}else{let item=data.iterations.find(it=>it.id===id);if(item){item.name=g('name');item.start=start;item.end=end;view.iteration=item.id}}view.modal=null},'Iteration saved');
+ }
+}
+function exportJson(){const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='orbit-roadmap.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),3000);notify('Roadmap exported')}
+function cycleCheck(taskId,dependencies){const visit=(id,seen=new Set())=>{if(id===taskId)return true;if(seen.has(id))return false;seen.add(id);let t=getTask(id);return(t?.dependsOn||[]).some(next=>visit(next,seen))};return dependencies.some(id=>visit(id))}
+let lastDragAt=0;
+document.addEventListener('click',e=>{
+ if(Date.now()-lastDragAt<260)return;
+ let el=e.target.closest('[data-action]');if(!el)return;
+ let action=el.dataset.action,id=el.dataset.id;
+ if(action.startsWith('auth-')){
+  if(action==='auth-logout'){authEmail='';authPage='landing';try{sessionStorage.removeItem(DEMO_SESSION_KEY)}catch(e){}}
+  else if(action==='auth-sample'){activateDemoUser('__sample__',true);return;}
+  else if(action==='auth-preview-reset'){authPage='reset';authError='';}
+  else {authPage=action.slice(5);authError='';}
+  render();return;
+ }
+ if(action==='modal-backdrop'&&e.target!==el)return;
+ switch(action){
+ case 'noop':break;
+ case 'toggle-sidebar':view.sidebarHidden=!view.sidebarHidden;saveUiPreferences();render();break;
+ case 'clear-filters':view.filterPerson='';view.filterPlatform='';render();break;
+ case 'new-project':openModal('new-project');break;
+ case 'projects':openModal('projects');break;
+ case 'switch-project':switchProject(id);break;
+ case 'setup-next':view.setupStep=2;view.modal=null;render();break;
+ case 'setup-back':view.setupStep=1;view.modal=null;render();break;
+ case 'setup-finish':view.setupStep=0;view.modal=null;view.page='timeline';persist();render();notify('Project ready · start planning your first feature');break;
+ case 'setup-add-meeting':openModal('meeting');break;
+ case 'setup-edit-meeting':openModal('meeting',{id});break;
+ case 'setup-close-meeting':view.modal=null;render();break;
+ case 'setup-import-team':{
+  const src=$('#teamImportSource')?.value;if(!src){notify('Choose a source project');break}
+  const r=importSetup(src,true,false);persist();render();notify(importSummary(r));break;
+ }
+ case 'setup-import-meetings':{
+  const src=$('#meetingImportSource')?.value;if(!src){notify('Choose a source project');break}
+  const r=importSetup(src,false,true);persist();render();notify(importSummary(r));break;
+ }
+ case 'setup-remove-member':{
+  const p=getPerson(id);if(!p)return;
+  if(!confirm(`Remove ${p.name} from this project?`))return;
+  change(()=>{data.people=data.people.filter(x=>x.id!==id);data.meetings.forEach(mt=>mt.attendees=(mt.attendees||[]).filter(x=>x!==id));data.leave=data.leave.filter(x=>x.person!==id)},'Team member removed');break;
+ }
+ case 'page':view.page=id;view.drawer=null;view.modal=null;render();break;
+ case 'collapse':change(()=>{let f=getFeature(id);if(f)f.collapsed=!f.collapsed});break;
+ case 'drawer-feature':openDrawer('feature',id);break;
+ case 'drawer-task':openDrawer('task',id);break;
+ case 'drawer-milestone':openDrawer('milestone',id);break;
+ case 'open-feature':openModal('feature');break;
+ case 'open-task':view.drawer=null;openModal('task',{featureId:id});break;
+ case 'open-person':openDrawer('person',id);break;
+ case 'go-team':view.page='team';view.modal=null;view.drawer=null;render();break;
+ case 'open-team-member':openModal('member');break;
+ case 'edit-team-member':openModal('member',{id});break;
+ case 'open-role':openModal('role');break;
+ case 'edit-role':openModal('role',{id});break;
+ case 'delete-role':{
+  let r=roleById(id);if(!r)return;
+  if(roleAssignmentCount(id)){notify('Reassign team members before deleting this role');return}
+  if(confirm(`Delete role “${r.name}”?`))change(()=>{data.roles=data.roles.filter(x=>x.id!==id)},'Role removed');break;
+ }
+ case 'delete-team-member':{
+  let p=getPerson(id);if(!p)return;
+  let assigned=data.tasks.filter(t=>t.assignee===id).length;
+  if(confirm(`Remove ${p.name} from the team? ${assigned?assigned+' assigned work item(s) will become unassigned.':'This member has no assigned work items.'}`))change(()=>{data.people=data.people.filter(x=>x.id!==id);data.tasks.forEach(t=>{if(t.assignee===id)t.assignee=''});data.leave=data.leave.filter(l=>l.person!==id);data.meetings.forEach(m=>m.attendees=(m.attendees||[]).filter(x=>x!==id));data.iterations.forEach(i=>{if(i.overrides)delete i.overrides[id]});view.drawer=null},'Member removed · assignments updated');break;
+ }
+ case 'open-leave':view.drawer=null;openModal('leave',{person:id});break;
+ case 'edit-leave':openModal('leave',{id});break;
+ case 'open-milestone':openModal('milestone');break;
+ case 'open-holiday':openModal('holiday');break;
+ case 'open-settings':openModal('settings');break;
+ case 'manage-meetings':openModal('meetings');break;
+ case 'new-meeting':openModal('meeting');break;
+ case 'edit-meeting':openModal('meeting',{id});break;
+ case 'toggle-meeting':{let mt=data.meetings.find(x=>x.id===id);if(mt?.requiresAttendeeReview){notify('Edit this meeting and assign attendees before enabling');break}change(()=>{if(mt)mt.enabled=!mt.enabled},'Meeting availability updated');break}
+ case 'delete-meeting':if(confirm('Delete this recurring meeting?'))change(()=>{data.meetings=data.meetings.filter(x=>x.id!==id)},'Meeting deleted');break;
+ case 'open-iteration':openModal('iteration');break;
+ case 'help':openModal('help');break;
+ case 'today':view.scaleFocusDate=today();view.rangeStart=alignScaleStart(today(),view.scale);view.scrollToStart=true;render();break;
+ case 'prev':moveTimeline(-1);break;
+ case 'next':moveTimeline(1);break;
+ case 'riskfilter':view.showOnlyRisks=!view.showOnlyRisks;render();break;
+ case 'holiday-switch':change(()=>{data.settings.observeHolidays=!data.settings.observeHolidays},'Holiday rule updated');break;
+ case 'close-drawer':closeDrawer();break;
+ case 'close-modal':case 'modal-backdrop':closeModal();break;
+ case 'quick-hold':change(()=>{getTask(id).status='hold'},'Task paused · no restart date');break;
+ case 'quick-resume':change(()=>{let t=getTask(id);t.status='progress';t.start=fromDay(Math.max(asDay(today()),asDay(t.start)))},'Task resumed');break;
+ case 'duplicate-task':change(()=>{let t=getTask(id),n={...copy(t),id:uid('t'),title:t.title+' (copy)',status:'planned',dependsOn:[],completedDate:undefined};data.tasks.push(n);view.drawer={type:'task',id:n.id}},'Task duplicated');break;
+ case 'delete-task':if(confirm(`Delete “${getTask(id)?.title||'task'}”?`))change(()=>{data.tasks=data.tasks.filter(t=>t.id!==id);deleteDependency(id);view.drawer=null},'Task deleted');break;
+ case 'delete-feature':if(confirm(`Delete “${getFeature(id)?.title||'feature'}” and all its tasks?`))change(()=>{let tids=data.tasks.filter(t=>t.featureId===id).map(t=>t.id);data.tasks=data.tasks.filter(t=>t.featureId!==id);data.features=data.features.filter(f=>f.id!==id);tids.forEach(deleteDependency);data.milestones.forEach(m=>m.featureIds=m.featureIds.filter(x=>x!==id));view.drawer=null},'Feature deleted');break;
+ case 'delete-leave':if(confirm('Remove this time-off period?'))change(()=>{data.leave=data.leave.filter(l=>l.id!==id)},'Time off removed');break;
+ case 'delete-holiday':if(confirm('Remove this holiday?'))change(()=>{data.holidays=data.holidays.filter(h=>h.date!==id)},'Holiday removed');break;
+ case 'delete-milestone':if(confirm('Delete this milestone?'))change(()=>{data.milestones=data.milestones.filter(m=>m.id!==id);view.drawer=null},'Milestone removed');break;
+ case 'save-capacity':{let c=getCapacityFromForm('cp');if(!validateCapacity(c))return;change(()=>{getPerson(id).capacity=c},'Default capacity updated');break}
+ case 'save-override':{let c=getCapacityFromForm('op');if(!validateCapacity(c))return;change(()=>{iter().overrides[id]=c},'Iteration override applied');break}
+ case 'clear-override':change(()=>{delete iter().overrides[id]},'Iteration override removed');break;
+ case 'save-milestone':{
+   let m=data.milestones.find(m=>m.id===id);let title=$('[data-update-milestone="title"]')?.value.trim();let date=$('#milestoneDate')?.value;let color=$('#milestoneColor')?.value;
+   if(!title||!date){notify('Enter a milestone name and date');return}
+   let linked=$$('[data-milestone-feature]:checked').map(e=>e.dataset.milestoneFeature);
+   change(()=>{Object.assign(m,{title,date,color,featureIds:linked})},'Milestone updated');break}
+ case 'export':exportJson();break;
+ case 'import':$('#jsonImport')?.click();break;
+ case 'reset':openModal('reset');break;
+ case 'reset-confirm':change(()=>{data=currentProject().id==='project-atlas'?seed():newProjectData();view.modal=null;view.drawer=null;view.page='timeline';view.iteration=data.iterations[0].id;view.rangeStart=alignScaleStart(today(),view.scale);view.scaleFocusDate=today();view.scrollToStart=true;view.showOnlyRisks=false;view.filterPerson='';view.filterPlatform=''},'Project reset');break;
+ default:break;
+ }
+});
+document.addEventListener('change',e=>{
+ let target=e.target;
+ if(target.id==='newProjectSource'){
+  const panel=$('#newProjectCopyOptions');if(panel)panel.hidden=!target.value;
+  return;
+ }
+ if(target.id==='jsonImport'){
+  let file=target.files?.[0];if(!file)return;file.text().then(text=>{try{let candidate=JSON.parse(text);if(!Array.isArray(candidate.features)||!candidate.people||!candidate.tasks||!candidate.iterations||!candidate.settings)throw Error('Not an Orbit data file');change(()=>{data=candidate;if(!Array.isArray(data.meetings))data.meetings=[];migrateTeam();view.page='timeline';view.iteration=data.iterations[0]?.id;view.drawer=null},'Roadmap imported')}catch(err){notify('Invalid roadmap JSON: '+err.message)}});return;
+ }
+ if(target.name==='recurrence'&&view.modal?.type==='meeting'){
+  const val=target.value;
+  const pattern=$('.meeting-pattern');if(pattern)pattern.hidden=val==='workdays';
+  $$('[data-pattern-field]').forEach(el=>el.hidden=el.dataset.patternField!==val);
+  return;
+ }
+ if(target.hasAttribute('data-meeting-all')&&view.modal?.type==='meeting'){
+  const people=$('.meeting-people');if(people)people.hidden=target.checked;
+  return;
+ }
+ if(target.name==='platform'&&view.modal?.type==='task'){
+  const assignee=$('#modalForm [name="assignee"]');if(assignee)assignee.innerHTML=personOptions('',true,target.value);
+  return;
+ }
+ if(target.dataset.change==='iteration'){view.iteration=target.value;render();return}
+ if(target.dataset.change==='scale'){setScale(target.value);return}
+ if(target.dataset.change==='filter-person'){view.filterPerson=target.value;render();return}
+ if(target.dataset.change==='filter-platform'){view.filterPlatform=target.value;render();return}
+ if(target.dataset.updateTask){let t=getTask(view.drawer?.id);if(!t)return;let field=target.dataset.updateTask,val=target.value;
+ if(field==='title'){if(!val.trim()){notify('Task title cannot be empty');return}change(()=>t.title=val.trim())}
+ else if(field==='assignee'){if(val&&getPerson(val)?.platform!==t.platform){notify('Selected person does not match the workstream');render();return}change(()=>t.assignee=val,'Assignment updated')}
+ return;
+ }
+ if(target.dataset.dependency){let t=getTask(view.drawer?.id);if(!t)return;let dep=target.dataset.dependency;let next=new Set(t.dependsOn||[]);if(target.checked)next.add(dep);else next.delete(dep);if(cycleCheck(t.id,[...next])){target.checked=false;notify('Circular dependencies are not allowed');return}change(()=>t.dependsOn=[...next],'Dependencies updated');return}
+ if(target.dataset.updateFeature){let f=getFeature(view.drawer?.id);if(!f)return;let name=target.dataset.updateFeature;if(name==='title'&&!target.value.trim()){notify('Feature needs a name');return}change(()=>f[name]=target.value.trim());return}
+ if(target.dataset.updateMilestone){return}
+ if(target.dataset.milestoneFeature){return}
+ let t=view.drawer?.type==='task'?getTask(view.drawer.id):null;
+ if(t&&['taskStatus','taskEffort','taskRemaining','taskPlatform','taskStart','taskCompleted'].includes(target.id)){
+  let field=target.id,val=target.value;
+  change(()=>{
+   if(field==='taskStatus'){t.status=val;if(val==='done')t.completedDate=t.completedDate||today();if(val==='progress'&&t.start<today())t.start=today()}
+   if(field==='taskEffort'){t.effort=Math.max(.5,+val||.5);if(t.remaining===undefined)t.remaining=t.effort}
+   if(field==='taskRemaining')t.remaining=Math.max(.5,+val||.5);
+   if(field==='taskPlatform'){t.platform=val;if(t.assignee&&getPerson(t.assignee)?.platform!==val)t.assignee=''}
+   if(field==='taskStart')t.start=val;
+   if(field==='taskCompleted')t.completedDate=val;
+  },'Forecast recalculated');return;
+ }
+ let f=view.drawer?.type==='feature'?getFeature(view.drawer.id):null;
+ if(f&&['featureStart','featureBaseline'].includes(target.id)){
+  let field=target.id,val=target.value;
+  if(field==='featureStart'){let delta=asDay(val)-asDay(f.start);change(()=>{data.tasks.filter(t=>t.featureId===f.id).forEach(t=>t.start=addDays(t.start,delta));f.start=val},'Feature plan shifted');}
+  else change(()=>{f.baseline=val},'Baseline updated');return;
+ }
+});
+document.addEventListener('submit',e=>{
+ if(e.target.id==='authForm'){e.preventDefault();handleAuthForm(e.target);return;}
+ if(e.target.id==='modalForm'){e.preventDefault();applyForm(e.target);return}
+ if(e.target.id==='onboardingMemberForm'){
+  e.preventDefault();const f=new FormData(e.target),first=String(f.get('firstName')||'').trim(),last=String(f.get('lastName')||'').trim(),role=String(f.get('role')||'').trim();
+  if(!first||!last||!role){notify('First name, last name and role are required');return}
+  if(data.people.some(p=>p.name.toLowerCase()===`${first} ${last}`.toLowerCase())){notify('This team member is already added');return}
+  change(()=>{
+   let r=data.roles.find(r=>r.name.toLowerCase()===role.toLowerCase());
+   if(!r){r={id:uid('r'),name:role,platform:guessPlatform(role)};data.roles.push(r)}
+   data.people.push({id:uid('u'),firstName:first,lastName:last,name:`${first} ${last}`,roleId:r.id,role:r.name,platform:r.platform,color:colorList[data.people.length%colorList.length],capacity:copy(data.settings.defaultCapacity)});
+  },'Team member added');
+  $('#onboardFirst')?.focus();return;
+ }
+});
+// Live preview for free-text roles. The actual role and workstream are stored when Add team member is clicked.
+document.addEventListener('input',e=>{
+ if(e.target.id!=='onboardRole')return;let value=e.target.value.trim(),display=$('#setupRolePreview');if(!display)return;
+ let existing=data.roles.find(r=>r.name.toLowerCase()===value.toLowerCase());
+ display.textContent=value?`${existing?'Existing role':'New role'}: ${existing?.name||value} → Platform: ${existing?.platform||guessPlatform(value)}`:'A new role will automatically create its workstream.';
+});
+document.addEventListener('dblclick',e=>{let day=e.target.closest('.day-cell[data-date], .time-segment[data-date]');if(day){e.preventDefault();openModal('milestone',{date:day.dataset.date})}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(view.modal){closeModal()}else if(view.drawer){closeDrawer()}}});
+document.addEventListener('pointerdown',e=>{
+ if(e.button!==0||view.modal)return;
+ let bar=e.target.closest('.task-bar[data-task]'),pin=e.target.closest('.milestone-pin[data-id]');
+ if(!bar&&!pin)return;
+ if(bar){let t=getTask(bar.dataset.task);if(!t||['hold','done'].includes(t.status)||computed.schedule[t.id]?.blocked)return}
+ view.drag={el:bar||pin,kind:bar?'task':'milestone',id:bar?bar.dataset.task:pin.dataset.id,startX:e.clientX,delta:0,moved:false};
+});
+document.addEventListener('pointermove',e=>{
+ let d=view.drag;if(!d)return;d.delta=e.clientX-d.startX;if(Math.abs(d.delta)>5){d.moved=true;if(d.kind==='task'){d.el.style.transform=`translate(${d.delta}px,-50%)`;d.el.classList.add('dragging')}else d.el.style.transform=`translateX(calc(-50% + ${d.delta}px))`}
+});
+document.addEventListener('pointerup',e=>{
+ let d=view.drag;if(!d)return;view.drag=null;if(!d.moved){return}
+ lastDragAt=Date.now();let shift=Math.round(d.delta/view.zoom);if(d.kind==='task'){let t=getTask(d.id);if(t&&shift){change(()=>{t.start=addDays(t.start,shift)},`Task shifted ${Math.abs(shift)} day(s)`)}else render()}
+ else {let m=data.milestones.find(m=>m.id===d.id);if(m&&shift){change(()=>{m.date=addDays(m.date,shift)},`Milestone moved ${Math.abs(shift)} day(s)`)}else render()}
+});
+if(authEmail)activateDemoUser(authEmail);else render();
+})();
+
+</script>
+</body>
+</html>

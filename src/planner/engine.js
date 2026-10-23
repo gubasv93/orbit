@@ -1,0 +1,112 @@
+// Scheduling logic extracted from the supplied Orbit prototype. No UI or persistence dependencies.
+import {DAY,asDay,fromDay,addDays,dow,today,monday} from './dates.js';
+export function createScheduler(data) {
+const getPerson=id=>data.people.find(p=>p.id===id);
+const getFeature=id=>data.features.find(f=>f.id===id);
+const getTask=id=>data.tasks.find(t=>t.id===id);
+function isHoliday(n){return data.settings.observeHolidays&&data.holidays.some(h=>asDay(h.date)===n)}
+function nonwork(n,person){if(dow(n)===0||dow(n)===6||isHoliday(n))return true;return !!person&&data.leave.some(l=>l.person===person&&n>=asDay(l.from)&&n<=asDay(l.to))}
+function nextWork(n,person){let j=0;while(nonwork(n,person)&&j++<550)n++;return n}
+function capacityParts(pid,date){const p=getPerson(pid),base=p?.capacity||data.settings.defaultCapacity,iter=data.iterations.find(i=>asDay(i.start)<=asDay(date)&&asDay(i.end)>=asDay(date));return iter?.overrides?.[pid]||base}
+// Meetings are reserved before capacity allocation. Ops % represents other overhead,
+// so regular calendar meetings must NOT also be included in the ops percentage.
+const meetingDayCache=new Map();
+function meetingOccurs(m,date){
+ if(!m.enabled||!m.startDate||date<m.startDate||(m.endDate&&date>m.endDate))return false;
+ const n=asDay(date),day=dow(n);
+ if(m.recurrence==='workdays')return day>=1&&day<=5;
+ if(m.recurrence==='monthly'){
+  if(day!==Number(m.weekday))return false;
+  const dayOfMonth=Number(date.slice(8)),ordinal=Math.ceil(dayOfMonth/7);
+  if(Number(m.nth)===-1)return fromDay(n+7).slice(0,7)!==date.slice(0,7);
+  return ordinal===Number(m.nth);
+ }
+ if(day!==Number(m.weekday))return false;
+ const weeks=Math.floor((asDay(monday(date))-asDay(monday(m.startDate)))/7);
+ return weeks>=0&&weeks%Math.max(1,Number(m.recurrence==='interval'?m.interval:1)||1)===0;
+}
+function meetingMinutes(pid,date){
+ if(!pid)return 0;
+ const key=pid+':'+date;
+ if(meetingDayCache.has(key))return meetingDayCache.get(key);
+ const intervals=[];
+ for(const m of(data.meetings||[])){
+  if(!m.allTeam&&!(m.attendees||[]).includes(pid))continue;
+  if(!meetingOccurs(m,date))continue;
+  const [hour,min]=String(m.startTime||'09:00').split(':').map(Number),start=hour*60+min;
+  if(!Number.isFinite(start))continue;
+  intervals.push([start,start+Math.max(0,Number(m.duration)||0)]);
+ }
+ intervals.sort((a,b)=>a[0]-b[0]);
+ let total=0,earliest=null,latest=null;
+ for(const [start,end] of intervals){
+  if(earliest===null){earliest=start;latest=end}
+  else if(start<=latest)latest=Math.max(latest,end);
+  else{total+=latest-earliest;earliest=start;latest=end}
+ }
+ if(earliest!==null)total+=latest-earliest;
+ const result=Math.min(Math.max(0,total),Math.max(1,Number(data.settings.workHours)||8)*60);
+ meetingDayCache.set(key,result);return result;
+}
+function meetingHoursInIteration(pid,iteration){
+ let minutes=0;
+ for(let n=asDay(iteration.start);n<=asDay(iteration.end);n++){
+  if(!nonwork(n,pid))minutes+=meetingMinutes(pid,fromDay(n));
+ }
+ return minutes/60;
+}
+function featureCapacity(pid,date){
+ const hours=Math.max(1,Number(data.settings.workHours)||8);
+ const timeAfterMeetings=Math.max(0,(hours*60-meetingMinutes(pid,date))/(hours*60));
+ return Math.max(0,Number(capacityParts(pid,date).feature||0)/100)*timeAfterMeetings;
+}
+function calculate(){meetingDayCache.clear();const schedule={},working=new Map(),errors=[];
+ function calc(t,depth=0,seen=new Set()){
+  if(schedule[t.id])return schedule[t.id];
+  if(depth>100||seen.has(t.id)){let s={start:null,end:null,blocked:true,reason:'Circular dependency',alloc:{}};schedule[t.id]=s;errors.push(t.id);return s}
+  seen=new Set(seen);seen.add(t.id);
+  if(t.status==='hold'){return (schedule[t.id]={start:asDay(t.start),end:null,hold:true,blocked:false,alloc:{}})}
+  let initial=asDay(t.start||getFeature(t.featureId)?.start||today());let depBlocked=false;
+  for(const depId of(t.dependsOn||[])){
+   const dep=getTask(depId);if(!dep)continue;
+   const info=calc(dep,depth+1,seen);
+   if(info.end===null){depBlocked=true;continue}
+   initial=Math.max(initial,info.end+1);
+  }
+  if(depBlocked)return (schedule[t.id]={start:initial,end:null,blocked:true,reason:'Waiting for dependency',alloc:{}});
+  let current=nextWork(initial,t.assignee),first=current,last=current,allocation={};
+  if(t.status==='done'){
+   last=asDay(t.completedDate||t.start);first=asDay(t.start);if(last<first)first=last;
+   return (schedule[t.id]={start:first,end:last,blocked:false,done:true,alloc:{}})
+  }
+  let remaining=Math.max(.1,Number(t.remaining??t.effort??1)),guard=0;
+  while(remaining>0.0001&&guard++<600){
+   if(!nonwork(current,t.assignee)){
+    if(Object.keys(allocation).length===0)first=current;
+    let available=t.assignee?featureCapacity(t.assignee,fromDay(current)):1;
+    const used=Math.min(available,remaining);
+    allocation[fromDay(current)]=used;remaining-=used;last=current;
+   }
+   if(remaining>0.0001)current++;
+  }
+  if(guard>=600){errors.push(t.id);return schedule[t.id]={start:first,end:null,blocked:true,reason:'Could not schedule',alloc:{}}}
+  for(let [date,effort] of Object.entries(allocation)){
+   const k=`${t.assignee||'_'}:${date}`;working.set(k,(working.get(k)||0)+effort)
+  }
+  return (schedule[t.id]={start:first,end:last,blocked:false,alloc:allocation});
+ }
+ data.tasks.forEach(t=>calc(t));
+ const conflicts={};for(let t of data.tasks){let p=schedule[t.id],bad=[];for(let dt of Object.keys(p?.alloc||{})){let val=working.get(`${t.assignee||'_'}:${dt}`)||0;if(t.assignee&&val>featureCapacity(t.assignee,dt)+.001)bad.push(dt)}if(bad.length)conflicts[t.id]=bad}
+ let featureInfo={};data.features.forEach(f=>{
+   let arr=data.tasks.filter(t=>t.featureId===f.id);
+   let entries=arr.map(t=>schedule[t.id]).filter(Boolean);
+   let blocked=entries.some(s=>s.blocked||s.hold),starts=entries.map(s=>s.start).filter(x=>x!==null),ends=entries.map(s=>s.end).filter(x=>x!==null);
+   let start=starts.length?Math.min(...starts):asDay(f.start),end=blocked?null:ends.length?Math.max(...ends):null;
+   let allDone=arr.length>0&&arr.every(t=>t.status==='done');
+   featureInfo[f.id]={start,end,blocked,allDone,atRisk:blocked||(end!==null&&end>asDay(f.baseline)),delta:end!==null?end-asDay(f.baseline):null}
+ });
+ return {schedule,conflicts,working,featureInfo,errors};
+}
+
+return {calculate,isHoliday,nonwork,nextWork,capacityParts,meetingOccurs,meetingMinutes,meetingHoursInIteration,featureCapacity};
+}
