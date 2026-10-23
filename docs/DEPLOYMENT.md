@@ -2,6 +2,8 @@
 
 Selected repository: `gubasv93/orbit`. Selected Supabase project: `vvvptboxmyibdfzfqxzz`. Selected Vercel account/team slug: `gubasv93s-projects`. Use the existing Vercel subscription; do not create paid resources or upgrade plans without owner approval.
 
+Live verification release: **https://orbit-sigma-nine-72.vercel.app**. Vercel deployment `dpl_H4SCa4oLE48u74ytiVqCvyXQn1Sp` is Ready, built from commit `076a2e6fe9737b9725cc757c705de305217b7f5f`. The application is deployed, while public email-confirmation delivery and automatic Git deployment remain outstanding.
+
 ## Secure integration access
 
 Supply `SUPABASE_ACCESS_TOKEN` and `VERCEL_TOKEN` through secure environment settings, never chat, Git, or command-line literals. These management/deployment bindings are only needed for provisioning; never install them as application runtime variables or expose them to the browser.
@@ -30,6 +32,18 @@ Authenticate securely, inspect the selected team and its existing projects/plan,
 
 The owner's replacement token has management access. Project `orbit` (`prj_OEjKW1GPAn5AnBaQbQO75PvI8voj`) was created under `gubasv93s-projects` on its existing Hobby plan, with Node.js 24 and encrypted production runtime settings. Vercel requires the owner to [install its GitHub app](https://github.com/apps/vercel/installations/new) for `gubasv93/orbit` before Git linking and automatic deployments can be configured. The existing portfolio project is untouched. No paid upgrade was made.
 
+Until Git linking is authorized, a reviewed manual update can use the direct deployment script:
+
+```bash
+npm run typecheck
+npm test
+npm run build
+# Commit, push main, and check CI before deploying.
+node --use-env-proxy scripts/deploy-vercel.mjs
+```
+
+The script requires a clean tree matching the pushed `main` commit, verifies the existing project owner, and uploads only committed application source and build declarations. It excludes all environment files and management scripts. It uses secure `VERCEL_TOKEN` settings, creates a production deployment, and records public deployment metadata under ignored `.vercel/`. An accepted deployment still needs Ready status and live verification.
+
 Use the Next.js preset, `npm ci`, `npm run build`, Node.js 24, and the repository root. Store these in Vercel's runtime environment settings:
 
 | Variable | Value |
@@ -41,13 +55,13 @@ Use the Next.js preset, `npm ci`, `npm run build`, Node.js 24, and the repositor
 
 Set preview variables separately. Preview builds must use their exact origin and explicitly permitted callback URL. Prefer a separate Supabase test project for previews; do not run tests that mutate real production data merely to validate a build.
 
-Public registration and the password policy are already configured on the selected hosted project. Its original email-confirmation requirement remains enabled, and its original localhost site URL remains unchanged until a deployment URL exists. After the production URL is assigned, configure the exact redirects and verify the password policy:
+Public registration, the password policy, the production site URL, and exact production/local callback URLs are configured on the selected hosted project. Its original email-confirmation requirement remains enabled. For a future canonical domain change, update the Vercel `APP_URL` variable, configure the exact redirects, and verify the password policy:
 
 ```bash
-APP_URL=https://your-assigned-domain node --use-env-proxy scripts/configure-auth.mjs
+APP_URL=https://orbit-sigma-nine-72.vercel.app node --use-env-proxy scripts/configure-auth.mjs
 ```
 
-The script preserves the current confirmation-email and sender configuration. SMTP and forgot/reset-password are intentionally deferred. Check whether the existing sender supports public registrations before claiming sign-up works; the local test auto-confirmation setting is not a production recommendation or a hosted configuration change.
+The script preserves the current confirmation-email and sender configuration. SMTP and forgot/reset-password are intentionally deferred. Hosted test registration was rejected for the test address and later rate-limited by Supabase (`over_email_send_rate_limit`). Public email delivery and confirmation remain unverified. Check the provider's sender restrictions and limits before public launch; the local test auto-confirmation setting is not a production recommendation or a hosted configuration change.
 
 ## Release verification
 

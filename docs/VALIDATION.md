@@ -9,6 +9,8 @@ Validated on 2026-10-23 in the Codex Linux cloud workspace using Node.js 24.19.0
 | Unit and PostgreSQL/RLS suite | 23 tests passed, 0 failed, 0 skipped |
 | Production-build browser journeys with real local backend | 10 tests passed, 0 failed, 0 skipped |
 | Full dependency audit, including development dependencies | 0 vulnerabilities reported |
+| GitHub CI for deployed code `076a2e6` | Passed all stages |
+| Live HTTPS release and authenticated journeys | Passed with temporary confirmed accounts; public email delivery unverified |
 
 ## What was exercised
 
@@ -38,10 +40,14 @@ Temporary, explicitly confirmed test accounts exercised real hosted Auth login, 
 
 The hosted stale-write check exposed a transport timeout for SQLSTATE `40001`. An additive migration changes business revision conflicts to `PT409`; the hosted API then returned HTTP 409 promptly and retained the saved snapshot. Unit and local real-backend tests cover the updated migration.
 
-Public registration is enabled and passwords require 8 characters, a letter, and a digit, with the native 72-byte maximum. The existing confirmation and sender settings were preserved. A public test registration was rejected with `email_address_invalid`; confirmation delivery is unverified. SMTP and forgot/reset-password remain intentionally deferred by the owner. Public email onboarding must be verified before launch.
+Public registration is enabled and passwords require 8 characters, a letter, and a digit, with the native 72-byte maximum. The existing confirmation and sender settings were preserved. A public test registration was rejected with `email_address_invalid`; a later attempt returned HTTP 429 / `over_email_send_rate_limit`. Confirmation delivery is unverified. SMTP and forgot/reset-password remain intentionally deferred by the owner. Public email onboarding must be verified before launch.
 
 ## Deployment status
 
-Source is pushed to the owner-approved public `gubasv93/orbit` repository. GitHub CI passed all stages on commit `41bf6ad4b5a98cb5c04d9e4107399743b0734136`; later changes require their own CI result.
+Source is pushed to the owner-approved public `gubasv93/orbit` repository. [GitHub CI](https://github.com/gubasv93/orbit/actions/runs/39956953944) passed all stages on deployed commit `076a2e6fe9737b9725cc757c705de305217b7f5f`. Later documentation updates do not change the deployed application payload.
 
-Vercel project `orbit` exists in `gubasv93s-projects` on the existing Hobby plan, with Node.js 24 and encrypted production variables. Git linking is blocked until the owner authorizes Vercel's GitHub app. A direct deployment is being prepared; live production journeys and automatic Git deployment are not yet verified. No paid subscription changes were made.
+Vercel project `orbit` exists in `gubasv93s-projects` on the existing Hobby plan, with Node.js 24 and encrypted production variables. Deployment `dpl_H4SCa4oLE48u74ytiVqCvyXQn1Sp` reached Ready at **https://orbit-sigma-nine-72.vercel.app**. Live checks verified the landing page, health, CSP/HSTS/nosniff headers, anonymous API denial, real login/logout, custom team and meetings, feature creation, save/reload equality, timeline scales/filters, Secure HttpOnly cookies, a second user's empty workspace, protected-page redirect, account isolation, conflicts, and rollback. All temporary test accounts and their workspaces were removed.
+
+Chromium did not trust the environment's HTTPS inspection CA. Automatic approval review rejected a persistent trust-store change because it would broaden future browsing trust. Live browser requests instead used temporary Playwright routing through its Node TLS client with the existing environment CA and proxy; certificate validation remained enabled. Normal HTTPS requests independently verified the public site and protected endpoints. Browser-native certificate-store validation remains an environment limitation.
+
+Git linking and automatic deployments are blocked until the owner authorizes Vercel's GitHub app. GitHub also denies this integration permission to write repository secrets, so an Actions deployment credential was not installed. Future manual deployments are documented in `DEPLOYMENT.md`. No paid subscription changes were made; Hobby's commercial-use restrictions still apply.

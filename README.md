@@ -2,6 +2,8 @@
 
 Roadmaps that adapt to reality: features and work items, dependencies, real team capacity, recurring meetings, time off, and milestones.
 
+Live verification release: **https://orbit-sigma-nine-72.vercel.app**. Public confirmation-email delivery and automatic Git deployment remain pending; see the delivery scope below.
+
 Orbit is a Next.js App Router application backed by Supabase Auth and PostgreSQL, intended for Vercel. The supplied interactive planner is preserved; its scheduling engine has been extracted from rendering and persistence. No account is seeded with sample data.
 
 The source repository `gubasv93/orbit` is public with owner approval.
@@ -14,7 +16,7 @@ The source repository `gubasv93/orbit` is public with owner approval.
 - SMTP configuration and all forgot/reset-password functionality are intentionally deferred by the owner.
 - No social sign-in, invitations, billing, or collaborative editing.
 - The selected hosted Supabase project has Orbit's migration and password policy applied. Hosted persistence and account isolation were exercised with temporary test accounts.
-- Vercel project `orbit` is configured on the owner's existing Hobby plan. Git integration requires the owner to authorize Vercel's GitHub app. See `docs/VALIDATION.md` for deployment status and observed results.
+- Vercel project `orbit` is deployed on the owner's existing Hobby plan. Live login, onboarding, persistence, and account isolation passed with temporary confirmed test accounts. Git integration requires the owner to authorize Vercel's GitHub app. Hobby's commercial-use restrictions must be resolved before commercial launch.
 
 ## Development
 
