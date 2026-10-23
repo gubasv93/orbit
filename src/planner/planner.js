@@ -382,7 +382,7 @@ function modalMarkup(){if(!view.modal)return '';let m=view.modal,content='',titl
  }else if(m.type==='meeting'){
  let mt=(data.meetings||[]).find(x=>x.id===m.id),edit=!!mt;
  const stored=mt?.recurrence||'workdays',recur=stored==='interval'?'weekly':stored;
- const weekday=Number(mt?.weekday??4),interval=stored==='interval'?Math.max(2,Number(mt?.interval)||2):1,nth=Number(mt?.nth??1);
+ const weekday=Number(mt?.weekday??4),interval=stored==='interval'?Math.max(1,Number(mt?.interval)||1):1,nth=Number(mt?.nth??1);
  title=edit?'Edit recurring meeting':'New recurring meeting';subtitle='Choose a repeat pattern and attendees. Preview the upcoming dates before saving.';wide=true;
  content=`<form id="modalForm" data-form="meeting">${textField('Meeting name','title',mt?.title||'', 'required placeholder="e.g. Sprint planning"')}
  <div class="field-grid thirds"><div class="field"><label for="meetingStartTime">Start time</label><input id="meetingStartTime" name="startTime" type="time" value="${esc(mt?.startTime||'09:30')}" required></div>${numberField('Duration (minutes)','duration',mt?.duration||30,5,480,5)}${selectField('Repeat','recurrence',[['workdays','Every working day'],['weekly','Weekly'],['monthly','Monthly on a weekday']],recur)}</div>

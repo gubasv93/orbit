@@ -58,6 +58,12 @@ test.describe.serial('project setup and epic effort regressions',()=>{
     await page.getByRole('button',{name:'Create meeting'}).click();await saved(page);
     let stored=(await snapshot()).workspace.projects[0].data.meetings[0];
     expect(stored).toMatchObject({recurrence:'weekly',weekday:4,interval:1,attendees:['u1','u2'],allTeam:false});
+    const everyWeek=await snapshot();everyWeek.workspace.projects[0].data.meetings[0].recurrence='interval';
+    await replace(everyWeek.workspace);await page.reload();
+    await page.locator('.setup-meeting-list').getByRole('button',{name:'Edit',exact:true}).click();
+    await expect(page.getByLabel('Repeat every (weeks)')).toHaveValue('1');
+    await expect(page.locator('[data-meeting-preview]')).toHaveText('Every Thursday');
+    await page.getByRole('button',{name:'Save changes'}).click();await saved(page);
     const legacy=await snapshot();legacy.workspace.projects[0].data.meetings[0].interval=2;
     await replace(legacy.workspace);await page.reload();
     await page.locator('.setup-meeting-list').getByRole('button',{name:'Edit',exact:true}).click();

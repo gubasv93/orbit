@@ -13,6 +13,8 @@ it('distinguishes every Thursday from every other Thursday and the second monthl
   expect(meetingRecurrenceLabel(fortnightly)).toBe('Every 2 weeks on Thursday');
   expect(engine.meetingOccurs(fortnightly,'2026-11-05')).toBe(false);
   expect(engine.meetingOccurs(fortnightly,'2026-11-12')).toBe(true);
+  expect(meetingRecurrenceLabel({...fortnightly,interval:1})).toBe('Every Thursday');
+  expect(engine.meetingOccurs({...fortnightly,interval:1},'2026-11-05')).toBe(true);
   const monthly={...base,recurrence:'monthly' as const};
   expect(meetingRecurrenceLabel(monthly)).toBe('2nd Thursday of each month');
   expect(engine.meetingOccurs(monthly,'2026-11-12')).toBe(true);
