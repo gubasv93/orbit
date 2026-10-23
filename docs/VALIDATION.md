@@ -34,6 +34,6 @@ The UI screenshot was visually checked against the reference design. Local brows
 
 Hosted Supabase credentials and Vercel credentials have not been supplied. No migration, auth-policy update, or deployment has been applied to the selected hosted project. The Vercel project, live production URL, hosted email-confirmation behavior, production account isolation, and automatic Git deployment are unverified. SMTP and forgot/reset-password are intentionally out of scope by owner instruction.
 
-GitHub read access is working. The repository was observed public and empty. Changing it to private was denied by the connected integration (HTTP 403). A private repository or explicit approval to push publicly is required before publishing the source. See the conversation for the latest completion state.
+GitHub read access is working. The owner explicitly approved publishing source to the existing public `gubasv93/orbit` repository. See the conversation for the latest push and CI status.
 
 The migration-management and hosted-auth configuration scripts have syntax checks but have not been executed against hosted APIs. Their paths are not described as verified production setup.

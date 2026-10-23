@@ -4,6 +4,8 @@ Roadmaps that adapt to reality: features and work items, dependencies, real team
 
 Orbit is a Next.js App Router application backed by Supabase Auth and PostgreSQL, intended for Vercel. The supplied interactive planner is preserved; its scheduling engine has been extracted from rendering and persistence. No account is seeded with sample data.
 
+The source repository `gubasv93/orbit` is public with owner approval.
+
 ## Current delivery scope
 
 - Email/password registration, login, secure server-managed sessions, and logout.
