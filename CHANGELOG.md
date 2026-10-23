@@ -2,6 +2,7 @@
 
 ## 0.1.0 — 2026-10-23
 
+- Temporarily disable email confirmation with owner approval to unblock public sign-up without SMTP; distinguish confirmation-email quota failures from excessive authentication attempts.
 - Migrate Orbit to Next.js, Supabase Auth, and transactional PostgreSQL persistence.
 - Preserve the interactive Gantt, capacity, team, meeting, time-off, dependency, and milestone workflows.
 - Extract and regression-test the scheduler independently of rendering and persistence.

@@ -35,6 +35,9 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ac
     const { data, error } = await client.auth.signUp({ email, password, options: { emailRedirectTo: `${origin}/auth/callback` } });
     if (error) {
       console.warn('auth_signup_failed', { code: error.code || 'provider_error' });
+      if (error.code === 'over_email_send_rate_limit') {
+        return problem('We can’t send a confirmation email right now because the email delivery limit has been reached. Please try again later.', 429);
+      }
       return problem(error.status === 429 ? 'Too many attempts. Please try later.' : 'Unable to create an account. Check your details or try logging in.', error.status === 429 ? 429 : 400);
     }
     return NextResponse.json({ ok: true, confirmationRequired: !data.session });

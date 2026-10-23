@@ -23,7 +23,7 @@ export function AuthForm({ mode, initialNotice }: { mode: 'login' | 'signup'; in
     } catch { setErrors({ form: 'Unable to connect. Check your connection and try again.' }); }
     finally { setPending(false); }
   }
-  if (confirmation) return <div role="status"><h2>Check your email</h2><p className="auth-feedback">If registration is available for your address, you’ll receive a confirmation link. Open it in this browser, then log in. Email delivery depends on the project’s current sender configuration.</p><Link href="/login" className="entry-button">Go to log in</Link></div>;
+  if (confirmation) return <div role="status"><h2>Check your email</h2><p className="auth-feedback">If registration is available for your address, you’ll receive a confirmation link. Open it in this browser, then log in.</p><Link href="/login" className="entry-button">Go to log in</Link></div>;
   return <><h2>{mode === 'signup' ? 'Create your account' : 'Welcome back'}</h2><p className="auth-description">{mode === 'signup' ? 'Your roadmap starts with an empty private workspace.' : 'Log in to continue planning your roadmap.'}</p>{initialNotice && <p className="auth-error" role="status">{initialNotice}</p>}<form className="auth-form" method="post" action={`/api/auth/${mode}`} onSubmit={submit}><noscript>Enable JavaScript to use Orbit.</noscript>
     {errors.form && <p role="alert" className="auth-error">{errors.form}</p>}
     <label htmlFor="email">Email address</label><input id="email" name="email" type="email" required maxLength={254} autoComplete="email" placeholder="you@company.com" aria-invalid={Boolean(errors.email)} aria-describedby={errors.email ? 'email-error' : undefined}/>{errors.email && <p id="email-error" className="field-error" role="alert">{errors.email}</p>}

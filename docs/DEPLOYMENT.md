@@ -2,7 +2,7 @@
 
 Selected repository: `gubasv93/orbit`. Selected Supabase project: `vvvptboxmyibdfzfqxzz`. Selected Vercel account/team slug: `gubasv93s-projects`. Use the existing Vercel subscription; do not create paid resources or upgrade plans without owner approval.
 
-Live verification release: **https://orbit-sigma-nine-72.vercel.app**. Vercel deployment `dpl_H4SCa4oLE48u74ytiVqCvyXQn1Sp` is Ready, built from commit `076a2e6fe9737b9725cc757c705de305217b7f5f`. The application is deployed, while public email-confirmation delivery and automatic Git deployment remain outstanding.
+Live verification release: **https://orbit-sigma-nine-72.vercel.app**. The application is deployed. Email confirmation is temporarily disabled by explicit owner approval, so public registration does not depend on confirmation-email delivery. Automatic Git deployment remains outstanding.
 
 ## Secure integration access
 
@@ -55,13 +55,13 @@ Use the Next.js preset, `npm ci`, `npm run build`, Node.js 24, and the repositor
 
 Set preview variables separately. Preview builds must use their exact origin and explicitly permitted callback URL. Prefer a separate Supabase test project for previews; do not run tests that mutate real production data merely to validate a build.
 
-Public registration, the password policy, the production site URL, and exact production/local callback URLs are configured on the selected hosted project. Its original email-confirmation requirement remains enabled. For a future canonical domain change, update the Vercel `APP_URL` variable, configure the exact redirects, and verify the password policy:
+Public registration, the password policy, the production site URL, and exact production/local callback URLs are configured on the selected hosted project. Email confirmation is temporarily disabled by explicit owner approval while SMTP is deferred. New accounts receive an immediate session; their email addresses are unverified. For a future canonical domain change, update the Vercel `APP_URL` variable, configure the exact redirects, and verify the password policy:
 
 ```bash
 APP_URL=https://orbit-sigma-nine-72.vercel.app node --use-env-proxy scripts/configure-auth.mjs
 ```
 
-The script preserves the current confirmation-email and sender configuration. SMTP and forgot/reset-password are intentionally deferred. Hosted test registration was rejected for the test address and later rate-limited by Supabase (`over_email_send_rate_limit`). Public email delivery and confirmation remain unverified. Check the provider's sender restrictions and limits before public launch; the local test auto-confirmation setting is not a production recommendation or a hosted configuration change.
+The script preserves the current confirmation-email and sender configuration. SMTP and forgot/reset-password are intentionally deferred. Initially, confirmation was required with Supabase's built-in sender, whose project-wide quota is two emails per hour; this blocked public registration with `over_email_send_rate_limit`. The owner then approved setting `mailer_autoconfirm=true`. Email sending remains unconfigured and unverified. Before restoring confirmation, configure a production sender, verify delivery and callbacks, and obtain owner approval for the behavior change. Keep the application's per-IP and provider abuse limits enabled.
 
 ## Release verification
 

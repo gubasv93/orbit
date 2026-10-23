@@ -2,7 +2,7 @@
 
 Roadmaps that adapt to reality: features and work items, dependencies, real team capacity, recurring meetings, time off, and milestones.
 
-Live verification release: **https://orbit-sigma-nine-72.vercel.app**. Public confirmation-email delivery and automatic Git deployment remain pending; see the delivery scope below.
+Live verification release: **https://orbit-sigma-nine-72.vercel.app**. Registration uses immediate sessions while email confirmation is temporarily disabled by owner approval. Automatic Git deployment remains pending; see the delivery scope below.
 
 Orbit is a Next.js App Router application backed by Supabase Auth and PostgreSQL, intended for Vercel. The supplied interactive planner is preserved; its scheduling engine has been extracted from rendering and persistence. No account is seeded with sample data.
 
@@ -12,7 +12,7 @@ The source repository `gubasv93/orbit` is public with owner approval.
 
 - Email/password registration, login, secure server-managed sessions, and logout.
 - Passwords require at least 8 characters, a letter and a number, and at most 72 UTF-8 bytes, matching Supabase's native limit (owner approved).
-- Public registration approved by the owner; Supabase's existing email-verification setting is preserved.
+- Public registration approved by the owner; email confirmation is temporarily disabled so registration works without SMTP. Email addresses are unverified during this period.
 - SMTP configuration and all forgot/reset-password functionality are intentionally deferred by the owner.
 - No social sign-in, invitations, billing, or collaborative editing.
 - The selected hosted Supabase project has Orbit's migration and password policy applied. Hosted persistence and account isolation were exercised with temporary test accounts.
@@ -31,7 +31,7 @@ npm run dev
 
 Application configuration is server-only: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `APP_URL`, `SIGNUP_MODE`, and optionally `SIGNUP_ALLOWED_EMAILS`. The public/anon key is sufficient; the app never needs a service-role key. Keep all environment files out of Git. `APP_URL` must be the exact origin used to open the app. Configure preview environments with their own exact origin.
 
-`SIGNUP_MODE=public` enables registration. Other values restrict registration to the comma-separated `SIGNUP_ALLOWED_EMAILS`. Supabase must also permit email sign-ups. Confirmation email delivery follows the provider's existing configuration; public registration is not considered verified until tested against the hosted project.
+`SIGNUP_MODE=public` enables registration. Other values restrict registration to the comma-separated `SIGNUP_ALLOWED_EMAILS`. Supabase must also permit email sign-ups. The owner approved temporarily disabling email confirmation after the built-in sender's two-emails-per-hour quota blocked registration. Re-enable confirmation only after configuring and verifying a production sender; the auth-configuration script preserves the current confirmation setting.
 
 ```bash
 npm run typecheck

@@ -1,6 +1,6 @@
 # Validation record
 
-Validated on 2026-10-23 in the Codex Linux cloud workspace using Node.js 24.19.0 and system Chromium. This is current-instance validation, not a production-deployment claim.
+Validated on 2026-10-23 in the Codex Linux cloud workspace using Node.js 24.19.0 and system Chromium. Local suites and live release checks are distinguished below.
 
 | Check | Observed result |
 | --- | --- |
@@ -36,11 +36,13 @@ The UI screenshot was visually checked against the reference design. Local brows
 
 The selected project `vvvptboxmyibdfzfqxzz` (gubasv93's Project, eu-west-1) was healthy. Both versioned migrations were applied through the authenticated management API. All 18 private tables have RLS enabled, no anonymous SELECT grants, and no direct authenticated write grants.
 
-Temporary, explicitly confirmed test accounts exercised real hosted Auth login, empty workspace bootstrap, browser onboarding, a feature save/reload, HttpOnly sessions, logout, full normalized domain roundtrips, identical project IDs across users, cross-user denial on all 18 private tables, direct-write denial, stale-write rejection, and invalid-reference rollback. Test accounts and their workspaces were removed. Administrator confirmation applied only to these test accounts; global email confirmation remains required.
+At the initial release, temporary, explicitly confirmed test accounts exercised real hosted Auth login, empty workspace bootstrap, browser onboarding, a feature save/reload, HttpOnly sessions, logout, full normalized domain roundtrips, identical project IDs across users, cross-user denial on all 18 private tables, direct-write denial, stale-write rejection, and invalid-reference rollback. Test accounts and their workspaces were removed. Administrator confirmation applied only to these test accounts. Global confirmation was initially required; the owner subsequently approved disabling it temporarily to unblock registration.
 
 The hosted stale-write check exposed a transport timeout for SQLSTATE `40001`. An additive migration changes business revision conflicts to `PT409`; the hosted API then returned HTTP 409 promptly and retained the saved snapshot. Unit and local real-backend tests cover the updated migration.
 
-Public registration is enabled and passwords require 8 characters, a letter, and a digit, with the native 72-byte maximum. The existing confirmation and sender settings were preserved. A public test registration was rejected with `email_address_invalid`; a later attempt returned HTTP 429 / `over_email_send_rate_limit`. Confirmation delivery is unverified. SMTP and forgot/reset-password remain intentionally deferred by the owner. Public email onboarding must be verified before launch.
+Public registration is enabled and passwords require 8 characters, a letter, and a digit, with the native 72-byte maximum. Initial public test registration was rejected with `email_address_invalid`; a later attempt returned HTTP 429 / `over_email_send_rate_limit`. The same quota blocked the owner's registration. The hosted auth configuration confirmed a two-emails-per-hour project-wide sender limit, confirmation required, and no custom SMTP. With explicit owner approval, `mailer_autoconfirm` was set to true while preserving sign-up, password, sender, site, and redirect settings. Public sign-up no longer requires an email. SMTP and forgot/reset-password remain deferred.
+
+After that configuration change, real public registration through the live browser created a session and empty workspace with Secure HttpOnly cookies. Onboarding, save/reload, logout, and subsequent password login passed. Retrying public sign-up for a deliberately unconfirmed test account also returned an immediate session. These accounts were registered through the normal application endpoint; no administrator confirmation was used. All temporary accounts and their workspaces were removed. Type checking, the 23-test unit/database suite, and the production build passed for the clearer error-message change.
 
 ## Deployment status
 
