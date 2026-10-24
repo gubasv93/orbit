@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-24
+
+- Add Google registration and login buttons with server-side PKCE, same-origin checks, shared login rate limiting, and secure cookies.
+- Handle disabled providers, cancelled consent, expired/replayed codes, missing proof keys, and failed exchanges without leaving users on an unusable provider error page.
+- Document Google Cloud and Supabase provider setup; preserve email/password login and the existing workspace ownership model.
+
 ## 0.1.0 — 2026-10-23
 
 - Clarify weekly versus monthly meeting setup, default weekly intervals to one, and preview upcoming occurrence dates.

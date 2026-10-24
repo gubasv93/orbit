@@ -11,10 +11,11 @@ The source repository `gubasv93/orbit` is public with owner approval.
 ## Current delivery scope
 
 - Email/password registration, login, secure server-managed sessions, and logout.
+- Google registration/login via Supabase OAuth with server-side PKCE. Enable the Google provider with your own web OAuth client using the [setup guide](docs/DEPLOYMENT.md#google-registration-and-login).
 - Passwords require at least 8 characters, a letter and a number, and at most 72 UTF-8 bytes, matching Supabase's native limit (owner approved).
 - Public registration approved by the owner; email confirmation is temporarily disabled so registration works without SMTP. Email addresses are unverified during this period.
 - SMTP configuration and all forgot/reset-password functionality are intentionally deferred by the owner.
-- No social sign-in, invitations, billing, or collaborative editing.
+- No invitations, billing, or collaborative editing.
 - The selected hosted Supabase project has Orbit's migration and password policy applied. Hosted persistence and account isolation were exercised with temporary test accounts.
 - Vercel project `orbit` is deployed on the owner's existing Hobby plan. Live login, onboarding, persistence, and account isolation passed with temporary confirmed test accounts. Git integration requires the owner to authorize Vercel's GitHub app. Hobby's commercial-use restrictions must be resolved before commercial launch.
 

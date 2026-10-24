@@ -63,6 +63,23 @@ APP_URL=https://orbit-sigma-nine-72.vercel.app node --use-env-proxy scripts/conf
 
 The script preserves the current confirmation-email and sender configuration. SMTP and forgot/reset-password are intentionally deferred. Initially, confirmation was required with Supabase's built-in sender, whose project-wide quota is two emails per hour; this blocked public registration with `over_email_send_rate_limit`. The owner then approved setting `mailer_autoconfirm=true`. Email sending remains unconfigured and unverified. Before restoring confirmation, configure a production sender, verify delivery and callbacks, and obtain owner approval for the behavior change. Keep the application's per-IP and provider abuse limits enabled.
 
+## Google registration and login
+
+Both `/signup` and `/login` offer **Continue with Google**. They share one Supabase OAuth flow: a new identity gets the normal empty private workspace; returning identities use the same authenticated workspace RPC. Supabase handles verified-email identity linking; Orbit does not merge workspaces or link users based on browser-supplied email addresses.
+
+Google credentials belong in Supabase's provider configuration, not the application repository, browser, or Vercel environment. No extra application variables or database migrations are needed. The provider was disabled and had no OAuth client configured when inspected on 2026-10-24; the application can be deployed before the owner completes these account-level settings.
+
+1. Open [Google Auth Platform](https://console.cloud.google.com/auth/overview) in the Google Cloud project that should own Orbit's sign-in. Configure app branding/support contacts and an External audience for public registration.
+2. Under **Clients**, create an OAuth client with application type **Web application**. Add this exact **Authorized redirect URI**: `https://vvvptboxmyibdfzfqxzz.supabase.co/auth/v1/callback`. This is Supabase's callback, not the Orbit `/auth/callback` route. The flow uses only the basic OpenID/email/profile scopes.
+3. In [Supabase → Authentication → Sign In / Providers → Google](https://supabase.com/dashboard/project/vvvptboxmyibdfzfqxzz/auth/providers), enter the client ID and secret, enable Google, and save. Keep nonce checks enabled. Do not paste the secret into chat or commit it.
+4. In Supabase's [URL Configuration](https://supabase.com/dashboard/project/vvvptboxmyibdfzfqxzz/auth/url-configuration), retain site URL `https://orbit-sigma-nine-72.vercel.app` and the exact permitted app callback URLs `https://orbit-sigma-nine-72.vercel.app/auth/callback` and `http://localhost:3000/auth/callback`. These are already configured. Use the canonical app origin when opening Orbit.
+5. Google OAuth apps in Testing accept only listed test users. Add your test Google account for verification, then publish the audience for public sign-ups after Google's required app details are complete.
+6. Check both entry screens with a new Google account, reload the empty workspace, create/save a project, log out, and sign in again to confirm the same workspace returns. Check a pre-existing email/password account separately to confirm the provider's linking behavior with that verified Google email.
+
+The button posts to a same-origin, login-rate-limited server route. Supabase SSR stores its PKCE proof key in an HttpOnly cookie and issues a fixed callback URL. The callback exchanges the one-time code in the same browser, stores the normal server session, and always redirects to `/app`; client-supplied destinations are ignored. Cancelling Google returns to a clear login notice. Expired/missing codes, missing proof keys, and provider outages leave a usable login screen. If the provider is still disabled, Orbit shows an inline setup message and keeps email/password usable.
+
+Google entry requires `SIGNUP_MODE=public`; it fails closed in restricted deployments because OAuth sign-in can also create identities. A future restricted OAuth launch needs provider-side registration controls. Google authentication does not require SMTP and does not change the owner's deferred email/password recovery settings.
+
 ## Release verification
 
 A successful build is not a successful deployment. Verify the real HTTPS URL, landing and auth screens, registration/login/logout, protected requests, two-account RLS isolation, first-project setup, meetings/capacity, reload, a second browser, and database persistence. Check deployment status and Git auto-deployment. Run the hosted checks with designated test accounts and clean up only their own test data when authorized. Do not report a production URL until it actually exists and has been exercised.

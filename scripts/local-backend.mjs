@@ -49,6 +49,10 @@ try {
     GOTRUE_JWT_SECRET:secret,GOTRUE_JWT_EXP:'3600',GOTRUE_JWT_AUD:'authenticated',GOTRUE_JWT_ADMIN_ROLES:'service_role',
     GOTRUE_JWT_DEFAULT_GROUP_NAME:'authenticated',GOTRUE_DISABLE_SIGNUP:'false',GOTRUE_EXTERNAL_EMAIL_ENABLED:'true',
     GOTRUE_MAILER_AUTOCONFIRM:'true',GOTRUE_PASSWORD_MIN_LENGTH:'8',GOTRUE_PASSWORD_REQUIRED_CHARACTERS:'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ:0123456789',
+    // Deliberately invalid, local-only Google credentials. Tests capture the
+    // authorization navigation and never send these to Google or fake consent.
+    GOTRUE_EXTERNAL_GOOGLE_ENABLED:'true',GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID:'orbit-integration.apps.googleusercontent.com',
+    GOTRUE_EXTERNAL_GOOGLE_SECRET:'local-integration-placeholder',GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI:'http://localhost:54321/auth/v1/callback',
     GOTRUE_RATE_LIMIT_EMAIL_SENT:'1000',GOTRUE_LOG_LEVEL:'warn'
   });
   docker(['run','-d','--name',names.auth,'--network',network,'--env-file',authEnv,'--label','orbit.integration=true','-p','127.0.0.1:54326:9999','ghcr.io/supabase/gotrue:v2.197.0']);
