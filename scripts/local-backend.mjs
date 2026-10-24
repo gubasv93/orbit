@@ -33,7 +33,9 @@ try {
   const pgEnv = envfile('postgres.env',{POSTGRES_PASSWORD:password});
   docker(['run','-d','--name',names.db,'--network',network,'--env-file',pgEnv,'--label','orbit.integration=true','postgres:16-alpine']);
   let ready = false;
-  for(let i=0;i<60;i++) { const result=spawnSync('docker',['exec',names.db,'pg_isready','-U','postgres'],{stdio:'ignore'});if(result.status===0){ready=true;break;}await new Promise(resolve=>setTimeout(resolve,500)); }
+  // The image's initialization server accepts Unix-socket connections briefly
+  // before shutting down. TCP becomes ready only on the final database server.
+  for(let i=0;i<60;i++) { const result=spawnSync('docker',['exec',names.db,'pg_isready','-h','127.0.0.1','-U','postgres'],{stdio:'ignore'});if(result.status===0){ready=true;break;}await new Promise(resolve=>setTimeout(resolve,500)); }
   if(!ready)throw new Error('Local PostgreSQL did not start');
   docker(['exec','-i',names.db,'psql','-U','postgres','-v','ON_ERROR_STOP=1'],`
     create role anon nologin; create role authenticated nologin; create role service_role nologin bypassrls;
