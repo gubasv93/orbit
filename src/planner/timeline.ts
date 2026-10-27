@@ -56,11 +56,10 @@ export function featureTimeBreakdown(start: number, end: number, children: (Time
   return { slices, totals, days: slices.length, required: active.reduce((sum, child) => sum + child.required, 0), allocated: active.reduce((sum, child) => sum + child.allocated, 0), missing: active.reduce((sum, child) => sum + child.missing, 0) };
 }
 
-export function capacityGradient(breakdown: TimeBreakdown, detailed = true) {
+export function capacityGradient(breakdown: TimeBreakdown) {
   const stops: string[] = []; let position = 0;
-  const parts = detailed && breakdown.days <= 180 ? breakdown.slices.map(slice => slice.parts) : [breakdown.totals];
-  for (const part of parts) for (const [key, , color] of timeCategories) {
-    const size = part[key] / breakdown.days * 100;
+  for (const [key, , color] of timeCategories) {
+    const size = breakdown.totals[key] / breakdown.days * 100;
     if (size < .00001) continue;
     stops.push(`${color} ${position.toFixed(5)}% ${(position + size).toFixed(5)}%`); position += size;
   }

@@ -30,6 +30,12 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
  test('explains six effort days over sixteen calendar days and synchronizes manual and automatic dates',async()=>{
   await reset();const page=await context.newPage();await page.goto('/app');const bar=page.locator('.task-bar[data-task=t1]');
   await expect(bar).toHaveAttribute('title',/16 calendar days/);await expect(bar.locator('.capacity-band')).toHaveAttribute('style',/linear-gradient/);await expect(page.getByLabel('Timeline colors')).toContainText('Bug fixes');
+  const fill=bar.locator('.capacity-band'),gradient=(await fill.getAttribute('style'))!,colors=gradient.match(/#[a-f0-9]{6}/g)!;
+  expect(colors).toHaveLength(5);expect(new Set(colors).size).toBe(5);
+  const parentColors=(await page.locator('.feature-bar .capacity-band').getAttribute('style'))!.match(/#[a-f0-9]{6}/g)!;expect(new Set(parentColors).size).toBe(parentColors.length);
+  await expect(bar).toHaveAttribute('title',/Total capacity shares/);
+  for(const scale of ['week','month','quarter','year','day']){await page.getByLabel('Timeline scale').selectOption(scale);await expect(fill).toHaveAttribute('style',gradient);}
+  await page.screenshot({path:'test-results/capacity-totals.png',fullPage:true});
   await page.locator('.work-name[data-action=drawer-task][data-id=t1]').click();await expect(page.getByLabel('Start date')).toHaveValue('2026-10-26');await expect(page.getByLabel('End date')).toHaveValue('2026-11-10');
   await expect(page.locator('.drawer-content')).toContainText('6d effort · 16 calendar days');
   await page.getByLabel('End date').fill('2026-10-28');await page.getByLabel('End date').press('Tab');await saved(page);

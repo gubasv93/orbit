@@ -12,6 +12,10 @@ it('explains six development days over sixteen calendar days without inventing e
   expect(b.days).toBe(16); expect(b.totals).toEqual({development:6,bugs:2.4,ongoing:2.4,ops:1.2,meetings:0,nonwork:4,available:0});
   expect(Object.values(b.totals).reduce((a,b)=>a+b,0)).toBeCloseTo(16);
   expect(capacityGradient(b)).toContain('#7870db'); expect(capacityGradient(b)).toContain('#e9a367');
+  const gradient=capacityGradient(b),colors=gradient.match(/#[a-f0-9]{6}/g)!;
+  expect(colors).toHaveLength(5);expect(new Set(colors).size).toBe(colors.length);
+  expect(gradient).toContain('#7870db 0.00000% 37.50000%');
+  expect(gradient).toContain('#cbd2de 75.00000% 100.00000%');
 });
 it('accounts for meetings, overrides, leave, and unused final-day availability once', () => {
   const data=fullWorkspace().projects[0].data,engine=createScheduler(data),result=engine.calculate();

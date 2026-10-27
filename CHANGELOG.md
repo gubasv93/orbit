@@ -2,6 +2,7 @@
 
 ## 2026-10-27
 
+- Render one total color breakdown across each entire roadmap bar at every scale, replacing repeated daily stripes.
 - Show compact, role-based estimates and role-matched assignees, including multiple roles on one platform.
 - Color roadmap bars by development, bugs, ongoing work, ops, meetings, non-working days, and unused capacity; show effort alongside calendar duration.
 - Create, display, select, and remove finish-to-start dependencies directly on the roadmap, with cycle prevention and keyboard/tap support.
