@@ -70,30 +70,32 @@ function calculate(){meetingDayCache.clear();const schedule={},working=new Map()
   for(const depId of(t.dependsOn||[])){
    const dep=getTask(depId);if(!dep)continue;
    const info=calc(dep,depth+1,seen);
-   if(info.end===null){depBlocked=true;continue}
+   if(info.end===null||info.shortfall>0){depBlocked=true;continue}
    initial=Math.max(initial,info.end+1);
   }
   if(depBlocked)return (schedule[t.id]={start:initial,end:null,blocked:true,reason:'Waiting for dependency',alloc:{}});
-  let current=nextWork(initial,t.assignee),first=current,last=current,allocation={};
+  const manual=t.manualEnd&&t.status!=='done';
+  const windowEnd=manual?initial+asDay(t.manualEnd)-asDay(t.start):null;
+  let current=manual?initial:nextWork(initial,t.assignee),first=current,last=current,allocation={};
   if(t.status==='done'){
    last=asDay(t.completedDate||t.start);first=asDay(t.start);if(last<first)first=last;
    return (schedule[t.id]={start:first,end:last,blocked:false,done:true,alloc:{}})
   }
   let remaining=Math.max(.1,Number(t.remaining??t.effort??1)),guard=0;
-  while(remaining>0.0001&&guard++<600){
+  while(remaining>0.0001&&guard++<(manual?3650:600)&&(!manual||current<=windowEnd)){
    if(!nonwork(current,t.assignee)){
-    if(Object.keys(allocation).length===0)first=current;
+    if(!manual&&Object.keys(allocation).length===0)first=current;
     let available=t.assignee?featureCapacity(t.assignee,fromDay(current)):1;
     const used=Math.min(available,remaining);
     allocation[fromDay(current)]=used;remaining-=used;last=current;
    }
    if(remaining>0.0001)current++;
   }
-  if(guard>=600){errors.push(t.id);return schedule[t.id]={start:first,end:null,blocked:true,reason:'Could not schedule',alloc:{}}}
+  if(guard>=600&&!manual){errors.push(t.id);return schedule[t.id]={start:first,end:null,blocked:true,reason:'Could not schedule',alloc:{}}}
   for(let [date,effort] of Object.entries(allocation)){
    const k=`${t.assignee||'_'}:${date}`;working.set(k,(working.get(k)||0)+effort)
   }
-  return (schedule[t.id]={start:first,end:last,blocked:false,alloc:allocation});
+  return (schedule[t.id]={start:first,end:manual?windowEnd:last,blocked:false,alloc:allocation,...(manual?{manual:true,shortfall:Math.max(0,Math.round(remaining*1000000)/1000000)}:{})});
  }
  data.tasks.forEach(t=>calc(t));
  const conflicts={};for(let t of data.tasks){let p=schedule[t.id],bad=[];for(let dt of Object.keys(p?.alloc||{})){let val=working.get(`${t.assignee||'_'}:${dt}`)||0;if(t.assignee&&val>featureCapacity(t.assignee,dt)+.001)bad.push(dt)}if(bad.length)conflicts[t.id]=bad}
@@ -103,7 +105,10 @@ function calculate(){meetingDayCache.clear();const schedule={},working=new Map()
    let blocked=entries.some(s=>s.blocked||s.hold),starts=entries.map(s=>s.start).filter(x=>x!==null),ends=entries.map(s=>s.end).filter(x=>x!==null);
    let start=starts.length?Math.min(...starts):asDay(f.start),end=blocked?null:ends.length?Math.max(...ends):null;
    let allDone=arr.length>0&&arr.every(t=>t.status==='done');
-   featureInfo[f.id]={start,end,blocked,allDone,atRisk:blocked||(end!==null&&end>asDay(f.baseline)),delta:end!==null?end-asDay(f.baseline):null}
+   const manual=Boolean(f.manualEnd),displayStart=manual?asDay(f.start):start,displayEnd=manual?asDay(f.manualEnd):end;
+   const windowConflict=manual&&entries.some(entry=>entry.start<displayStart||entry.end===null||entry.end>displayEnd);
+   const shortfall=entries.some(entry=>entry.shortfall>0);
+   featureInfo[f.id]={start:displayStart,end:displayEnd,blocked,allDone,atRisk:blocked||shortfall||windowConflict||(displayEnd!==null&&displayEnd>asDay(f.baseline)),delta:displayEnd!==null?displayEnd-asDay(f.baseline):null,...(manual?{manual:true,forecastStart:start,forecastEnd:end,windowConflict}: {})}
  });
  return {schedule,conflicts,working,featureInfo,errors};
 }

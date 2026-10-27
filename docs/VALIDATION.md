@@ -1,5 +1,7 @@
 # Validation record
 
+Roadmap editing update (2026-10-27): eight unit cases exercise six effort days over sixteen calendar days, category totals, meetings/overrides/leave, parent averages, manual shortfalls, dependency-shifted windows, independent epic windows, role-matched assignments on shared platforms, backup validation, and arrow geometry. An additional PostgreSQL case round-trips role/date metadata through the existing normalized RPCs. Three browser journeys cover compact role selection, exact-role assignee filtering, role/date persistence, calendar colors, start/end synchronization, manual warnings, automatic restoration, drag movement, dependency drawing, zoom/filter behavior, cycle rejection, keyboard selection/removal, and click/tap entry.
+
 Per-team user-story update (2026-10-27): six unit cases cover the 3+2+2 example, independent capacity-based forecasts, later dependency ordering, exact fractional estimates, custom/unassigned teams, opt-in chains, invalid assignments/estimates, and atomic rejection at the work-item limit. Three browser journeys exercise new-epic and existing-epic entry, explicit team selection, matching assignee choices, mobile geometry/actions, total effort, three real Gantt rows, cloud persistence/reload, manual dependencies, filter clearing/expansion, inactive-field validation, custom teams, fractional editing, and rejection before partial creation. These use the disposable real-auth/PostgreSQL backend; hosted checks are recorded separately.
 
 Google OAuth update (2026-10-24): the suite adds 12 route tests using the actual Supabase SSR client and PKCE cookie/exchange implementation against a substituted provider HTTP boundary. They cover fixed redirect destinations, account choice, secure proof-key/session cookies, matching/missing/changed proof keys, replay rejection, cancellation, provider errors/outages, cross-origin denial, restricted registration, and shared login throttling. Three browser journeys cover both entry buttons, inline failures with usable email login, mobile layout, callback notices, and real server-cookie persistence before navigation to Supabase. The disposable backend enables Google with deliberately invalid local-only placeholders; the browser captures the authorization navigation without making Google requests. This is application-flow validation; real Google consent and identity linking require the owner's OAuth client configuration and a Google account, and must not be reported as verified until exercised.
@@ -10,8 +12,8 @@ Validated through 2026-10-27 in the Codex Linux cloud workspace using Node.js 24
 | --- | --- |
 | TypeScript check | Passed |
 | Next.js production build | Passed |
-| Unit, auth-route, and PostgreSQL/RLS suite | 47 tests passed, 0 failed, 0 skipped |
-| Production-build browser journeys with real local backend | 18 journeys covering the preserved product, setup/effort regressions, Google entry, and per-team stories |
+| Unit, auth-route, and PostgreSQL/RLS suite | 56 tests passed, 0 failed, 0 skipped |
+| Production-build browser journeys with real local backend | 21 journeys covering the preserved product, setup/effort regressions, Google entry, role-based stories, calendar capacity, manual dates, and map dependencies |
 | Full dependency audit, including development dependencies | 0 vulnerabilities reported |
 | GitHub CI for deployed code `076a2e6` | Passed all stages |
 | Live HTTPS release and authenticated journeys | Passed with temporary confirmed accounts; public email delivery unverified |

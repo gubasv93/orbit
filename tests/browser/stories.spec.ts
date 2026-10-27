@@ -19,10 +19,12 @@ async function replace() {
   expect((await context.request.put('/api/workspace', { headers: { Origin: origin }, data: { revision: current.revision, workspace: workspace() } })).status()).toBe(200);
 }
 async function saved(page: Page) { await expect(page.locator('.save-bar [role=status]')).toHaveText('Saved to cloud'); }
+function roleName(platform:string){return ({Backend:'Backend Developer',Frontend:'Frontend Developer',QA:'QA Engineer',DevOps:'DevOps Engineer'} as Record<string,string>)[platform]||platform;}
 async function selectTeam(page: Page, platform: string, effort: string, assignee = '') {
-  await page.getByRole('checkbox', { name: `Include ${platform}`, exact: true }).check();
-  await page.getByLabel(`${platform} estimate (days)`).fill(effort);
-  await page.getByLabel(`${platform} assignee`, { exact: true }).selectOption(assignee);
+  const role=roleName(platform);
+  await page.getByRole('checkbox', { name: `Include ${role}`, exact: true }).check();
+  await page.getByLabel(`${role} estimate (days)`).fill(effort);
+  await page.getByLabel(`${roleName(platform)} assignee`, { exact: true }).selectOption(assignee);
 }
 test.describe.serial('user stories estimated by team', () => {
   test.beforeAll(async ({ browser }) => {
@@ -43,16 +45,16 @@ test.describe.serial('user stories estimated by team', () => {
     await page.getByLabel('Baseline target date').fill('2026-12-01');
     await expect(page.getByRole('checkbox', { name: 'Link selected teams', exact: false })).not.toBeChecked();
     await selectTeam(page, 'Backend', '3', 'u1'); await selectTeam(page, 'Frontend', '2', 'uFront'); await selectTeam(page, 'QA', '2', 'uQA');
-    expect(await page.getByLabel('Backend assignee', { exact: true }).locator('option').evaluateAll(options => options.map(option => (option as HTMLOptionElement).value))).toEqual(['', 'u1']);
+    expect(await page.getByLabel('Backend Developer assignee', { exact: true }).locator('option').evaluateAll(options => options.map(option => (option as HTMLOptionElement).value))).toEqual(['', 'u1']);
     await expect(page.locator('[data-story-summary]')).toHaveText('3 work items · 7d total effort');
     await page.setViewportSize({ width: 375, height: 812 });
     const dialog = page.getByRole('dialog');
     expect(await dialog.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true);
     for (const platform of ['Backend', 'Frontend', 'QA']) {
-      const field = page.getByLabel(`${platform} assignee`, { exact: true }), box = (await field.boundingBox())!;
+      const field = page.getByLabel(`${roleName(platform)} assignee`, { exact: true }), box = (await field.boundingBox())!;
       expect(box.x).toBeGreaterThanOrEqual(0); expect(box.x + box.width).toBeLessThanOrEqual(375);
     }
-    await page.getByLabel('QA estimate (days)').scrollIntoViewIfNeeded();
+    await page.getByLabel('QA Engineer estimate (days)').scrollIntoViewIfNeeded();
     await expect(page.getByRole('button', { name: 'Create feature', exact: true })).toBeInViewport();
     await page.screenshot({ path: 'test-results/story-teams-mobile.png', fullPage: true });
     await page.getByRole('button', { name: 'Create feature', exact: true }).click(); await saved(page);
@@ -80,12 +82,12 @@ test.describe.serial('user stories estimated by team', () => {
     await page.getByLabel('Earliest start', { exact: true }).fill('2026-11-02');
     const add = page.getByRole('button', { name: 'Add user story', exact: true }); await expect(add).toBeDisabled();
     await selectTeam(page, 'Backend', '3', 'u1'); await selectTeam(page, 'Frontend', '2', 'uFront'); await selectTeam(page, 'QA', '2', 'uQA');
-    await page.getByLabel('QA estimate (days)').fill('0'); await expect(add).toBeDisabled();
-    await page.getByRole('checkbox', { name: 'Include QA', exact: true }).uncheck();
-    await expect(page.getByLabel('QA estimate (days)')).toBeDisabled(); await expect(add).toBeEnabled();
-    await page.getByRole('checkbox', { name: 'Include QA', exact: true }).check();
-    await expect(page.getByLabel('QA estimate (days)')).toHaveValue('0'); await expect(add).toBeDisabled();
-    await page.getByLabel('QA estimate (days)').fill('2'); await add.click(); await saved(page);
+    await page.getByLabel('QA Engineer estimate (days)').fill('0'); await expect(add).toBeDisabled();
+    await page.getByRole('checkbox', { name: 'Include QA Engineer', exact: true }).uncheck();
+    await expect(page.getByLabel('QA Engineer estimate (days)')).toBeDisabled(); await expect(add).toBeEnabled();
+    await page.getByRole('checkbox', { name: 'Include QA Engineer', exact: true }).check();
+    await expect(page.getByLabel('QA Engineer estimate (days)')).toHaveValue('0'); await expect(add).toBeDisabled();
+    await page.getByLabel('QA Engineer estimate (days)').fill('2'); await add.click(); await saved(page);
     await expect(page.getByLabel('Filter by platform')).toHaveValue('');
     let state = await snapshot(), data = state.workspace.projects[0].data;
     expect(data.features[0].collapsed).toBe(false);
@@ -106,8 +108,8 @@ test.describe.serial('user stories estimated by team', () => {
     await page.locator('.gantt-corner').getByRole('button', { name: 'Add feature' }).click();
     await page.getByLabel('Feature name').fill('Invalid assignment');
     await selectTeam(page, 'Backend', '3', 'u1');
-    await page.getByLabel('Backend assignee', { exact: true }).evaluate(select => { const option = document.createElement('option'); option.value = 'uFront'; option.text = 'Wrong platform'; select.append(option); });
-    await page.getByLabel('Backend assignee', { exact: true }).selectOption('uFront');
+    await page.getByLabel('Backend Developer assignee', { exact: true }).evaluate(select => { const option = document.createElement('option'); option.value = 'uFront'; option.text = 'Wrong platform'; select.append(option); });
+    await page.getByLabel('Backend Developer assignee', { exact: true }).selectOption('uFront');
     await page.getByRole('button', { name: 'Create feature', exact: true }).click();
     await expect(page.locator('#toast-root')).toContainText('matching team member');
     expect((await snapshot()).workspace.projects[0].data.features).toHaveLength(1);
@@ -122,7 +124,7 @@ test.describe.serial('user stories estimated by team', () => {
     expect(tasks).toHaveLength(2); expect(tasks[0]).toMatchObject({ platform: 'DevOps', assignee: '', effort: .25, dependsOn: [] });
     expect(tasks[1]).toMatchObject({ platform: 'QA', assignee: 'uQA', effort: 1.5, dependsOn: [tasks[0].id] });
     await expect(page.locator('[data-feature-effort=f1]')).toHaveText('7.75d effort');
-    await expect(page.locator('.gantt-row:not(.feature)').filter({ hasText: 'DevOps · 0.25d effort' })).toHaveCount(1);
+    await expect(page.locator('.gantt-row:not(.feature)').filter({ hasText: 'DevOps Engineer · 0.25d effort' })).toHaveCount(1);
     await page.locator(`.work-name[data-action=drawer-task][data-id="${tasks[0].id}"]`).click();
     await page.getByLabel('Pure effort (days)', { exact: true }).fill('.35'); await page.getByLabel('Pure effort (days)', { exact: true }).press('Tab'); await saved(page);
     expect((await snapshot()).workspace.projects[0].data.tasks.find((item: { id: string }) => item.id === tasks[0].id).effort).toBe(.35);

@@ -2,6 +2,10 @@
 
 ## 2026-10-27
 
+- Show compact, role-based estimates and role-matched assignees, including multiple roles on one platform.
+- Color roadmap bars by development, bugs, ongoing work, ops, meetings, non-working days, and unused capacity; show effort alongside calendar duration.
+- Create, display, select, and remove finish-to-start dependencies directly on the roadmap, with cycle prevention and keyboard/tap support.
+- Edit graph-synchronized start/end dates, choose automatic forecasts or manual windows, and flag capacity shortfalls or child forecasts outside an epic window without changing estimates.
 - Estimate a user story by team while creating an epic or adding to an existing epic, with separate platform-matched assignees and exact work-day estimates.
 - Create one consecutive Gantt row per selected team in a single save; leave dependency chaining optional so execution order stays manual.
 - Add live estimate totals, required estimates only for selected teams, custom workstreams, and a responsive team-entry form.

@@ -39,6 +39,12 @@ describe('PostgreSQL ownership, RLS, and atomic persistence', () => {
     delete workspace.projects[0].data.features[0].effortOverride;await save(workspace,manual.revision);
     const automatic=await load();expect(automatic.workspace).toEqual(fullWorkspace());
   });
+  it('round-trips role assignments and manual windows in the existing task/feature documents', async () => {
+    await user(a);const before=await load(),workspace=fullWorkspace();
+    workspace.projects[0].data.tasks[0].roleId='r1';workspace.projects[0].data.tasks[0].manualEnd='2026-11-02';
+    workspace.projects[0].data.features[0].manualEnd='2026-11-03';
+    await save(workspace,before.revision);expect((await load()).workspace).toEqual(workspace);
+  });
   it('denies cross-user reads and direct writes on every private table', async () => {
     await user(a); const ownerWorkspace = (await db.query<{ id: string }>('select id from public.orbit_workspaces')).rows[0].id;
     await user(b);

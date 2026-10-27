@@ -10,10 +10,15 @@ export const capacitySchema = z.object({
 }).refine(c => Math.abs(c.feature + c.bugs + c.ongoing + c.ops - 100) < 0.001, 'Capacity must total 100%');
 const feature = z.object({ id, title: text, description: z.string().max(10000).default(''), start: date,
   baseline: date, collapsed: z.boolean().default(false), color,
-  effortOverride: z.number().min(0).max(10_950_000).optional() }).refine(f => f.baseline >= f.start, 'Baseline precedes start');
+  effortOverride: z.number().min(0).max(10_950_000).optional(), manualEnd: date.optional() })
+  .refine(f => !f.manualEnd || f.manualEnd >= f.start, 'End precedes start')
+  .refine(f => !f.manualEnd || Date.parse(f.manualEnd) - Date.parse(f.start) < 3650 * 86400000, 'Date window is too long');
 const task = z.object({ id, featureId: id, title: text, platform: text, assignee: id.or(z.literal('')),
+  roleId: id.optional(), manualEnd: date.optional(),
   effort: z.number().min(0.1).max(3650), remaining: z.number().min(0).max(3650).optional(), start: date,
-  completedDate: date.optional(), status: z.enum(['planned', 'progress', 'hold', 'done']), dependsOn: z.array(id).max(1000) });
+  completedDate: date.optional(), status: z.enum(['planned', 'progress', 'hold', 'done']), dependsOn: z.array(id).max(1000) })
+  .refine(t => !t.manualEnd || t.manualEnd >= t.start, 'End precedes start')
+  .refine(t => !t.manualEnd || Date.parse(t.manualEnd) - Date.parse(t.start) < 3650 * 86400000, 'Date window is too long');
 const role = z.object({ id, name: text, platform: text });
 const person = z.object({ id, name: text, firstName: z.string().max(100), lastName: z.string().max(100),
   roleId: id, role: text, platform: text, color, capacity: capacitySchema });
@@ -48,6 +53,7 @@ export const projectDataSchema = z.object({
   for (const t of data.tasks) {
     if (!features.has(t.featureId)) fail('Invalid task feature');
     if (t.assignee && people.get(t.assignee)?.platform !== t.platform) fail('Invalid task assignee');
+    if (t.roleId && (!roles.has(t.roleId) || roles.get(t.roleId)?.platform !== t.platform || (t.assignee && people.get(t.assignee)?.roleId !== t.roleId))) fail('Invalid work-item role or assignee');
     if (new Set(t.dependsOn).size !== t.dependsOn.length || t.dependsOn.some(d => !tasks.has(d))) fail('Invalid dependency');
   }
   const visiting = new Set<string>(), visited = new Set<string>();

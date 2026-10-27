@@ -32,8 +32,8 @@ test.describe.serial('real authentication, onboarding, planning, and durable own
     await page.getByRole('button', { name: 'Create meeting' }).click();
     await page.getByRole('button', { name: 'Finish setup', exact: true }).click();
     await page.getByRole('button', { name: 'New feature', exact: true }).click(); await page.getByLabel('Feature name').fill('Secure accounts');
-    await page.getByRole('checkbox', { name: 'Include DevOps', exact: true }).check();
-    await page.getByLabel('DevOps estimate (days)').fill('2');
+    await page.getByRole('checkbox', { name: 'Include DevOps Engineer', exact: true }).check();
+    await page.getByLabel('DevOps Engineer estimate (days)').fill('2');
     await page.getByRole('button', { name: 'Create feature' }).click(); await saved(page);
     await expect(page.getByText('Secure accounts', { exact: true }).first()).toBeVisible();
     const before = await (await owner.request.get('/api/workspace')).json();
@@ -79,7 +79,7 @@ test.describe.serial('real authentication, onboarding, planning, and durable own
     await page.getByLabel('Filter by platform').selectOption('Frontend'); await expect(page.locator('.gantt-row:not(.feature)')).toHaveCount(0);
     await page.getByRole('button', { name: 'Clear filters' }).first().click(); await expect(page.locator('.gantt-row:not(.feature)')).toHaveCount(3);
     await page.getByRole('button', { name: 'Team capacity', exact: true }).click(); await page.getByRole('button', { name: 'Configure', exact: true }).click();
-    await page.getByLabel('Feature development %', { exact: true }).first().fill('80'); await page.getByLabel('Bug fixes %', { exact: true }).first().fill('10'); await page.getByLabel('Ongoing work %', { exact: true }).first().fill('5'); await page.getByLabel('Meetings / ops %', { exact: true }).first().fill('5');
+    await page.getByLabel('Feature development %', { exact: true }).first().fill('80'); await page.getByLabel('Bug fixes %', { exact: true }).first().fill('10'); await page.getByLabel('Ongoing work %', { exact: true }).first().fill('5'); await page.getByLabel('Other ops %', { exact: true }).first().fill('5');
     await page.getByRole('button', { name: 'Save default capacity' }).click(); await page.keyboard.press('Escape'); await saved(page);
     await page.getByRole('button', { name: 'Time off & holidays', exact: true }).click(); await page.getByRole('button', { name: 'Add time off', exact: true }).click();
     await page.locator('#modalForm [name=from]').fill('2026-11-09'); await page.locator('#modalForm [name=to]').fill('2026-11-10'); await page.locator('#modalForm button[type=submit]').click(); await saved(page);
