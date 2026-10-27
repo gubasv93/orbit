@@ -1,12 +1,12 @@
 import type { ProjectData } from '../lib/schema';
 import type { ScheduledTask } from './engine';
 import type { createScheduler } from './engine';
-import { fromDay } from './dates.js';
+import { fromDay, asDay, dow } from './dates.js';
 
 export const timeCategories = [
-  ['development', 'Development', '#7870db'], ['bugs', 'Bug fixes', '#e9a367'],
-  ['ongoing', 'Ongoing work', '#6abca8'], ['ops', 'Other ops', '#ba99cd'],
-  ['meetings', 'Meetings', '#e7c45f'], ['nonwork', 'Non-working', '#cbd2de'],
+  ['development', 'Development', '#7870db'], ['meetings', 'Recurring meetings', '#e7c45f'],
+  ['weekends', 'Weekends', '#cbd2de'], ['holidays', 'Public holidays', '#6abca8'],
+  ['timeoff', 'Days off', '#91bce4'], ['sick', 'Sick leave', '#e9a09d'],
   ['available', 'Unused availability', '#edf0f6'],
 ] as const;
 type Category = typeof timeCategories[number][0];
@@ -19,14 +19,17 @@ export function taskTimeBreakdown(task: ProjectData['tasks'][number], scheduled:
   const slices: { day: number; parts: Parts }[] = [], totals = empty();
   for (let day = scheduled.start; day <= scheduled.end; day++) {
     const date = fromDay(day), parts = empty();
-    if (engine.nonwork(day, task.assignee)) parts.nonwork = 1;
+    if (dow(day) === 0 || dow(day) === 6) parts.weekends = 1;
+    else if (engine.isHoliday(day)) parts.holidays = 1;
+    else if (engine.nonwork(day, task.assignee)) {
+      const sick = data.leave.some(leave => leave.person === task.assignee && leave.type === 'sick' && asDay(leave.from) <= day && asDay(leave.to) >= day);
+      parts[sick ? 'sick' : 'timeoff'] = 1;
+    }
     else {
       parts.meetings = task.assignee ? engine.meetingMinutes(task.assignee, date) / (data.settings.workHours * 60) : 0;
-      const capacity = task.assignee ? engine.capacityParts(task.assignee, date) : { feature: 100, bugs: 0, ongoing: 0, ops: 0 };
       const afterMeetings = Math.max(0, 1 - parts.meetings);
       parts.development = Math.min(afterMeetings, scheduled.alloc[date] || 0);
-      for (const key of ['bugs', 'ongoing', 'ops'] as const) parts[key] = afterMeetings * capacity[key] / 100;
-      parts.available = Math.max(0, afterMeetings * capacity.feature / 100 - parts.development);
+      parts.available = Math.max(0, afterMeetings - parts.development);
     }
     for (const [key] of timeCategories) totals[key] += parts[key];
     slices.push({ day, parts });

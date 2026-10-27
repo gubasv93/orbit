@@ -39,7 +39,11 @@ export const projectDataSchema = z.object({
     overrides: z.record(id, capacitySchema) }).refine(i => i.end >= i.start, 'Iteration end precedes start')).min(1).max(500),
   milestones: z.array(z.object({ id, title: text, date, color, featureIds: z.array(id).max(1000) })).max(1000),
   holidays: z.array(z.object({ date, name: text })).max(1000),
-  settings: z.object({ observeHolidays: z.boolean(), workHours: z.number().min(1).max(24), defaultCapacity: capacitySchema }),
+  settings: z.object({ observeHolidays: z.boolean(), workHours: z.number().min(1).max(24), defaultCapacity: capacitySchema,
+    autoShiftDependencies: z.boolean().optional(), dependencyGapDays: z.number().int().min(0).max(365).optional(),
+    dependencyGapUnit: z.enum(['calendar', 'working']).optional(), dependencyShiftPolicy: z.enum(['push', 'follow']).optional(),
+    showDependencyWarnings: z.boolean().optional(),
+  }),
   createdAt: date,
 }).superRefine((data, context) => {
   const fail = (message: string) => context.addIssue({ code: 'custom', message });

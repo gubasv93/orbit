@@ -1,7 +1,7 @@
 import { emptyWorkspace, type Workspace, type ProjectData } from '../src/lib/schema';
 export function projectData(): ProjectData {
   const capacity = { feature: 100, bugs: 0, ongoing: 0, ops: 0 };
-  return { version: 4, createdAt: '2026-10-23', settings: { observeHolidays: false, workHours: 8, defaultCapacity: capacity },
+  return { version: 4, createdAt: '2026-10-23', settings: { observeHolidays: false, workHours: 8, defaultCapacity: capacity, autoShiftDependencies: true },
     roles: [{ id: 'r1', name: 'Backend Developer', platform: 'Backend' }],
     people: [{ id: 'u1', name: 'Alex Dev', firstName: 'Alex', lastName: 'Dev', role: 'Backend Developer', roleId: 'r1', platform: 'Backend', color: '#508fd0', capacity }],
     features: [{ id: 'f1', title: 'Accounts', description: '', start: '2026-10-26', baseline: '2026-11-30', color: '#7769e6', collapsed: false }],

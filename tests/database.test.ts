@@ -1,6 +1,7 @@
 import { beforeAll, afterAll, describe, expect, it } from 'vitest';
 import { PGlite } from '@electric-sql/pglite';
 import { readFileSync, readdirSync } from 'node:fs';
+import {moveRoadmapItem} from '../src/planner/roadmap-order';
 import { fullWorkspace } from './fixtures';
 let db: PGlite;
 const a = '11111111-1111-4111-8111-111111111111', b = '22222222-2222-4222-8222-222222222222';
@@ -43,6 +44,20 @@ describe('PostgreSQL ownership, RLS, and atomic persistence', () => {
     await user(a);const before=await load(),workspace=fullWorkspace();
     workspace.projects[0].data.tasks[0].roleId='r1';workspace.projects[0].data.tasks[0].manualEnd='2026-11-02';
     workspace.projects[0].data.features[0].manualEnd='2026-11-03';
+    await save(workspace,before.revision);expect((await load()).workspace).toEqual(workspace);
+  });
+  it('stores independent dependency preferences for separate projects',async()=>{
+    await user(a);const before=await load(),workspace=fullWorkspace(),second=structuredClone(workspace.projects[0]);second.id='second-project';
+    Object.assign(workspace.projects[0].data.settings,{autoShiftDependencies:false,dependencyGapDays:2,dependencyGapUnit:'working',dependencyShiftPolicy:'follow',showDependencyWarnings:false});
+    Object.assign(second.data.settings,{autoShiftDependencies:true,dependencyGapDays:0,dependencyGapUnit:'calendar',dependencyShiftPolicy:'push',showDependencyWarnings:true});workspace.projects.push(second);
+    await save(workspace,before.revision);expect((await load()).workspace).toEqual(workspace);
+  });
+  it('persists reordered epic groups and reparented tasks without changing their links or dates',async()=>{
+    await user(a);const before=await load(),workspace=fullWorkspace(),data=workspace.projects[0].data;
+    data.features.push({...data.features[0],id:'destination',title:'Destination'});
+    moveRoadmapItem(data,{kind:'feature',id:'destination',targetKind:'feature',targetId:'f1',placement:'before'});
+    moveRoadmapItem(data,{kind:'task',id:'t2',targetKind:'feature',targetId:'destination',placement:'inside'});
+    moveRoadmapItem(data,{kind:'task',id:'t3',targetKind:'task',targetId:'t1',placement:'before'});
     await save(workspace,before.revision);expect((await load()).workspace).toEqual(workspace);
   });
   it('denies cross-user reads and direct writes on every private table', async () => {

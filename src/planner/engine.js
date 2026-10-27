@@ -1,6 +1,6 @@
 // Scheduling logic extracted from the supplied Orbit prototype. No UI or persistence dependencies.
 import {DAY,asDay,fromDay,addDays,dow,today,monday} from './dates.js';
-export function createScheduler(data) {
+export function createScheduler(data, {legacyAllocation=false}={}) {
 const getPerson=id=>data.people.find(p=>p.id===id);
 const getFeature=id=>data.features.find(f=>f.id===id);
 const getTask=id=>data.tasks.find(t=>t.id===id);
@@ -8,8 +8,8 @@ function isHoliday(n){return data.settings.observeHolidays&&data.holidays.some(h
 function nonwork(n,person){if(dow(n)===0||dow(n)===6||isHoliday(n))return true;return !!person&&data.leave.some(l=>l.person===person&&n>=asDay(l.from)&&n<=asDay(l.to))}
 function nextWork(n,person){let j=0;while(nonwork(n,person)&&j++<550)n++;return n}
 function capacityParts(pid,date){const p=getPerson(pid),base=p?.capacity||data.settings.defaultCapacity,iter=data.iterations.find(i=>asDay(i.start)<=asDay(date)&&asDay(i.end)>=asDay(date));return iter?.overrides?.[pid]||base}
-// Meetings are reserved before capacity allocation. Ops % represents other overhead,
-// so regular calendar meetings must NOT also be included in the ops percentage.
+// Estimates cover all work. Only meetings and non-working time reduce availability.
+// Legacy allocation is used solely to preserve visible starts during migration.
 const meetingDayCache=new Map();
 function meetingOccurs(m,date){
  if(!m.enabled||!m.startDate||date<m.startDate||(m.endDate&&date>m.endDate))return false;
@@ -58,7 +58,13 @@ function meetingHoursInIteration(pid,iteration){
 function featureCapacity(pid,date){
  const hours=Math.max(1,Number(data.settings.workHours)||8);
  const timeAfterMeetings=Math.max(0,(hours*60-meetingMinutes(pid,date))/(hours*60));
- return Math.max(0,Number(capacityParts(pid,date).feature||0)/100)*timeAfterMeetings;
+ return timeAfterMeetings*(legacyAllocation?Math.max(0,Number(capacityParts(pid,date).feature||0)/100):1);
+}
+function dependencyReadyDay(task,end){
+ let day=end+1,gap=Math.max(0,Math.min(365,Number(data.settings.dependencyGapDays)||0));
+ if(data.settings.dependencyGapUnit==='working'){for(let i=0;i<gap;i++)day=nextWork(day,task.assignee)+1;}
+ else day+=gap;
+ return day;
 }
 function calculate(){meetingDayCache.clear();const schedule={},working=new Map(),errors=[];
  function calc(t,depth=0,seen=new Set()){
@@ -67,12 +73,14 @@ function calculate(){meetingDayCache.clear();const schedule={},working=new Map()
   seen=new Set(seen);seen.add(t.id);
   if(t.status==='hold'){return (schedule[t.id]={start:asDay(t.start),end:null,hold:true,blocked:false,alloc:{}})}
   let initial=asDay(t.start||getFeature(t.featureId)?.start||today());let depBlocked=false;
-  for(const depId of(t.dependsOn||[])){
+  let dependencyStart=null;
+  for(const depId of(data.settings.autoShiftDependencies===true&&t.status!=='done'?t.dependsOn||[]:[])){
    const dep=getTask(depId);if(!dep)continue;
    const info=calc(dep,depth+1,seen);
    if(info.end===null||info.shortfall>0){depBlocked=true;continue}
-   initial=Math.max(initial,info.end+1);
+   dependencyStart=Math.max(dependencyStart??-Infinity,dependencyReadyDay(t,info.end));
   }
+  if(dependencyStart!==null)initial=data.settings.dependencyShiftPolicy==='follow'?dependencyStart:Math.max(initial,dependencyStart);
   if(depBlocked)return (schedule[t.id]={start:initial,end:null,blocked:true,reason:'Waiting for dependency',alloc:{}});
   const manual=t.manualEnd&&t.status!=='done';
   const windowEnd=manual?initial+asDay(t.manualEnd)-asDay(t.start):null;
@@ -110,7 +118,14 @@ function calculate(){meetingDayCache.clear();const schedule={},working=new Map()
    const shortfall=entries.some(entry=>entry.shortfall>0);
    featureInfo[f.id]={start:displayStart,end:displayEnd,blocked,allDone,atRisk:blocked||shortfall||windowConflict||(displayEnd!==null&&displayEnd>asDay(f.baseline)),delta:displayEnd!==null?displayEnd-asDay(f.baseline):null,...(manual?{manual:true,forecastStart:start,forecastEnd:end,windowConflict}: {})}
  });
- return {schedule,conflicts,working,featureInfo,errors};
+ const dependencyConflicts={};
+ if(data.settings.showDependencyWarnings!==false)for(const task of data.tasks){
+  if(task.status==='done')continue;
+  const target=schedule[task.id],issues=[];
+  for(const id of task.dependsOn||[]){const source=schedule[id];if(source&&(source.end===null||source.shortfall>0||(target.start!==null&&target.start<dependencyReadyDay(task,source.end))))issues.push(id);}
+  if(issues.length)dependencyConflicts[task.id]=issues;
+ }
+ return {schedule,conflicts,working,featureInfo,errors,dependencyConflicts};
 }
 
 return {calculate,isHoliday,nonwork,nextWork,capacityParts,meetingOccurs,meetingMinutes,meetingHoursInIteration,featureCapacity};

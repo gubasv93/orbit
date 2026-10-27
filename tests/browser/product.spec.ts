@@ -38,6 +38,7 @@ test.describe.serial('real authentication, onboarding, planning, and durable own
     await expect(page.getByText('Secure accounts', { exact: true }).first()).toBeVisible();
     const before = await (await owner.request.get('/api/workspace')).json();
     expect(before.workspace.projects[0].data.people).toHaveLength(2); expect(before.workspace.projects[0].data.meetings).toHaveLength(1);
+    expect(before.workspace.projects[0].data.settings.autoShiftDependencies).toBe(false);
     expect(before.workspace.projects[0].data.tasks.map((t: { platform: string }) => t.platform)).toContain('DevOps');
     await page.reload(); await expect(page.getByText('Secure accounts', { exact: true }).first()).toBeVisible(); await saved(page);
     const after = await (await owner.request.get('/api/workspace')).json(); expect(after.workspace).toEqual(before.workspace);
@@ -51,7 +52,7 @@ test.describe.serial('real authentication, onboarding, planning, and durable own
     await page.goto('/app'); await expect(page).toHaveURL(/\/login/);
     await page.getByLabel('Email address').fill(email); await page.getByLabel('Password', { exact: true }).fill('Incorrect123');
     await page.getByRole('button', { name: 'Log in', exact: true }).click(); await expect(page.locator('.auth-error[role=alert]')).toContainText('Email or password is incorrect');
-    await page.getByLabel('Password', { exact: true }).fill(password); await page.getByRole('button', { name: 'Log in', exact: true }).click(); await expect(page).toHaveURL(/\/app$/);
+    await page.getByLabel('Password', { exact: true }).fill(password); await page.getByRole('button', { name: 'Log in', exact: true }).click(); await expect(page).toHaveURL(/\/app$/); await saved(page);
     await expect(page.getByText('Secure accounts', { exact: true }).first()).toBeVisible();
     const other = await second.newPage(); await signup(other, otherEmail);
     const original = await (await owner.request.get('/api/workspace')).json(), fresh = await (await second.request.get('/api/workspace')).json();
@@ -64,7 +65,7 @@ test.describe.serial('real authentication, onboarding, planning, and durable own
     const login = await third.newPage(); await login.goto('/login'); await login.getByLabel('Email address').fill(email); await login.getByLabel('Password', { exact: true }).fill(password); await login.getByRole('button', { name: 'Log in', exact: true }).click(); await expect(login).toHaveURL(/\/app$/); await expect(login.getByText('Secure accounts', { exact: true }).first()).toBeVisible(); await third.close();
     await page.close(); await other.close();
   });
-  test('edits work items, capacity, leave, milestones, filters, and scales', async () => {
+  test('edits work items, recurring meetings, leave, milestones, filters, and scales', async () => {
     const snapshot = await (await owner.request.get('/api/workspace')).json();
     const response = await owner.request.put('/api/workspace', { headers: { Origin: 'http://localhost:3000' }, data: { revision: snapshot.revision, workspace: fullWorkspace() } }); expect(response.status()).toBe(200);
     const page = await owner.newPage(); await page.goto('/app'); await expect(page.getByText('Accounts', { exact: true }).first()).toBeVisible();
@@ -78,15 +79,16 @@ test.describe.serial('real authentication, onboarding, planning, and durable own
     await page.getByLabel('Filter by team member').selectOption('u1'); await page.getByLabel('Filter by platform').selectOption('Backend'); await expect(page.locator('.gantt-row:not(.feature)')).toHaveCount(2);
     await page.getByLabel('Filter by platform').selectOption('Frontend'); await expect(page.locator('.gantt-row:not(.feature)')).toHaveCount(0);
     await page.getByRole('button', { name: 'Clear filters' }).first().click(); await expect(page.locator('.gantt-row:not(.feature)')).toHaveCount(3);
-    await page.getByRole('button', { name: 'Team capacity', exact: true }).click(); await page.getByRole('button', { name: 'Configure', exact: true }).click();
-    await page.getByLabel('Feature development %', { exact: true }).first().fill('80'); await page.getByLabel('Bug fixes %', { exact: true }).first().fill('10'); await page.getByLabel('Ongoing work %', { exact: true }).first().fill('5'); await page.getByLabel('Other ops %', { exact: true }).first().fill('5');
-    await page.getByRole('button', { name: 'Save default capacity' }).click(); await page.keyboard.press('Escape'); await saved(page);
+    await expect(page.getByRole('button', {name:'Team capacity',exact:true})).toHaveCount(0);
+    await page.getByRole('button', {name:'General settings',exact:true}).click(); await page.getByRole('button', {name:'Manage meetings',exact:true}).click();
+    await page.getByRole('button', {name:'Add meeting',exact:true}).click(); await page.getByLabel('Meeting name').fill('Delivery sync');
+    await page.getByRole('button', {name:'Create meeting',exact:true}).click(); await page.keyboard.press('Escape'); await saved(page);
     await page.getByRole('button', { name: 'Time off & holidays', exact: true }).click(); await page.getByRole('button', { name: 'Add time off', exact: true }).click();
     await page.locator('#modalForm [name=from]').fill('2026-11-09'); await page.locator('#modalForm [name=to]').fill('2026-11-10'); await page.locator('#modalForm button[type=submit]').click(); await saved(page);
     await page.getByRole('button', { name: 'Milestones', exact: false }).first().click(); await page.getByRole('button', { name: 'New milestone', exact: true }).click();
     await page.locator('#modalForm [name=name]').fill('Beta'); await page.locator('#modalForm [name=date]').fill('2026-11-30'); await page.locator('#modalForm button[type=submit]').click(); await saved(page);
     data = (await (await owner.request.get('/api/workspace')).json()).workspace.projects[0].data;
-    expect(data.people[0].capacity.feature).toBe(80); expect(data.leave).toHaveLength(2); expect(data.milestones.some((m: { title: string }) => m.title === 'Beta')).toBe(true);
+    expect(data.meetings.some((m:{title:string})=>m.title==='Delivery sync')).toBe(true); expect(data.leave).toHaveLength(2); expect(data.milestones.some((m: { title: string }) => m.title === 'Beta')).toBe(true);
     await page.close();
   });
 
@@ -109,7 +111,7 @@ test.describe.serial('real authentication, onboarding, planning, and durable own
     await page.locator('#modalForm button[type=submit]').click(); await page.getByRole('button',{name:'Copy team',exact:true}).click();
     await page.getByRole('button',{name:/Continue to meetings/}).click(); await page.getByRole('button',{name:'Copy meetings',exact:true}).click(); await page.getByRole('button',{name:'Finish setup',exact:true}).click(); await saved(page);
     const result=await (await owner.request.get('/api/workspace')).json(); const [source,destination]=result.workspace.projects;
-    expect(destination.data.people).toHaveLength(1); expect(destination.data.roles).toHaveLength(2); expect(destination.data.meetings).toHaveLength(1); expect(destination.data.features).toEqual([]);
+    expect(destination.data.people).toHaveLength(1); expect(destination.data.roles).toHaveLength(2); expect(destination.data.meetings).toHaveLength(source.data.meetings.length); expect(destination.data.features).toEqual([]);
     expect(destination.data.people[0].id).not.toBe(source.data.people[0].id); expect(destination.data.meetings[0].attendees).toEqual([destination.data.people[0].id]); expect(destination.data.people[0].capacity).toEqual(source.data.people[0].capacity);
     const dl=page.waitForEvent('download'); await page.locator('.save-bar').getByRole('button',{name:'Export workspace',exact:true}).click(); const file=await dl;
     const {readFile}=await import('node:fs/promises'); const exported=JSON.parse(await readFile((await file.path())!,'utf8')); expect(exported.workspace).toEqual(result.workspace);

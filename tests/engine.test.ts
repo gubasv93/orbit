@@ -12,9 +12,11 @@ describe('preserved scheduling behavior', () => {
     const dates = source.slice(source.indexOf('const asDay='), source.indexOf('const clamp='));
     const seed = source.slice(source.indexOf('function seed()'), source.indexOf('// Existing single-project'));
     const logic = source.slice(source.indexOf('function isHoliday('), source.indexOf('const weekDayLabels=')) + source.slice(source.indexOf('function calcSchedule()'), source.indexOf('let computed=calcSchedule();'));
-    const baseline = runInNewContext(`const DAY=86400000;${dates}${seed}let data=seed();const getPerson=id=>data.people.find(p=>p.id===id),getFeature=id=>data.features.find(f=>f.id===id),getTask=id=>data.tasks.find(t=>t.id===id);${logic}JSON.stringify({data,result:calcSchedule()},(key,value)=>value instanceof Map?[...value]:value);`, {}, { timeout: 3000 });
+    const baseline = runInNewContext(`const DAY=86400000;${dates}${seed}let data=seed();data.settings.defaultCapacity={feature:100,bugs:0,ongoing:0,ops:0};data.people.forEach(p=>p.capacity={...data.settings.defaultCapacity});data.iterations.forEach(i=>i.overrides={});const getPerson=id=>data.people.find(p=>p.id===id),getFeature=id=>data.features.find(f=>f.id===id),getTask=id=>data.tasks.find(t=>t.id===id);${logic}JSON.stringify({data,result:calcSchedule()},(key,value)=>value instanceof Map?[...value]:value);`, {}, { timeout: 3000 });
     const { data, result } = JSON.parse(baseline);
-    const actual = JSON.parse(JSON.stringify(createScheduler(data).calculate(), (_key, value) => value instanceof Map ? [...value] : value));
+    data.settings.autoShiftDependencies=true;
+    const {dependencyConflicts: _warnings,...calculated}=createScheduler(data).calculate();
+    const actual = JSON.parse(JSON.stringify(calculated, (_key, value) => value instanceof Map ? [...value] : value));
     expect(actual).toEqual(result);
   });
   it('distinguishes work effort from calendar duration and skips weekends', () => {
@@ -27,7 +29,7 @@ describe('preserved scheduling behavior', () => {
     data.meetings = [meeting, { ...meeting, id: 'm2', startTime: '09:30' }];
     const engine = createScheduler(data);
     expect(engine.meetingMinutes('u1', '2026-10-26')).toBe(90);
-    expect(engine.featureCapacity('u1', '2026-10-26')).toBe(0.40625);
+    expect(engine.featureCapacity('u1', '2026-10-26')).toBe(0.8125);
   });
   it('supports biweekly and nth/last weekday monthly recurrences', () => {
     const engine = createScheduler(projectData());
@@ -59,10 +61,10 @@ describe('preserved scheduling behavior', () => {
     expect(result.schedule.t1.start).toBe(result.schedule.t2.start);
     expect(result.conflicts.t1).toHaveLength(3); expect(data.tasks.map(t => t.id)).toEqual(['t1','t2']);
   });
-  it('derives parent forecasts from all child tasks and iteration capacity', () => {
+  it('derives parent forecasts from child tasks and ignores retired percentage overrides', () => {
     const data = projectData(); data.iterations[0].overrides.u1 = { feature: 50, bugs: 20, ongoing: 20, ops: 10 };
     const result = createScheduler(data).calculate();
     expect(result.featureInfo.f1.end).toBe(result.schedule.t1.end);
-    expect(fromDay(result.featureInfo.f1.end!)).toBe('2026-11-02');
+    expect(fromDay(result.featureInfo.f1.end!)).toBe('2026-10-28');
   });
 });

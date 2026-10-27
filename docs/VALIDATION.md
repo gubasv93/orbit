@@ -1,10 +1,8 @@
 # Validation record
 
-Whole-bar color update (2026-10-27): the existing six-effort-day/sixteen-calendar-day case verifies five unique contiguous colors, exact 37.5% development and 25% non-working shares, and a complete 100% span. The browser journey checks work-item and parent bars for repeated colors and confirms that the total gradient stays identical across day/week/month/quarter/year scales.
+Current roadmap update (2026-10-27): the local suite covers manual-by-default dependency settings, push/follow scheduling, calendar/working gaps, warning visibility, legacy start pinning, retired percentage allocations, row ordering and reparenting, persistent array positions, and unchanged task data. The six-effort-day case now spans eight calendar days (75% development, 25% weekends), regardless of archived 50% allocation. Another case partitions eleven calendar days into 6d development, .875d recurring meetings, 2d weekends, 1d days off, 1d sick leave and .125d unused availability. Observed holidays are tested separately. Each category has one contiguous color section at every zoom. Parent calendar mixes remain distinct from summed effort.
 
-Roadmap editing update (2026-10-27): eight unit cases exercise six effort days over sixteen calendar days, category totals, meetings/overrides/leave, parent averages, manual shortfalls, dependency-shifted windows, independent epic windows, role-matched assignments on shared platforms, backup validation, and arrow geometry. An additional PostgreSQL case round-trips role/date metadata through the existing normalized RPCs. Three browser journeys cover compact role selection, exact-role assignee filtering, role/date persistence, calendar colors, start/end synchronization, manual warnings, automatic restoration, drag movement, dependency drawing, zoom/filter behavior, cycle rejection, keyboard selection/removal, and click/tap entry.
-
-Per-team user-story update (2026-10-27): six unit cases cover the 3+2+2 example, independent capacity-based forecasts, later dependency ordering, exact fractional estimates, custom/unassigned teams, opt-in chains, invalid assignments/estimates, and atomic rejection at the work-item limit. Three browser journeys exercise new-epic and existing-epic entry, explicit team selection, matching assignee choices, mobile geometry/actions, total effort, three real Gantt rows, cloud persistence/reload, manual dependencies, filter clearing/expansion, inactive-field validation, custom teams, fractional editing, and rejection before partial creation. These use the disposable real-auth/PostgreSQL backend; hosted checks are recorded separately.
+The browser regression suite covers compact role selection, exact-role assignees, manual/automatic date windows, shortfalls, horizontal bar movement, graph creation/removal and cycle rejection, project-specific dependency settings, preserved positions after disabling auto-shift, mobile General settings, vertical row reordering, moves between epics, keyboard/mobile Move item controls, cancellation and save/reload. It also verifies that Team capacity controls are gone while recurring meetings remain editable. Existing authentication, ownership, backup/import, save recovery, setup, attendee selection and per-role story journeys remain included. Hosted release evidence is recorded separately below.
 
 Google OAuth update (2026-10-24): the suite adds 12 route tests using the actual Supabase SSR client and PKCE cookie/exchange implementation against a substituted provider HTTP boundary. They cover fixed redirect destinations, account choice, secure proof-key/session cookies, matching/missing/changed proof keys, replay rejection, cancellation, provider errors/outages, cross-origin denial, restricted registration, and shared login throttling. Three browser journeys cover both entry buttons, inline failures with usable email login, mobile layout, callback notices, and real server-cookie persistence before navigation to Supabase. The disposable backend enables Google with deliberately invalid local-only placeholders; the browser captures the authorization navigation without making Google requests. This is application-flow validation; real Google consent and identity linking require the owner's OAuth client configuration and a Google account, and must not be reported as verified until exercised.
 
@@ -14,15 +12,15 @@ Validated through 2026-10-27 in the Codex Linux cloud workspace using Node.js 24
 | --- | --- |
 | TypeScript check | Passed |
 | Next.js production build | Passed |
-| Unit, auth-route, and PostgreSQL/RLS suite | 56 tests passed, 0 failed, 0 skipped |
-| Production-build browser journeys with real local backend | 21 journeys covering the preserved product, setup/effort regressions, Google entry, role-based stories, calendar capacity, manual dates, and map dependencies |
+| Unit, auth-route, and PostgreSQL/RLS suite | 72 tests passed, 0 failed, 0 skipped |
+| Production-build browser journeys with real local backend | 25 journeys covering the preserved product, setup, Google entry, role-based stories, full-time forecasts, absences, manual dates, dependency preferences, and row ordering |
 | Full dependency audit, including development dependencies | 0 vulnerabilities reported |
-| GitHub CI for deployed code `076a2e6` | Passed all stages |
-| Live HTTPS release and authenticated journeys | Passed with temporary confirmed accounts; public email delivery unverified |
+| GitHub CI | Earlier deployments passed; the current release requires a fresh successful run |
+| Live HTTPS release and authenticated journeys | Earlier releases passed; new behavior requires release-specific checks after deployment. Public email delivery remains deferred |
 
 ## What was exercised
 
-The unit suite compares scheduling output against the complete supplied prototype sample and verifies calendar effort, weekend/leave/holiday behavior, all recurrence families, overlapping meeting aggregation, iteration capacity, dependency holds/resumption, parent forecasts, and overbooking without task reordering. Validation tests cover relationships, dependency cycles, CSS-like values, invalid dates, password rules, and multibyte password limits. Autosave tests verify serialization, returned revisions, latest-edit retry, and conflict retention.
+The unit suite compares scheduling output against the complete supplied prototype sample and verifies full-availability effort, weekend/leave/holiday behavior, all recurrence families, overlapping meeting aggregation, iteration capacity, dependency holds/resumption, parent forecasts, and overbooking without task reordering. Validation tests cover relationships, dependency cycles, CSS-like values, invalid dates, password rules, and multibyte password limits. Autosave tests verify serialization, returned revisions, latest-edit retry, and conflict retention.
 
 PGlite runs the actual PostgreSQL migration, roles, grants, RLS, and RPCs. It verifies empty/idempotent bootstrap, full domain roundtrips, duplicate project IDs across separate users, cross-user reads and direct writes on all private tables, anonymous denial, stale-write rejection, transactional rollback, and auth-attempt limits.
 
@@ -31,7 +29,7 @@ The browser suite runs the optimized Next.js build with real GoTrue 2.197.0, Pos
 - Empty-account registration with a 72-byte password, secure cookie attributes, and no browser-local business/auth storage.
 - First project, standard/custom team roles, recurring meetings, generated work items, refresh, and persisted data.
 - Logout, failed/correct login, a second browser, a second user, and identical project IDs without cross-account changes.
-- Work-item effort/status, capacity, time off, milestones, all five timeline scales, AND-combined filters, and sidebar controls.
+- Work-item effort/status, recurring meetings, time off, milestones, all five timeline scales, AND-combined filters, and sidebar controls.
 - Task and milestone dragging with unchanged task order.
 - Repeated project setup copy without duplication, attendee-ID remapping, full export/import equality, and invalid-import retention.
 - HTML-like imported text without script execution.
@@ -54,7 +52,7 @@ Public registration is enabled and passwords require 8 characters, a letter, and
 
 After that configuration change, real public registration through the live browser created a session and empty workspace with Secure HttpOnly cookies. Onboarding, save/reload, logout, and subsequent password login passed. Retrying public sign-up for a deliberately unconfirmed test account also returned an immediate session. These accounts were registered through the normal application endpoint; no administrator confirmation was used. All temporary accounts and their workspaces were removed. Type checking, the 23-test unit/database suite, and the production build passed for the clearer error-message change.
 
-## Deployment status
+## Earlier deployment evidence (historical)
 
 Source is pushed to the owner-approved public `gubasv93/orbit` repository. [GitHub CI](https://github.com/gubasv93/orbit/actions/runs/39956953944) passed all stages on deployed commit `076a2e6fe9737b9725cc757c705de305217b7f5f`. Later documentation updates do not change the deployed application payload.
 

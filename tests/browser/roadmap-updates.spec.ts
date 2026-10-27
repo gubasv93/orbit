@@ -11,7 +11,7 @@ function workspace(){const data=projectData();data.people[0].capacity={feature:5
  data.tasks.push({...data.tasks[0],id:'t2',title:'Review categories',roleId:'rReview',assignee:'u2',effort:1}, {...data.tasks[0],id:'t3',title:'Release categories',roleId:undefined,assignee:'',effort:1});
  return {version:1,activeId:'project',preferences:{scale:'day',sidebarHidden:true},projects:[{id:'project',name:'Release checks',onboardingStep:0,data}]};}
 async function snapshot(){return(await context.request.get('/api/workspace')).json();}
-async function reset(){const current=await snapshot();expect((await context.request.put('/api/workspace',{headers:{Origin:origin},data:{revision:current.revision,workspace:workspace()}})).status()).toBe(200);}
+async function reset(value=workspace()){const current=await snapshot();expect((await context.request.put('/api/workspace',{headers:{Origin:origin},data:{revision:current.revision,workspace:value}})).status()).toBe(200);}
 async function saved(page:Page){await expect(page.locator('.save-bar [role=status]')).toHaveText('Saved to cloud');}
 test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
  test.beforeAll(async({browser})=>{context=await browser.newContext();const page=await context.newPage(),password='Orbit9'+randomUUID();await page.goto('/signup');await page.getByLabel('Email address').fill(`orbit-map-${randomUUID()}@example.com`);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByLabel('Confirm password').fill(password);await page.getByRole('button',{name:'Create account'}).click();await expect(page).toHaveURL(/\/app$/);await page.close();});
@@ -27,21 +27,21 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   await page.screenshot({path:'test-results/compact-roles.png',fullPage:true});await page.getByRole('button',{name:'Create feature',exact:true}).click();await saved(page);
   const data=(await snapshot()).workspace.projects[0].data,created=data.features.find((f:{title:string})=>f.title==='Role-based epic');expect(data.tasks.filter((t:{featureId:string})=>t.featureId===created.id).map((t:{roleId:string;assignee:string})=>[t.roleId,t.assignee])).toEqual([['r1','u1'],['rReview','u2']]);await page.reload();await saved(page);await page.close();
  });
- test('explains six effort days over sixteen calendar days and synchronizes manual and automatic dates',async()=>{
+ test('explains six effort days over eight calendar days and synchronizes manual and automatic dates',async()=>{
   await reset();const page=await context.newPage();await page.goto('/app');const bar=page.locator('.task-bar[data-task=t1]');
-  await expect(bar).toHaveAttribute('title',/16 calendar days/);await expect(bar.locator('.capacity-band')).toHaveAttribute('style',/linear-gradient/);await expect(page.getByLabel('Timeline colors')).toContainText('Bug fixes');
+  await expect(bar).toHaveAttribute('title',/8 calendar days/);await expect(bar.locator('.capacity-band')).toHaveAttribute('style',/linear-gradient/);await expect(page.getByLabel('Timeline colors')).toContainText('Recurring meetings');
   const fill=bar.locator('.capacity-band'),gradient=(await fill.getAttribute('style'))!,colors=gradient.match(/#[a-f0-9]{6}/g)!;
-  expect(colors).toHaveLength(5);expect(new Set(colors).size).toBe(5);
+  expect(colors).toHaveLength(2);expect(new Set(colors).size).toBe(2);
   const parentColors=(await page.locator('.feature-bar .capacity-band').getAttribute('style'))!.match(/#[a-f0-9]{6}/g)!;expect(new Set(parentColors).size).toBe(parentColors.length);
   await expect(bar).toHaveAttribute('title',/Total capacity shares/);
   for(const scale of ['week','month','quarter','year','day']){await page.getByLabel('Timeline scale').selectOption(scale);await expect(fill).toHaveAttribute('style',gradient);}
   await page.screenshot({path:'test-results/capacity-totals.png',fullPage:true});
-  await page.locator('.work-name[data-action=drawer-task][data-id=t1]').click();await expect(page.getByLabel('Start date')).toHaveValue('2026-10-26');await expect(page.getByLabel('End date')).toHaveValue('2026-11-10');
-  await expect(page.locator('.drawer-content')).toContainText('6d effort · 16 calendar days');
+  await page.locator('.work-name[data-action=drawer-task][data-id=t1]').click();await expect(page.getByLabel('Start date')).toHaveValue('2026-10-26');await expect(page.getByLabel('End date')).toHaveValue('2026-11-02');
+  await expect(page.locator('.drawer-content')).toContainText('6d effort · 8 calendar days');
   await page.getByLabel('End date').fill('2026-10-28');await page.getByLabel('End date').press('Tab');await saved(page);
-  await expect(page.getByLabel('Date mode')).toHaveValue('manual');await expect(page.locator('.drawer-content')).toContainText('4.5d of effort does not fit');expect((await snapshot()).workspace.projects[0].data.tasks[0].effort).toBe(6);
+  await expect(page.getByLabel('Date mode')).toHaveValue('manual');await expect(page.locator('.drawer-content')).toContainText('3d of effort does not fit');expect((await snapshot()).workspace.projects[0].data.tasks[0].effort).toBe(6);
   await page.getByLabel('Start date').fill('2026-10-27');await page.getByLabel('Start date').press('Tab');await saved(page);await expect(page.getByLabel('End date')).toHaveValue('2026-10-29');
-  await page.getByLabel('Date mode').selectOption('automatic');await saved(page);await expect(page.getByLabel('End date')).toHaveValue('2026-11-11');
+  await page.getByLabel('Date mode').selectOption('automatic');await saved(page);await expect(page.getByLabel('End date')).toHaveValue('2026-11-03');
   await page.keyboard.press('Escape');await bar.scrollIntoViewIfNeeded();const before=(await bar.boundingBox())!;await page.mouse.move(before.x+before.width/2,before.y+before.height/2);await page.mouse.down();await page.mouse.move(before.x+before.width/2+76,before.y+before.height/2,{steps:8});await page.mouse.up();await saved(page);
   await page.locator('.work-name[data-action=drawer-task][data-id=t1]').click();await expect(page.getByLabel('Start date')).toHaveValue('2026-10-29');await page.keyboard.press('Escape');
   await page.locator('.work-name[data-action=drawer-feature][data-id=f1]').click();const automaticEnd=await page.getByLabel('End date').inputValue();await expect(page.getByLabel('Start date')).toHaveValue('2026-10-26');
@@ -58,4 +58,97 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   await edge.focus();await page.keyboard.press('Enter');await page.getByRole('button',{name:'Remove selected dependency'}).click();await saved(page);await expect(edge).toHaveCount(0);expect((await snapshot()).workspace.projects[0].data.tasks[1].dependsOn).toEqual([]);
   await page.locator('[data-action=link-from][data-id=t1]').click();await page.locator('.task-bar[data-task=t3]').click();await saved(page);await page.reload();await saved(page);await expect(page.locator('.dependency-edge[data-from=t1][data-to=t3]')).toHaveCount(1);await page.screenshot({path:'test-results/dependency-arrows.png',fullPage:true});await page.close();
  });
+ test('controls automatic dependency movement in per-project general settings without moving manual links',async()=>{
+  test.setTimeout(90000);
+  const legacy=workspace();legacy.projects[0].data.tasks[1].dependsOn=['t1'];delete legacy.projects[0].data.settings.autoShiftDependencies;
+  await reset(legacy);const page=await context.newPage();await page.goto('/app');await expect(page.getByRole('button',{name:'General settings',exact:true})).toBeVisible();await saved(page);
+  await expect.poll(async()=>(await snapshot()).workspace.projects[0].data.settings.autoShiftDependencies).toBe(false);
+  expect((await snapshot()).workspace.projects[0].data.tasks[1].start).toBe('2026-11-11');
+  await page.locator('[data-action=link-from][data-id=t1]').click();await page.locator('.task-bar[data-task=t3]').click();await saved(page);
+  expect((await snapshot()).workspace.projects[0].data.tasks[2].start).toBe('2026-10-26');await expect(page.locator('.dependency-edge[data-to=t3]')).toHaveClass(/timing-warning/);
+  await page.locator('.work-name[data-action=drawer-task][data-id=t3]').click();await expect(page.getByLabel('Start date')).toHaveValue('2026-10-26');await page.keyboard.press('Escape');
+  await page.getByRole('button',{name:'General settings',exact:true}).click();await expect(page.getByRole('heading',{name:'General settings'})).toBeVisible();
+  const automatic=page.getByRole('checkbox',{name:'Auto-shift dependent work items',exact:true});await expect(automatic).not.toBeChecked();await expect(page.getByLabel('Gap between dependent items')).toBeDisabled();
+  await automatic.check();await page.getByLabel('Gap between dependent items').fill('5');await page.getByLabel('Gap unit').selectOption('calendar');
+  await page.getByRole('button',{name:'Save settings',exact:true}).click();await saved(page);
+  await page.locator('.work-name[data-action=drawer-task][data-id=t3]').click();await expect(page.getByLabel('Start date')).toHaveValue('2026-11-09');
+  await page.getByLabel('Start date').fill('2026-11-23');await page.getByLabel('Start date').press('Tab');await saved(page);await expect(page.getByLabel('Start date')).toHaveValue('2026-11-23');await page.keyboard.press('Escape');
+  await page.getByRole('button',{name:'General settings',exact:true}).click();await page.getByLabel('When dates change').selectOption('follow');await page.getByRole('button',{name:'Save settings',exact:true}).click();await saved(page);
+  await page.locator('.work-name[data-action=drawer-task][data-id=t3]').click();await expect(page.getByLabel('Start date')).toHaveValue('2026-11-09');await page.keyboard.press('Escape');
+  await page.getByRole('button',{name:'General settings',exact:true}).click();await page.getByLabel('Gap unit').selectOption('working');await page.getByRole('button',{name:'Save settings',exact:true}).click();await saved(page);
+  await page.locator('.work-name[data-action=drawer-task][data-id=t3]').click();await expect(page.getByLabel('Start date')).toHaveValue('2026-11-10');await page.keyboard.press('Escape');
+  await page.getByRole('button',{name:'General settings',exact:true}).click();await automatic.uncheck();await page.getByRole('button',{name:'Save settings',exact:true}).click();await saved(page);
+  expect((await snapshot()).workspace.projects[0].data.tasks[2].start).toBe('2026-11-10');await page.reload();await saved(page);
+  await page.locator('.work-name[data-action=drawer-task][data-id=t3]').click();await expect(page.getByLabel('Start date')).toHaveValue('2026-11-10');
+  await page.getByLabel('Start date').fill('2026-10-26');await page.getByLabel('Start date').press('Tab');await saved(page);await page.keyboard.press('Escape');await expect(page.locator('.dependency-edge[data-to=t3]')).toHaveClass(/timing-warning/);
+  await page.getByRole('button',{name:'General settings',exact:true}).click();await automatic.check();await page.getByLabel('Gap between dependent items').fill('7');await automatic.uncheck();await page.getByRole('checkbox',{name:'Show dependency timing warnings',exact:true}).uncheck();await page.getByRole('button',{name:'Save settings',exact:true}).click();await saved(page);
+  await expect(page.locator('.dependency-edge[data-to=t3]')).not.toHaveClass(/timing-warning/);let current=await snapshot();expect(current.workspace.projects[0].data.settings).toMatchObject({autoShiftDependencies:false,dependencyGapDays:7,dependencyGapUnit:'working',dependencyShiftPolicy:'follow',showDependencyWarnings:false});
+  current.workspace.projects.push({id:'other',name:'Other project',onboardingStep:0,data:projectData()});
+  expect((await context.request.put('/api/workspace',{headers:{Origin:origin},data:{revision:current.revision,workspace:current.workspace}})).status()).toBe(200);await page.reload();await saved(page);
+  await page.getByRole('button',{name:'Show sidebar',exact:true}).click();await page.locator('.project-trigger').click();await page.locator('.project-pick-row').filter({hasText:'Other project'}).getByRole('button',{name:'Open project',exact:false}).click();await saved(page);
+  await page.getByRole('button',{name:'General settings',exact:true}).click();await expect(automatic).toBeChecked();await expect(page.getByLabel('Gap between dependent items')).toHaveValue('0');
+  await page.setViewportSize({width:375,height:812});await expect(page.getByRole('button',{name:'Save settings',exact:true})).toBeInViewport();expect(await page.getByRole('dialog').evaluate(node=>node.scrollWidth<=node.clientWidth)).toBe(true);await page.screenshot({path:'test-results/general-dependency-settings.png',fullPage:true});
+  await page.getByRole('button',{name:'Cancel',exact:true}).click();current=await snapshot();expect(current.workspace.projects[0].data.settings.autoShiftDependencies).toBe(false);expect(current.workspace.projects[1].data.settings.autoShiftDependencies).toBe(true);await page.close();
+ });
+ test('reorders epic groups and reparents work items with pointer, keyboard and mobile move controls',async()=>{
+  test.setTimeout(90000);
+  const w=workspace(),data=w.projects[0].data;data.settings.autoShiftDependencies=false;
+  data.features[0].title='First epic';data.features.push({...data.features[0],id:'f2',title:'Second epic',collapsed:false},{...data.features[0],id:'f3',title:'Empty epic',collapsed:true});
+  data.tasks[1].dependsOn=['t1'];data.tasks.push({...data.tasks[2],id:'t4',title:'Destination task',featureId:'f2'});
+  const originals=structuredClone(data.tasks);await reset(w);const page=await context.newPage();await page.setViewportSize({width:1280,height:1100});await page.goto('/app');await saved(page);
+  const order=()=>page.locator('[data-row-feature],[data-row-task]').evaluateAll(rows=>rows.map(row=>row.getAttribute('data-row-feature')||row.getAttribute('data-row-task')));
+  async function drag(kind:string,id:string,target:string,position:'before'|'after'|'inside'){
+   const grip=page.locator(`[data-row-drag=${kind}][data-id=${id}]`),row=page.locator(target);await grip.scrollIntoViewIfNeeded();await row.scrollIntoViewIfNeeded();
+   const a=(await grip.boundingBox())!,b=(await row.boundingBox())!;
+   await page.mouse.move(a.x+a.width/2,a.y+a.height/2);await page.mouse.down();await page.mouse.move(b.x+110,b.y+(position==='before'?4:position==='after'?b.height-4:b.height/2),{steps:12});await page.mouse.up();await saved(page);
+  }
+  await drag('feature','f3','[data-row-feature=f1]','before');expect(await order()).toEqual(['f3','f1','t1','t2','t3','f2','t4']);
+  await drag('feature','f1','[data-row-task=t4]','after');expect(await order()).toEqual(['f3','f2','t4','f1','t1','t2','t3']);
+  await drag('task','t1','[data-row-task=t4]','before');expect(await order()).toEqual(['f3','f2','t1','t4','f1','t2','t3']);
+  await expect(page.locator('[data-feature-effort=f1]')).toHaveText('2d effort');await expect(page.locator('[data-feature-effort=f2]')).toHaveText('7d effort');
+  await expect(page.locator('.dependency-edge[data-from=t1][data-to=t2]')).toHaveCount(1);
+  await drag('task','t3','[data-row-feature=f3]','inside');expect(await order()).toEqual(['f3','t3','f2','t1','t4','f1','t2']);
+  const stable=await snapshot(),grip=page.locator('[data-row-drag=task][data-id=t2]');await grip.scrollIntoViewIfNeeded();const a=(await grip.boundingBox())!;
+  await page.mouse.move(a.x+10,a.y+12);await page.mouse.down();await page.mouse.move(a.x+30,a.y-65,{steps:8});await page.keyboard.press('Escape');await page.mouse.up();expect((await snapshot()).workspace).toEqual(stable.workspace);await expect(page.locator('.row-drag-ghost')).toHaveCount(0);
+  await page.mouse.move(a.x+10,a.y+12);await page.mouse.down();await page.mouse.move(a.x+35,a.y-65,{steps:8});await page.dispatchEvent('body','pointercancel');await page.mouse.up();expect((await snapshot()).workspace).toEqual(stable.workspace);
+  // Keyboard fallback uses the same validated move command.
+  await page.waitForTimeout(270);await grip.focus();await page.keyboard.press('Enter');await expect(page.getByRole('heading',{name:'Move item',exact:true})).toBeVisible();
+  await page.getByLabel('Parent epic', {exact:true}).selectOption('f2');await page.getByLabel('Position', {exact:true}).selectOption('t4');await page.getByRole('button',{name:'Move item',exact:true}).click();await saved(page);
+  expect(await order()).toEqual(['f3','t3','f2','t1','t2','t4','f1']);
+  const updated=(await snapshot()).workspace.projects[0].data;
+  for(const task of updated.tasks){const original=originals.find(item=>item.id===task.id)!;expect({...task,featureId:original.featureId}).toEqual(original);}
+  await page.reload();await saved(page);expect(await order()).toEqual(['f3','t3','f2','t1','t2','t4','f1']);
+  await page.setViewportSize({width:375,height:812});await page.locator('[data-row-drag=task][data-id=t2]').click();await page.getByLabel('Parent epic',{exact:true}).selectOption('f1');
+  expect(await page.getByRole('dialog').evaluate(node=>node.scrollWidth<=node.clientWidth)).toBe(true);await page.screenshot({path:'test-results/move-roadmap-item-mobile.png',fullPage:true});
+  await page.getByRole('button',{name:'Move item',exact:true}).click();await saved(page);expect((await snapshot()).workspace.projects[0].data.tasks.find((t:{id:string})=>t.id==='t2').featureId).toBe('f1');
+  // Backup carries the chosen order and new parent references.
+  await page.getByRole('button',{name:'General settings',exact:true}).click();const download=page.waitForEvent('download');await page.getByRole('button',{name:'Export JSON',exact:true}).click();expect((await download).suggestedFilename()).toMatch(/\.json$/);
+  await page.close();
+ });
+ test('shows recurring meetings and separate absences in one total color split with retired capacity ignored',async()=>{
+  const w=workspace(),data=w.projects[0].data;data.settings.autoShiftDependencies=false;
+  data.meetings=[{id:'daily',title:'Daily',recurrence:'workdays',weekday:1,interval:1,nth:1,startDate:'2026-10-26',endDate:'',startTime:'09:00',duration:60,allTeam:true,attendees:[],enabled:true}];
+  data.leave=[{id:'sick',person:'u1',type:'sick',from:'2026-10-27',to:'2026-10-27',note:''},{id:'off',person:'u1',type:'vacation',from:'2026-10-30',to:'2026-11-01',note:''}];
+  await reset(w);const page=await context.newPage();await page.goto('/app');const bar=page.locator('.task-bar[data-task=t1]');
+  await expect(bar).toHaveAttribute('title',/11 calendar days/);await expect(bar).toHaveAttribute('title',/Recurring meetings: 0.88d.*Weekends: 2d.*Days off: 1d.*Sick leave: 1d/);
+  expect(new Set((await bar.locator('.capacity-band').getAttribute('style'))!.match(/#[a-f0-9]{6}/g)).size).toBe(6);
+  await page.getByRole('button',{name:'Show sidebar',exact:true}).click();await expect(page.getByRole('button',{name:'Team capacity',exact:true})).toHaveCount(0);
+  await page.locator('.work-name[data-action=drawer-task][data-id=t1]').click();await expect(page.getByLabel('End date')).toHaveValue('2026-11-05');await expect(page.locator('.drawer-content')).toContainText('Sick leave');await page.keyboard.press('Escape');
+  await page.getByRole('button',{name:'General settings',exact:true}).click();await page.getByRole('button',{name:'Manage meetings',exact:true}).click();await expect(page.getByRole('heading',{name:'Recurring meetings',exact:true})).toBeVisible();await expect(page.locator('.meeting-list')).toContainText('Daily');await page.keyboard.press('Escape');await page.screenshot({path:'test-results/full-work-meetings-absences.png',fullPage:true});await page.close();
+ });
+
+ test('auto-scrolls a long roadmap while dragging an epic and preserves its child group',async()=>{
+  const w=workspace(),data=w.projects[0].data;data.settings.autoShiftDependencies=false;
+  for(let i=2;i<=24;i++)data.features.push({...data.features[0],id:'f'+i,title:'Epic '+i,collapsed:true});
+  await reset(w);const page=await context.newPage();await page.goto('/app');await saved(page);
+  const scroller=page.locator('#ganttScroller'),grip=page.locator('[data-row-drag=feature][data-id=f1]'),a=(await grip.boundingBox())!,bounds=(await scroller.boundingBox())!;
+  await page.mouse.move(a.x+10,a.y+14);await page.mouse.down();await page.mouse.move(bounds.x+110,bounds.y+bounds.height-8,{steps:10});
+  await expect(page.locator('.row-drag-ghost')).toBeVisible();
+  await expect.poll(()=>scroller.evaluate(node=>node.scrollHeight-node.clientHeight-node.scrollTop),{timeout:10000}).toBeLessThan(3);
+  const last=(await page.locator('[data-row-feature=f24]').boundingBox())!;await page.mouse.move(last.x+110,last.y+last.height-5,{steps:4});await page.mouse.up();await saved(page);
+  expect((await snapshot()).workspace.projects[0].data.features.at(-1).id).toBe('f1');
+  await expect(page.locator('[data-row-feature=f1]')).toHaveCount(1);await expect(page.locator('[data-parent-feature=f1]')).toHaveCount(3);await expect(page.locator('.row-drag-ghost')).toHaveCount(0);
+  await page.close();
+ });
+
 });

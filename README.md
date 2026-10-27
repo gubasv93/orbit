@@ -1,6 +1,6 @@
 # Orbit Roadmap Planner
 
-Roadmaps that adapt to reality: features and work items, dependencies, real team capacity, recurring meetings, time off, and milestones.
+Roadmaps that adapt to reality: features and work items, dependencies, full-work estimates, recurring meetings, time off, and milestones.
 
 Live verification release: **https://orbit-sigma-nine-72.vercel.app**. Registration uses immediate sessions while email confirmation is temporarily disabled by owner approval. Automatic Git deployment remains pending; see the delivery scope below.
 
@@ -18,6 +18,13 @@ The source repository `gubasv93/orbit` is public with owner approval.
 - No invitations, billing, or collaborative editing.
 - The selected hosted Supabase project has Orbit's migration and password policy applied. Hosted persistence and account isolation were exercised with temporary test accounts.
 - Vercel project `orbit` is deployed on the owner's existing Hobby plan. Live login, onboarding, persistence, and account isolation passed with temporary confirmed test accounts. Git integration requires the owner to authorize Vercel's GitHub app. Hobby's commercial-use restrictions must be resolved before commercial launch.
+
+## Roadmap controls
+
+- Drag the dotted row grip to reorder epics with their children, reorder work items, or move a work item to another epic. Click the grip for a keyboard/mobile **Move item** menu. These actions preserve dates, estimates, assignees and dependencies.
+- Estimates include all delivery work. Team allocation percentages are retired; old values stay in backups but do not reduce forecasts. Recurring meetings, weekends, enabled public holidays, days off and sick leave extend the calendar duration. Each bar has one total color section per category, with a numeric breakdown in item details.
+- **General settings** (header gear) controls dependency behavior for each project. Arrows default to manual placement. Enable **Auto-shift dependent work items** to choose a calendar/working-day gap and either push overlapping starts or follow predecessor finishes. Timing warnings can be hidden separately. Turning auto-shift off retains the displayed dependent starts.
+- Recurring meetings remain available in General settings and project setup; time off and holidays remain in the sidebar.
 
 ## Development
 

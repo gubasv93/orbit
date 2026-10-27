@@ -28,12 +28,12 @@ it('creates three independent team work items with exact estimates and a seven-d
   expect(data.tasks).toEqual([]);
 });
 
-it('uses each assignee capacity without serializing the teams, and allows later manual dependency ordering', () => {
+it('uses full work availability without serializing the teams, and allows later manual dependency ordering', () => {
   const data = teamData(); data.people[0].capacity = { feature: 50, bugs: 50, ongoing: 0, ops: 0 };
   data.tasks = buildStoryWorkItems('f1', draft(), data);
   let result = createScheduler(data).calculate();
   expect(data.tasks.map(task => fromDay(result.schedule[task.id].start!))).toEqual(['2026-11-02', '2026-11-02', '2026-11-02']);
-  expect(fromDay(result.schedule[data.tasks[0].id].end!)).toBe('2026-11-09');
+  expect(fromDay(result.schedule[data.tasks[0].id].end!)).toBe('2026-11-04');
   expect(fromDay(result.schedule[data.tasks[1].id].end!)).toBe('2026-11-03');
   const order = data.tasks.map(task => task.id);
   data.tasks[1].dependsOn = [data.tasks[0].id]; data.tasks[2].dependsOn = [data.tasks[1].id];

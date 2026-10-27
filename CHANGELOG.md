@@ -2,9 +2,14 @@
 
 ## 2026-10-27
 
+- Reorder epics and work items with a row grip; move work items between epics without altering dates, estimates or dependency IDs. Include keyboard/mobile move controls and persisted backup order.
+- Retire team/iteration allocation percentages from forecasts and remove Team capacity controls. Estimates cover all work; recurring meetings and working calendars determine elapsed duration.
+- Split whole-bar totals into development, recurring meetings, weekends, public holidays, days off, sick leave and unused availability.
+- Default dependency arrows to manual placement. Add project-specific General settings for auto-shift, calendar/working gaps, push/follow behavior and timing warnings; preserve visible starts when disabling automatic movement.
+
 - Render one total color breakdown across each entire roadmap bar at every scale, replacing repeated daily stripes.
 - Show compact, role-based estimates and role-matched assignees, including multiple roles on one platform.
-- Color roadmap bars by development, bugs, ongoing work, ops, meetings, non-working days, and unused capacity; show effort alongside calendar duration.
+- Show effort alongside calendar duration with one contiguous color section per time category.
 - Create, display, select, and remove finish-to-start dependencies directly on the roadmap, with cycle prevention and keyboard/tap support.
 - Edit graph-synchronized start/end dates, choose automatic forecasts or manual windows, and flag capacity shortfalls or child forecasts outside an epic window without changing estimates.
 - Estimate a user story by team while creating an epic or adding to an existing epic, with separate platform-matched assignees and exact work-day estimates.

@@ -10,8 +10,9 @@ export interface Schedule {
   working: Map<string, number>;
   featureInfo: Record<string, { start: number; end: number | null; blocked: boolean; allDone: boolean; atRisk: boolean; delta: number | null; manual?: boolean; forecastStart?: number; forecastEnd?: number | null; windowConflict?: boolean }>;
   errors: string[];
+  dependencyConflicts: Record<string, string[]>;
 }
-export function createScheduler(data: ProjectData): {
+export function createScheduler(data: ProjectData, options?: {legacyAllocation?: boolean}): {
   calculate(): Schedule;
   isHoliday(day: number): boolean;
   nonwork(day: number, person?: string): boolean;
