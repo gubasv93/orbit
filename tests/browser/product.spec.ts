@@ -33,6 +33,7 @@ test.describe.serial('real authentication, onboarding, planning, and durable own
     await page.getByRole('button', { name: 'Finish setup', exact: true }).click();
     await page.getByRole('button', { name: 'New feature', exact: true }).click(); await page.getByLabel('Feature name').fill('Secure accounts');
     await page.getByRole('checkbox', { name: 'Include DevOps', exact: true }).check();
+    await page.getByLabel('DevOps estimate (days)').fill('2');
     await page.getByRole('button', { name: 'Create feature' }).click(); await saved(page);
     await expect(page.getByText('Secure accounts', { exact: true }).first()).toBeVisible();
     const before = await (await owner.request.get('/api/workspace')).json();

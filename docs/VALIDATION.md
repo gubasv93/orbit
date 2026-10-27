@@ -1,15 +1,17 @@
 # Validation record
 
+Per-team user-story update (2026-10-27): six unit cases cover the 3+2+2 example, independent capacity-based forecasts, later dependency ordering, exact fractional estimates, custom/unassigned teams, opt-in chains, invalid assignments/estimates, and atomic rejection at the work-item limit. Three browser journeys exercise new-epic and existing-epic entry, explicit team selection, matching assignee choices, mobile geometry/actions, total effort, three real Gantt rows, cloud persistence/reload, manual dependencies, filter clearing/expansion, inactive-field validation, custom teams, fractional editing, and rejection before partial creation. These use the disposable real-auth/PostgreSQL backend; hosted checks are recorded separately.
+
 Google OAuth update (2026-10-24): the suite adds 12 route tests using the actual Supabase SSR client and PKCE cookie/exchange implementation against a substituted provider HTTP boundary. They cover fixed redirect destinations, account choice, secure proof-key/session cookies, matching/missing/changed proof keys, replay rejection, cancellation, provider errors/outages, cross-origin denial, restricted registration, and shared login throttling. Three browser journeys cover both entry buttons, inline failures with usable email login, mobile layout, callback notices, and real server-cookie persistence before navigation to Supabase. The disposable backend enables Google with deliberately invalid local-only placeholders; the browser captures the authorization navigation without making Google requests. This is application-flow validation; real Google consent and identity linking require the owner's OAuth client configuration and a Google account, and must not be reported as verified until exercised.
 
-Validated through 2026-10-24 in the Codex Linux cloud workspace using Node.js 24.19.0 and system Chromium. Local suites and live release checks are distinguished below.
+Validated through 2026-10-27 in the Codex Linux cloud workspace using Node.js 24.19.0 and system Chromium. Local suites and live release checks are distinguished below.
 
 | Check | Observed result |
 | --- | --- |
 | TypeScript check | Passed |
 | Next.js production build | Passed |
-| Unit, auth-route, and PostgreSQL/RLS suite | 41 tests passed, 0 failed, 0 skipped |
-| Production-build browser journeys with real local backend | 15 journeys covering the preserved product, setup/effort regressions, and Google entry |
+| Unit, auth-route, and PostgreSQL/RLS suite | 47 tests passed, 0 failed, 0 skipped |
+| Production-build browser journeys with real local backend | 18 journeys covering the preserved product, setup/effort regressions, Google entry, and per-team stories |
 | Full dependency audit, including development dependencies | 0 vulnerabilities reported |
 | GitHub CI for deployed code `076a2e6` | Passed all stages |
 | Live HTTPS release and authenticated journeys | Passed with temporary confirmed accounts; public email delivery unverified |

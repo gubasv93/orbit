@@ -135,6 +135,13 @@
 .meeting-preview{padding:11px 13px;background:#f6f4ff;border:1px solid #e9e4ff;border-radius:9px;font-size:11px;color:#6558bd}
 .meeting-preview strong,.meeting-preview small{display:block}.meeting-preview small{color:#858099;font-size:10px;line-height:1.6;margin-top:5px}
 .dialog-head{position:sticky;top:0;z-index:2;background:#fff}
+.story-teams{border:0;padding:0;margin:20px 0 0;min-width:0}.story-teams legend{font-size:13px;font-weight:800;color:#364057;padding:0;margin-bottom:8px}
+.story-team-list{display:grid;gap:10px;margin-top:15px}.story-team-row{border:1px solid #e4e7f0;border-radius:12px;padding:4px 14px 12px;min-width:0;background:#fafbfe}.story-team-row.selected{border-color:#b9b0ef;background:#faf9ff}
+.story-team-heading{font-size:12px;color:#354059;padding:11px 0}.story-team-heading strong{overflow-wrap:anywhere}.story-team-fields{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:13px}.story-team-fields .field{min-width:0;margin-bottom:0}.story-team-fields .field label{font-size:10px;overflow-wrap:anywhere}.story-team-fields select:disabled,.story-team-fields input:disabled{opacity:.55;background:#f0f2f7}
+.story-team-summary{font-size:12px;font-weight:750;background:#eeebff;color:#6655c4;padding:12px;border-radius:9px;margin:14px 0 6px;line-height:1.5}
+.work-breakdown-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.drawer-section .section-head:has(.work-breakdown-actions){gap:10px;flex-wrap:wrap}
+.breakdown-platform{display:block;font-size:10px;color:#8792a6;margin-top:4px}
+@media(max-width:600px){.story-team-row{padding-left:11px;padding-right:11px}.story-team-fields{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:8px}.story-team-fields .field input,.story-team-fields .field select{padding:10px 7px;font-size:11px}.meta .story-add-button{display:inline-flex;flex:0 0 24px;width:24px;height:28px}}
 .dialog-foot{position:sticky;bottom:0;z-index:2;background:#fff}
 .gantt-corner{align-items:center;gap:8px;padding-top:8px;padding-bottom:8px}
 .gantt-corner>div{display:grid;gap:5px;min-width:0}

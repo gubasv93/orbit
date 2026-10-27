@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-27
+
+- Estimate a user story by team while creating an epic or adding to an existing epic, with separate platform-matched assignees and exact work-day estimates.
+- Create one consecutive Gantt row per selected team in a single save; leave dependency chaining optional so execution order stays manual.
+- Add live estimate totals, required estimates only for selected teams, custom workstreams, and a responsive team-entry form.
+- Distinguish repeated story titles by platform in dependency selection and the epic work breakdown; preserve fractional estimates in the work-item inspector.
+
 ## 2026-10-24
 
 - Add Google registration and login buttons with server-side PKCE, same-origin checks, shared login rate limiting, and secure cookies.
