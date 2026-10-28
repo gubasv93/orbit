@@ -69,14 +69,16 @@ export function featureTimeBreakdown(start: number, end: number, children: (Time
 }
 
 export function capacityGradient(breakdown: TimeBreakdown) {
-  const stops: string[] = []; let position = 0;
-  for (const [key, , color] of timeCategories) {
-    const size = breakdown.totals[key] / breakdown.days * 100;
-    if (size < .00001) continue;
-    stops.push(`${color} ${position.toFixed(5)}% ${(position + size).toFixed(5)}%`); position += size;
-  }
-  // Deliberate gaps in manual windows stay blank, without inventing work.
-  if(position<99.99999)stops.push(`transparent ${position.toFixed(5)}% 100%`);
+  // A bar's length represents its calendar window. Its colors compare only
+  // accounted time, so gaps never create an unlabeled tail or extra effort.
+  const parts=timeCategories.filter(([key])=>breakdown.totals[key]>0);
+  const total=parts.reduce((sum,[key])=>sum+breakdown.totals[key],0);
+  if(!total)return 'none';
+  let position=0;
+  const stops=parts.map(([key,,color],index)=>{
+    const end=index===parts.length-1?100:position+breakdown.totals[key]/total*100;
+    const stop=`${color} ${position.toFixed(5)}% ${end.toFixed(5)}%`;position=end;return stop;
+  });
   return `linear-gradient(90deg,${stops.join(',')})`;
 }
 

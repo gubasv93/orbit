@@ -33,7 +33,7 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   const fill=bar.locator('.capacity-band'),gradient=(await fill.getAttribute('style'))!,colors=gradient.match(/#[a-f0-9]{6}/g)!;
   expect(colors).toHaveLength(2);expect(new Set(colors).size).toBe(2);
   const parentColors=(await page.locator('.feature-bar .capacity-band').getAttribute('style'))!.match(/#[a-f0-9]{6}/g)!;expect(new Set(parentColors).size).toBe(parentColors.length);
-  await expect(bar).toHaveAttribute('title',/Total capacity shares/);
+  await expect(bar).toHaveAttribute('title',/Accounted time mix/);
   for(const scale of ['week','month','quarter','year','day']){await page.getByLabel('Timeline scale').selectOption(scale);await expect(fill).toHaveAttribute('style',gradient);}
   await page.screenshot({path:'test-results/capacity-totals.png',fullPage:true});
   await page.locator('.work-name[data-action=drawer-task][data-id=t1]').click();await expect(page.getByLabel('Start date')).toHaveValue('2026-10-26');await expect(page.getByLabel('End date')).toHaveValue('2026-11-02');
@@ -315,6 +315,24 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   const b=(await bar.boundingBox())!;await page.mouse.move(b.x+b.width/2,b.y+b.height/2);await page.mouse.down();await page.mouse.move(b.x+b.width/2+152,b.y+b.height/2,{steps:10});await page.mouse.up();await saved(page);
   await expect.poll(async()=>(await snapshot()).workspace.projects[0].data.tasks[0].start).toBe('2026-10-30');await expect(bar).toHaveAttribute('title',/5 calendar days/);
   const data=(await snapshot()).workspace.projects[0].data;expect(data.tasks.map((task:{effort:number})=>task.effort)).toEqual([3,1,1]);expect(data.features[0]).not.toHaveProperty('manualEnd');expect(data.tasks[0]).not.toHaveProperty('manualEnd');await page.close();
+ });
+
+ test('fills the whole task and epic color mix without white tails, changing dates or inventing effort',async()=>{
+  const w=workspace(),data=w.projects[0].data;data.settings.autoShiftDependencies=false;data.features[0].manualEnd='2026-11-03';
+  Object.assign(data.tasks[0],{effort:1,manualEnd:'2026-10-28'});data.tasks[1].start='2026-10-30';data.tasks[2].start='2026-11-02';
+  data.meetings=[{id:'daily',title:'Daily',recurrence:'workdays',weekday:1,interval:1,nth:1,startDate:'2026-10-26',endDate:'',startTime:'09:00',duration:30,allTeam:true,attendees:[],enabled:true}];
+  await reset(w);const page=await context.newPage();await page.goto('/app');await saved(page);
+  const parent=page.locator('.feature-bar[data-feature=f1]'),task=page.locator('.task-bar[data-task=t1]');
+  const before=(await snapshot()).workspace.projects[0].data,parentMix=(await parent.locator('.capacity-band').getAttribute('style'))!,taskMix=(await task.locator('.capacity-band').getAttribute('style'))!;
+  expect(parentMix).not.toMatch(/transparent|NaN|Infinity/);expect(parentMix).toContain('100.00000%');expect(taskMix).toContain('#7870db 0.00000% 66.66667%');expect(taskMix).toContain('#e7c45f 66.66667% 100.00000%');
+  await expect(parent).toHaveAttribute('title',/9 calendar days/);await expect(task).toHaveAttribute('title',/1d effort.*3 calendar days/);await expect(page.getByLabel('Timeline colors')).not.toContainText('Unused');
+  for(const scale of ['week','month','quarter','year','day']){await page.getByLabel('Timeline scale').selectOption(scale);await expect(parent.locator('.capacity-band')).toHaveAttribute('style',parentMix);await expect(task.locator('.capacity-band')).toHaveAttribute('style',taskMix);}
+  expect((await snapshot()).workspace.projects[0].data).toEqual(before);
+  await page.locator('.work-name[data-action=drawer-task][data-id=t1]').click();await expect(page.getByLabel('Pure effort (days)',{exact:true})).toHaveValue('1');await expect(page.getByLabel('End date')).toHaveValue('2026-10-28');await expect(page.locator('.drawer-content')).toContainText('relative mix of accounted');await page.keyboard.press('Escape');
+  await page.setViewportSize({width:375,height:812});await page.getByRole('button',{name:'Today',exact:true}).click();await page.screenshot({path:'test-results/filled-accounted-time-mix-mobile.png',fullPage:true});
+  const outside=workspace();outside.projects[0].data.settings.autoShiftDependencies=false;outside.projects[0].data.features[0].manualEnd='2026-10-27';for(const t of outside.projects[0].data.tasks)t.start='2026-11-09';
+  await reset(outside);await page.reload();await saved(page);await expect(parent).toHaveClass(/no-time-mix/);await expect(parent.locator('.capacity-band')).toHaveCount(0);await expect(parent).toHaveAttribute('title',/No scheduled work inside this date window/);
+  expect(await parent.evaluate(node=>getComputedStyle(node).backgroundImage)).toContain('repeating-linear-gradient');expect((await snapshot()).workspace.projects[0].data.tasks[0].start).toBe('2026-11-09');await page.close();
  });
 
 });

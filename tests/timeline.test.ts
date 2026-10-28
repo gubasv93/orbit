@@ -6,6 +6,30 @@ import { buildStoryWorkItems } from '../src/planner/stories';
 import { workspaceSchema } from '../src/lib/schema';
 import { fromDay } from '../src/planner/dates.js';
 
+it('fills an epic with accounted-time proportions when its child work has gaps',()=>{
+  const data=projectData();data.tasks[0].effort=1;data.tasks.push({...data.tasks[0],id:'later',start:'2026-10-30'});
+  const engine=createScheduler(data),result=engine.calculate(),parent=result.featureInfo.f1;
+  const b=featureTimeBreakdown(parent.start,parent.end!,data.tasks.map(t=>taskTimeBreakdown(t,result.schedule[t.id],data,engine)),parent.endFraction)!;
+  const before=structuredClone(b),saved=structuredClone(data);
+  expect(b.days).toBe(5);expect(b.totals.development).toBe(2);expect(b.required).toBe(2);
+  expect(capacityGradient(b)).toBe('linear-gradient(90deg,#7870db 0.00000% 100.00000%)');
+  expect(b).toEqual(before);expect(data).toEqual(saved);
+});
+it('normalizes mixed colors across a longer manual window without inflating time totals',()=>{
+  const data=projectData();Object.assign(data.tasks[0],{effort:.5,start:'2026-10-30',manualEnd:'2026-11-04'});
+  data.meetings=[{id:'daily',title:'Daily',recurrence:'workdays',weekday:1,interval:1,nth:1,startDate:'2026-10-26',endDate:'',startTime:'09:00',duration:30,allTeam:true,attendees:[],enabled:true}];
+  const engine=createScheduler(data),info=engine.calculate().schedule.t1,b=taskTimeBreakdown(data.tasks[0],info,data,engine)!,before=structuredClone(b);
+  expect(b.days).toBe(6);expect(b.totals).toMatchObject({development:.5,meetings:.5,weekends:2});expect(b.actualMeetingMinutes).toBe(120);
+  expect(capacityGradient(b)).toBe('linear-gradient(90deg,#7870db 0.00000% 16.66667%,#e7c45f 16.66667% 33.33333%,#cbd2de 33.33333% 100.00000%)');
+  expect(b).toEqual(before);expect(data.tasks[0]).toMatchObject({effort:.5,start:'2026-10-30',manualEnd:'2026-11-04'});
+});
+it('returns no mix for an epic window outside its children instead of a blank or invented development band',()=>{
+  const data=projectData();data.features[0].manualEnd='2026-10-27';data.tasks[0].start='2026-11-02';
+  const engine=createScheduler(data),result=engine.calculate(),parent=result.featureInfo.f1;
+  const b=featureTimeBreakdown(parent.start,parent.end!,[taskTimeBreakdown(data.tasks[0],result.schedule.t1,data,engine)])!;
+  expect(parent.windowConflict).toBe(true);expect(Object.values(b.totals).every(value=>value===0)).toBe(true);expect(capacityGradient(b)).toBe('none');expect(b.required).toBe(3);
+});
+
 it('explains six development days over eight calendar days regardless of retired allocations without inventing effort', () => {
   const data=projectData(); data.tasks[0].effort=6; data.people[0].capacity={feature:50,bugs:20,ongoing:20,ops:10};
   const engine=createScheduler(data),scheduled=engine.calculate().schedule.t1,b=taskTimeBreakdown(data.tasks[0],scheduled,data,engine)!;

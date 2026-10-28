@@ -1,6 +1,10 @@
 # Validation record
 
-Current whole-epic movement update (2026-10-28): four new unit cases cover an atomic common date offset across manual windows, half-day ends, completed dates and hidden/collapsed children; unchanged estimates, references, order and fixed targets; rejection of invalid/boundary-crossing edits without partial mutation; and automatic calendar reforecasting. Two browser journeys exercise group previews and dependency paths, release-only persistence, Escape/pointercancel rollback, filters/collapse, keyboard/mobile movement, save/reload and automatic date mode. Existing resize, task-drag, dependency and row-order journeys remain included.
+Current accounted-time color fix (2026-10-28): task and epic colors normalize to the sum of positive accounted categories and end at exactly 100%, so manual slack and gaps between children do not leave an unlabeled transparent tail. Estimates, date windows, allocations, category-day totals and meeting hours remain unchanged. An epic date window outside its active children omits the empty mix and displays a labeled neutral pattern. No unused-work category is reintroduced.
+
+Three added unit cases cover automatic epic gaps, multiple colors inside a longer manual window, unchanged breakdown data and the zero-total state. A browser journey verifies filled task/epic mixes at every scale, unchanged cloud data and manual dates, actual effort in the inspector, mobile rendering and a labeled zero-total state. Existing date dragging, resizing, epic movement and dependency journeys remain included.
+
+Earlier whole-epic movement update (2026-10-28): four new unit cases cover an atomic common date offset across manual windows, half-day ends, completed dates and hidden/collapsed children; unchanged estimates, references, order and fixed targets; rejection of invalid/boundary-crossing edits without partial mutation; and automatic calendar reforecasting. Two browser journeys exercise group previews and dependency paths, release-only persistence, Escape/pointercancel rollback, filters/collapse, keyboard/mobile movement, save/reload and automatic date mode. Existing resize, task-drag, dependency and row-order journeys remain included.
 
 Earlier UI, resizing and recurring-meeting update (2026-10-28): the 91-test unit/auth/PostgreSQL/RLS suite and all 32 production-build browser journeys passed locally with no failures or skipped cases. Seven new unit cases cover bounded half-day manual windows, retained estimates and child dates, backup precision, exact daily meeting availability and the reported six-day estimate with daily/weekly/fortnightly events. That deterministic fixture counts 390 actual meeting minutes, reserves one meeting day for the whole bar, and spans nine calendar days, rather than reserving half a day for each short daily. Actual project dates and attendees determine each user's forecast.
 
@@ -23,8 +27,8 @@ Validated through 2026-10-27 in the Codex Linux cloud workspace using Node.js 24
 | --- | --- |
 | TypeScript check | Passed |
 | Next.js production build | Passed |
-| Unit, auth-route, and PostgreSQL/RLS suite | 95 tests passed, 0 failed, 0 skipped |
-| Production-build browser journeys with real local backend | 34 journeys covering the preserved product, setup, Google entry, role-based stories, full-time forecasts, absences, manual dates, dependency preferences, and row ordering |
+| Unit, auth-route, and PostgreSQL/RLS suite | 98 tests passed, 0 failed, 0 skipped |
+| Production-build browser journeys with real local backend | 35 journeys covering the preserved product, setup, Google entry, role-based stories, full-time forecasts, absences, manual dates, dependency preferences, and row ordering |
 | Full dependency audit, including development dependencies | 0 vulnerabilities reported |
 | GitHub CI | Required for each pushed source commit; results are recorded in GitHub Actions |
 | Live HTTPS release and authenticated journeys | Release-specific checks are required after Ready and canonical-alias verification. Public email delivery remains deferred |

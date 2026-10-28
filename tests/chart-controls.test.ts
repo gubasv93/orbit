@@ -37,10 +37,10 @@ it('retains weekends and half a final workday in a 1.5-day estimate starting Fri
  const engine=createScheduler(data),info=engine.calculate().schedule.t1,b=taskTimeBreakdown(data.tasks[0],info,data,engine)!;
  expect(fromDay(info.end!)).toBe('2026-11-02');expect(info.endFraction).toBe(.5);expect(b.days).toBe(3.5);expect(b.totals.weekends).toBe(2);expect(b.totals.development).toBe(1.5);
 });
-it('keeps deliberate manual windows blank beyond allocated work without inventing unused work',()=>{
+it('fills deliberate manual windows with accounted-time colors without inventing work',()=>{
  const data=projectData();data.tasks[0].effort=.5;data.tasks[0].manualEnd='2026-10-28';
  const engine=createScheduler(data),info=engine.calculate().schedule.t1,b=taskTimeBreakdown(data.tasks[0],info,data,engine)!;
- expect(calendarSpan(info)).toBe(3);expect(b.totals.development).toBe(.5);expect(b.totals).not.toHaveProperty('available');expect(capacityGradient(b)).toContain('transparent');
+ expect(calendarSpan(info)).toBe(3);expect(b.totals.development).toBe(.5);expect(b.totals).not.toHaveProperty('available');expect(capacityGradient(b)).toBe('linear-gradient(90deg,#7870db 0.00000% 100.00000%)');
 });
 it('loads legacy fractional estimates without silently rewriting them',()=>{
  const w=fullWorkspace();w.projects[0].data.tasks[0].effort=.25;const parsed=workspaceSchema.parse(w),data=parsed.projects[0].data;
