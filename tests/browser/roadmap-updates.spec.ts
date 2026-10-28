@@ -340,7 +340,8 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   await page.locator('.work-name[data-action=drawer-task][data-id=t1]').click();await expect(page.getByLabel('Pure effort (days)',{exact:true})).toHaveValue('1');await expect(page.getByLabel('End date')).toHaveValue('2026-10-28');await expect(page.locator('.drawer-content')).toContainText('relative mix of accounted');await page.keyboard.press('Escape');
   await page.setViewportSize({width:375,height:812});await page.getByRole('button',{name:'Today',exact:true}).click();await page.screenshot({path:'test-results/filled-accounted-time-mix-mobile.png',fullPage:true});
   const outside=workspace();outside.projects[0].data.settings.autoShiftDependencies=false;outside.projects[0].data.features[0].manualEnd='2026-10-27';for(const t of outside.projects[0].data.tasks)t.start='2026-11-09';
-  await reset(outside);await page.reload();await saved(page);await expect(parent).toHaveClass(/no-time-mix/);await expect(parent.locator('.capacity-band')).toHaveCount(0);await expect(parent).toHaveAttribute('title',/No scheduled work inside this date window/);
+  // Scale preferences autosave too; finish that write before replacing fixtures.
+  await saved(page);await reset(outside);await page.reload();await saved(page);await expect(parent).toHaveClass(/no-time-mix/);await expect(parent.locator('.capacity-band')).toHaveCount(0);await expect(parent).toHaveAttribute('title',/No scheduled work inside this date window/);
   expect(await parent.evaluate(node=>getComputedStyle(node).backgroundImage)).toContain('repeating-linear-gradient');expect((await snapshot()).workspace.projects[0].data.tasks[0].start).toBe('2026-11-09');await page.close();
  });
 
