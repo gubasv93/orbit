@@ -362,7 +362,7 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   for(const label of ['Dev effort','Calendar effort','Assignee full name'])await page.getByRole('checkbox',{name:label,exact:true}).check();
   await page.getByRole('button',{name:'Save settings',exact:true}).click();await saved(page);
   for(const [key,value]of [['title','API'],['role','Backend Developer'],['devEffort','1.5d dev'],['calendarEffort','19d calendar'],['assignee','Alex Dev']]){await expect(field(key)).toHaveText(value);await expect(field(key)).toBeVisible();}
-  const stored=(await snapshot()).workspace.projects[0].data;expect(stored.tasks).toEqual(original.tasks);expect(stored.features).toEqual(original.features);
+  await expect(page.locator('.side-user .workspace-email')).toBeInViewport();const stored=(await snapshot()).workspace.projects[0].data;expect(stored.tasks).toEqual(original.tasks);expect(stored.features).toEqual(original.features);
   expect(stored.settings.barFields).toEqual(['title','role','devEffort','calendarEffort','assignee']);
   await expect(page.locator('.feature-bar[data-feature=f1] [data-bar-field=title]')).toHaveText(data.features[0].title);
   await page.screenshot({path:'test-results/custom-bar-fields-desktop.png',fullPage:true});
