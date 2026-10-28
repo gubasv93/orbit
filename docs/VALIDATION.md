@@ -1,6 +1,8 @@
 # Validation record
 
-Current UI, resizing and recurring-meeting update (2026-10-28): the 91-test unit/auth/PostgreSQL/RLS suite and all 32 production-build browser journeys passed locally with no failures or skipped cases. Seven new unit cases cover bounded half-day manual windows, retained estimates and child dates, backup precision, exact daily meeting availability and the reported six-day estimate with daily/weekly/fortnightly events. That deterministic fixture counts 390 actual meeting minutes, reserves one meeting day for the whole bar, and spans nine calendar days, rather than reserving half a day for each short daily. Actual project dates and attendees determine each user's forecast.
+Current whole-epic movement update (2026-10-28): four new unit cases cover an atomic common date offset across manual windows, half-day ends, completed dates and hidden/collapsed children; unchanged estimates, references, order and fixed targets; rejection of invalid/boundary-crossing edits without partial mutation; and automatic calendar reforecasting. Two browser journeys exercise group previews and dependency paths, release-only persistence, Escape/pointercancel rollback, filters/collapse, keyboard/mobile movement, save/reload and automatic date mode. Existing resize, task-drag, dependency and row-order journeys remain included.
+
+Earlier UI, resizing and recurring-meeting update (2026-10-28): the 91-test unit/auth/PostgreSQL/RLS suite and all 32 production-build browser journeys passed locally with no failures or skipped cases. Seven new unit cases cover bounded half-day manual windows, retained estimates and child dates, backup precision, exact daily meeting availability and the reported six-day estimate with daily/weekly/fortnightly events. That deterministic fixture counts 390 actual meeting minutes, reserves one meeting day for the whole bar, and spans nine calendar days, rather than reserving half a day for each short daily. Actual project dates and attendees determine each user's forecast.
 
 Three additional browser journeys verify task/epic edge resizing, half-day ends, keyboard adjustment, Escape cancellation, date-mode restoration, persistence and mobile interaction; direct meeting access/edit/pause/reload with actual hours; and long labels/forms at 320, 375, 768, 1100 and 1440 pixels. Layout checks include header boundaries, attendee alignment, dialog overflow, narrow sidebar controls and chart height within its viewport. Full regression caught and fixed resize handles intercepting dependency targets at coarse zoom, plus an unconstrained inner canvas that prevented long-roadmap scrolling. Dependency linking, row auto-scroll and all prior product journeys now pass together. Screenshots are retained under ignored test-results/.
 
@@ -21,8 +23,8 @@ Validated through 2026-10-27 in the Codex Linux cloud workspace using Node.js 24
 | --- | --- |
 | TypeScript check | Passed |
 | Next.js production build | Passed |
-| Unit, auth-route, and PostgreSQL/RLS suite | 91 tests passed, 0 failed, 0 skipped |
-| Production-build browser journeys with real local backend | 32 journeys covering the preserved product, setup, Google entry, role-based stories, full-time forecasts, absences, manual dates, dependency preferences, and row ordering |
+| Unit, auth-route, and PostgreSQL/RLS suite | 95 tests passed, 0 failed, 0 skipped |
+| Production-build browser journeys with real local backend | 34 journeys covering the preserved product, setup, Google entry, role-based stories, full-time forecasts, absences, manual dates, dependency preferences, and row ordering |
 | Full dependency audit, including development dependencies | 0 vulnerabilities reported |
 | GitHub CI | Required for each pushed source commit; results are recorded in GitHub Actions |
 | Live HTTPS release and authenticated journeys | Release-specific checks are required after Ready and canonical-alias verification. Public email delivery remains deferred |

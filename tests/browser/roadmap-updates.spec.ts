@@ -284,4 +284,37 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   await page.close();
  });
 
+ test('moves an entire epic with manual windows, hidden children, completed dates, keyboard and mobile controls',async()=>{
+  test.setTimeout(90000);
+  const w=workspace(),data=w.projects[0].data;data.settings.autoShiftDependencies=false;
+  Object.assign(data.features[0],{manualEnd:'2026-11-03',manualEndFraction:.5});data.tasks[0].effort=2;
+  Object.assign(data.tasks[1],{start:'2026-10-27',manualEnd:'2026-10-30',manualEndFraction:.5});Object.assign(data.tasks[2],{status:'done',completedDate:'2026-10-27'});
+  data.features.push({...data.features[0],id:'f2',title:'Other epic',manualEnd:undefined});data.tasks.push({...data.tasks[1],id:'t4',featureId:'f2',dependsOn:['t1']});
+  await reset(w);const page=await context.newPage();await page.goto('/app');await saved(page);
+  const bar=page.locator('.feature-bar[data-feature=f1]');
+  const begin=async(dx:number)=>{const b=(await bar.boundingBox())!,corner=(await page.locator('.gantt-corner').boundingBox())!,scroller=(await page.locator('#ganttScroller').boundingBox())!;const x=(Math.max(b.x+12,corner.x+corner.width+12)+Math.min(b.x+b.width-12,scroller.x+scroller.width-12))/2;await page.mouse.move(x,b.y+b.height/2);await page.mouse.down();await page.mouse.move(x+dx,b.y+b.height/2,{steps:8});};
+  const drop=async()=>{await page.mouse.up();await saved(page);await page.waitForTimeout(270);};
+  const initial=(await snapshot()).workspace.projects[0].data,edge=page.locator('.dependency-edge[data-from=t1][data-to=t4]'),oldPath=await edge.getAttribute('d');
+  await begin(76);await expect(bar).toHaveClass(/dragging/);expect((await snapshot()).workspace.projects[0].data).toEqual(initial);await expect(edge).not.toHaveAttribute('d',oldPath!);await drop();
+  await expect.poll(async()=>(await snapshot()).workspace.projects[0].data.features[0].start).toBe('2026-10-28');
+  let current=(await snapshot()).workspace.projects[0].data;expect(current.features[0]).toEqual({...initial.features[0],start:'2026-10-28',manualEnd:'2026-11-05'});
+  expect(current.tasks[0]).toEqual({...initial.tasks[0],start:'2026-10-28'});expect(current.tasks[1]).toEqual({...initial.tasks[1],start:'2026-10-29',manualEnd:'2026-11-01'});expect(current.tasks[2]).toEqual({...initial.tasks[2],start:'2026-10-28',completedDate:'2026-10-29'});expect(current.tasks[3]).toEqual(initial.tasks[3]);await expect(page.locator('.drawer')).toHaveCount(0);
+  const stable=current;await begin(-38);await page.keyboard.press('Escape');await page.mouse.up();expect((await snapshot()).workspace.projects[0].data).toEqual(stable);await expect(page.locator('.dragging')).toHaveCount(0);
+  await begin(38);await bar.dispatchEvent('pointercancel',{pointerId:1});await page.mouse.up();expect((await snapshot()).workspace.projects[0].data).toEqual(stable);
+  await page.getByLabel('Filter by team member').selectOption('u1');await saved(page);await expect(page.locator('[data-parent-feature=f1]')).toHaveCount(1);await begin(38);await drop();
+  current=(await snapshot()).workspace.projects[0].data;expect(current.tasks[1].start).toBe('2026-10-30');expect(current.tasks[2].completedDate).toBe('2026-10-30');expect(current.tasks[3]).toEqual(initial.tasks[3]);
+  await page.getByRole('button',{name:'Clear filters',exact:true}).click();await page.locator('[data-row-feature=f1] .chevron').click();await saved(page);await expect(page.locator('[data-parent-feature=f1]')).toHaveCount(0);await begin(-38);await drop();
+  expect((await snapshot()).workspace.projects[0].data.features[0].collapsed).toBe(true);await bar.focus();await page.keyboard.press('ArrowRight');await saved(page);expect((await snapshot()).workspace.projects[0].data.tasks[0].start).toBe('2026-10-29');
+  await page.setViewportSize({width:375,height:812});await page.getByRole('button',{name:'Today',exact:true}).click();await begin(-38);await drop();await page.screenshot({path:'test-results/whole-epic-move-mobile.png',fullPage:true});
+  await page.reload();await saved(page);current=(await snapshot()).workspace.projects[0].data;expect(current.features[0]).toMatchObject({start:'2026-10-28',manualEnd:'2026-11-05',manualEndFraction:.5,collapsed:true});expect(current.tasks[0].effort).toBe(2);expect(current.tasks[3]).toEqual(initial.tasks[3]);
+  await bar.click();await expect(page.getByRole('heading',{name:initial.features[0].title,exact:true})).toBeVisible();await expect(page.getByLabel('Start date')).toHaveValue('2026-10-28');await page.close();
+ });
+ test('reforecasts an automatically dated epic after dragging while preserving estimates and date mode',async()=>{
+  const w=workspace();w.projects[0].data.settings.autoShiftDependencies=false;w.projects[0].data.tasks[0].effort=3;
+  await reset(w);const page=await context.newPage();await page.goto('/app');await saved(page);const bar=page.locator('.feature-bar[data-feature=f1]');await expect(bar).toHaveAttribute('title',/3 calendar days/);
+  const b=(await bar.boundingBox())!;await page.mouse.move(b.x+b.width/2,b.y+b.height/2);await page.mouse.down();await page.mouse.move(b.x+b.width/2+152,b.y+b.height/2,{steps:10});await page.mouse.up();await saved(page);
+  await expect.poll(async()=>(await snapshot()).workspace.projects[0].data.tasks[0].start).toBe('2026-10-30');await expect(bar).toHaveAttribute('title',/5 calendar days/);
+  const data=(await snapshot()).workspace.projects[0].data;expect(data.tasks.map((task:{effort:number})=>task.effort)).toEqual([3,1,1]);expect(data.features[0]).not.toHaveProperty('manualEnd');expect(data.tasks[0]).not.toHaveProperty('manualEnd');await page.close();
+ });
+
 });

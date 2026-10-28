@@ -11,6 +11,7 @@ import {calendarSpan,validEffort} from './precision.js';
 import {timelineWindow,focusOffset,slideTimeline,firstTimelineDay,lastTimelineDay} from './viewport';
 import {matchingAssignees,assignTask} from './assignments';
 import {resizeWindow} from './resize';
+import {shiftFeatureDates} from './feature-dates';
 import {moveRoadmapItem} from './roadmap-order';
 import {initializeDependencySettings,pinDependentDates} from './dependency-settings';
 import {taskTimeBreakdown,featureTimeBreakdown,capacityGradient,timeCategories,dependencyPath} from './timeline';
@@ -410,7 +411,7 @@ function updateRowDrag(e){
 }
 function featureRow(f,visibleCount=null){let info=computed.featureInfo[f.id],taskList=data.tasks.filter(t=>t.featureId===f.id),count=taskList.length,effort=featureEffort(f,taskList),status=info.allDone?'done':info.blocked?'hold':info.atRisk?'risk':'ok';
  let mix=featureBreakdown(f,info);let text=info.end!==null?dmy(fromDay(info.end)):'TBD';let pills=info.blocked?'<span class="status-badge hold">Uncertain</span>':info.atRisk?'<span class="status-badge risk">At risk</span>':'';
- let bar='';if(info.end!==null){let l=leftPct(info.start),w=widthSpan(info.start,info.end,info.endFraction??1);bar=`<div class="feature-bar ${w<64?'narrow-bar':''} ${info.atRisk?'risk':''} ${count===0?'empty':''}" style="left:${l}px;width:${w}px;--color:${f.color}" data-action="drawer-feature" data-id="${f.id}" title="${esc(f.title)} · ${String(effort.total)}d effort · ${info.end!==null?calendarSpan(info):0} calendar days · Average capacity mix across active work items">${capacityBand(mix)}${!info.allDone?resizeHandles('feature',f):''}<span class="bar-txt">${esc(f.title)} · ${text}</span></div>`}
+ let bar='';if(info.end!==null){let l=leftPct(info.start),w=widthSpan(info.start,info.end,info.endFraction??1);bar=`<div class="feature-bar ${w<64?'narrow-bar':''} ${info.atRisk?'risk':''} ${count===0?'empty':''}" style="left:${l}px;width:${w}px;--color:${f.color}" data-feature="${f.id}" tabindex="0" role="button" aria-label="Move epic ${esc(f.title)}" data-action="drawer-feature" data-id="${f.id}" title="${esc(f.title)} · ${String(effort.total)}d effort · ${info.end!==null?calendarSpan(info):0} calendar days · Average capacity mix across active work items">${capacityBand(mix)}${!info.allDone?resizeHandles('feature',f):''}<span class="bar-txt">${esc(f.title)} · ${text}</span></div>`}
  else if(!count){let l=leftPct(info.start),w=widthSpan(info.start,asDay(f.baseline));bar=`<div class="feature-bar empty" style="left:${l}px;width:${w}px" data-action="open-story" data-id="${f.id}" title="Add user story">+ Add user story · target ${dmy(f.baseline)}</div>`}
  else if(info.blocked)bar=`<div class="bar-placeholder" style="left:${Math.max(0,leftPct(info.start))}px">${icon('pause',13)} Awaiting resumption · TBD</div>`;
  return `<div class="gantt-row feature" data-row-feature="${f.id}"><div class="meta">${rowGrip('feature',f)}<button class="chevron" data-action="collapse" data-id="${f.id}" title="Collapse / expand">${icon(f.collapsed?'chevron':'chevrondown',14)}</button><span class="feature-icon" style="background:${f.color}1d;color:${f.color}">${icon('grid',15)}</span><div class="work-name" data-action="drawer-feature" data-id="${f.id}"><strong>${esc(f.title)}</strong><small title="${String(effort.total)} work days of effort${effort.manual?' (manual estimate)':' from work items'} · Baseline ${dmy(f.baseline)}">${visibleCount!==null?`${visibleCount} of ${count} tasks`:`${count} tasks`} · <span data-feature-effort="${f.id}">${String(effort.total)}d ${effort.manual?'manual ':''}effort</span>${info.end!==null?` · ${calendarSpan(info)}d calendar`: ""} · Baseline ${dmy(f.baseline)}</small></div>${pills}<span class="meta-mini">${text}</span><button class="more-button story-add-button" data-action="open-story" data-id="${f.id}" title="Add user story" aria-label="Add user story to ${esc(f.title)}">${icon('plus',14)}</button></div><div class="track">${shades(null)}${bar}</div></div>`}
@@ -554,7 +555,7 @@ function modalMarkup(){if(!view.modal)return '';let m=view.modal,content='',titl
  content=`<form id="modalForm" data-form="iteration"><div class="field"><label>Iteration</label><select name="iterationId">${data.iterations.map(it=>`<option value="${it.id}" ${it.id===i.id?'selected':''}>${esc(it.name)}</option>`).join('')}<option value="new">+ New iteration</option></select></div>${textField('Iteration name','name',i.name,'required')}<div class="field-grid">${dateField('Start','start',i.start)}${dateField('End','end',i.end)}</div><div class="dialog-foot">${submit('Save iteration')}</div></form>`;
  }else if(m.type==='help'){
  title='How Orbit works';subtitle='A quick tour of your resource-aware roadmap.';wide=true;
- content=`<div class="dialog-body" style="padding:0 0 5px"><div class="notice"><strong>One roadmap, two levels.</strong> Features are your strategic overview; expand any feature to see the actual stories and owners.</div><div class="grouped-note"><strong>1. Create a feature</strong><p>Give the epic a name and target date. Enter a user story, then select its teams, assignees and estimates. Each team becomes a separate work item. You can also add stories to an existing epic using its + button. Double-click the date axis to add a milestone.</p></div><div class="grouped-note"><strong>2. Let the plan calculate itself</strong><p>Orbit uses your dependency preferences, recurring meetings, weekends, holidays and planned absences. The feature bar is a direct roll-up of its child tasks.</p></div><div class="grouped-note"><strong>3. Stay in control</strong><p>Drag the row grip to reorder work or move it to another epic. Drag a task bar to shift its earliest start, or drag its edges to set a manual date window. End handles snap to half days. Arrow keys resize a focused handle; Escape cancels a drag. The inspector edits effort, status, ownership and dependencies. Recurring meetings is available in the header and sidebar. Overlaps are warned about — never secretly reordered.</p></div><div class="grouped-note"><strong>4. Your private workspace</strong><p>Changes are saved to your account. Export a full workspace backup for portability. If saving fails, keep this tab open and retry or export your unsaved work.</p></div><div class="dialog-foot"><button class="btn primary" data-action="close-modal">Got it</button></div></div>`;
+ content=`<div class="dialog-body" style="padding:0 0 5px"><div class="notice"><strong>One roadmap, two levels.</strong> Features are your strategic overview; expand any feature to see the actual stories and owners.</div><div class="grouped-note"><strong>1. Create a feature</strong><p>Give the epic a name and target date. Enter a user story, then select its teams, assignees and estimates. Each team becomes a separate work item. You can also add stories to an existing epic using its + button. Double-click the date axis to add a milestone.</p></div><div class="grouped-note"><strong>2. Let the plan calculate itself</strong><p>Orbit uses your dependency preferences, recurring meetings, weekends, holidays and planned absences. The feature bar is a direct roll-up of its child tasks.</p></div><div class="grouped-note"><strong>3. Stay in control</strong><p>Drag the row grip to reorder work or move it to another epic. Drag an epic bar to move it with all its work items, or focus it and use the arrow keys. Escape cancels the preview. Drag a task bar to shift its earliest start, or drag its edges to set a manual date window. End handles snap to half days. Arrow keys resize a focused handle; Escape cancels a drag. The inspector edits effort, status, ownership and dependencies. Recurring meetings is available in the header and sidebar. Overlaps are warned about — never secretly reordered.</p></div><div class="grouped-note"><strong>4. Your private workspace</strong><p>Changes are saved to your account. Export a full workspace backup for portability. If saving fails, keep this tab open and retry or export your unsaved work.</p></div><div class="dialog-foot"><button class="btn primary" data-action="close-modal">Got it</button></div></div>`;
  }else if(m.type==='reset'){
  title='Reset this project?';subtitle='Clear this project’s features, team, meetings and milestones. Other projects remain untouched.';
  content=`<div class="notice warn" style="margin-bottom:15px">Only this project will be reset. Export JSON first if you want a backup.</div><div class="dialog-foot"><button class="btn" data-action="close-modal">Keep my changes</button><button class="btn danger" data-action="reset-confirm">Reset everything</button></div>`;
@@ -739,6 +740,16 @@ let lastDragAt=0;
 let resizeFrame=0;
 function clearResizePreview(){cancelAnimationFrame(resizeFrame);resizeFrame=0;$('.bar-resize-preview')?.remove();root.classList.remove('bar-resizing');}
 function resizeInfo(kind,id){return kind==='feature'?computed.featureInfo[id]:computed.schedule[id]}
+function moveFeature(id,days){
+ if(!days){render();return;}
+ if(!shiftFeatureDates(data,id,days)){render();notify('Epic dates must remain between 2000 and 2200');return;}
+ persist();render();notify(`Epic and its work items shifted ${Math.abs(days)} calendar day(s)`);
+}
+function previewFeatureMove(d){
+ d.delta=d.x-d.startX+($('#ganttScroller')?.scrollLeft||0)-d.startLeft;
+ for(const element of d.elements){element.style.transform=`translate(${d.delta}px,-50%)`;if(element.matches('.task-bar,.feature-bar'))element.classList.add('dragging');}
+ drawDependencyLines();
+}
 function commitResize(kind,id,window){
  const item=kind==='feature'?getFeature(id):getTask(id);if(!item||!window)return;
  change(()=>{Object.assign(item,window);},'Date window resized · effort preserved');
@@ -954,7 +965,12 @@ listen(root,'input',e=>{
 listen(window,'resize',()=>{const scroller=$('#ganttScroller');if(scroller&&scroller.scrollWidth<=scroller.clientWidth){view.scrollToStart=true;render();}else drawDependencyLines();});
 listen(root,'keydown',e=>{if(e.target.matches('.dependency-edge')&&['Enter',' '].includes(e.key)){e.preventDefault();view.selectedLink={from:e.target.dataset.from,to:e.target.dataset.to};render();}if(e.key==='Delete'&&view.selectedLink&&!e.target.matches('input,textarea,select')){e.preventDefault();removeMapDependency();}});
 listen(root,'dblclick',e=>{let day=e.target.closest('.day-cell[data-date], .time-segment[data-date]');if(day){e.preventDefault();openModal('milestone',{date:day.dataset.date})}});
-listen(document,'keydown',e=>{if(e.key==='Escape'){if(view.drag?.kind==='resize'){view.drag=null;clearResizePreview();lastDragAt=Date.now();render();return;}if(view.rowDrag){const d=endRowDrag();if(d?.moved)lastDragAt=Date.now();return;}if(view.linkSource||view.linkDrag||view.selectedLink){view.linkSource=null;view.linkDrag=null;view.selectedLink=null;render();return;}if(view.modal){closeModal()}else if(view.drawer){closeDrawer()}}});
+listen(document,'keydown',e=>{if(e.key==='Escape'){if(['resize','feature'].includes(view.drag?.kind)){view.drag=null;clearResizePreview();lastDragAt=Date.now();render();return;}if(view.rowDrag){const d=endRowDrag();if(d?.moved)lastDragAt=Date.now();return;}if(view.linkSource||view.linkDrag||view.selectedLink){view.linkSource=null;view.linkDrag=null;view.selectedLink=null;render();return;}if(view.modal){closeModal()}else if(view.drawer){closeDrawer()}}});
+listen(root,'keydown',e=>{
+ const bar=e.target.closest('.feature-bar[data-feature]');if(!bar||e.target!==bar||view.modal||view.linkSource)return;
+ if(['ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();const id=bar.dataset.feature;moveFeature(id,(e.key==='ArrowLeft'?-1:1)*(e.shiftKey?7:1));requestAnimationFrame(()=>$(`.feature-bar[data-feature="${id}"]`)?.focus());}
+ else if(['Enter',' '].includes(e.key)){e.preventDefault();openDrawer('feature',bar.dataset.feature);}
+});
 listen(root,'pointerdown',e=>{
  const handle=e.target.closest('[data-resize-edge]');
  if(handle&&e.button===0&&!view.modal){
@@ -966,6 +982,13 @@ listen(root,'pointerdown',e=>{
  const grip=e.target.closest('[data-row-drag]');if(grip&&e.button===0&&!view.modal){view.rowDrag={kind:grip.dataset.rowDrag,id:grip.dataset.id,startX:e.clientX,startY:e.clientY,x:e.clientX,y:e.clientY,moved:false,move:null};grip.setPointerCapture?.(e.pointerId);return;}
  const connector=e.target.closest('[data-action=link-from]');if(connector&&!view.modal&&e.button===0){view.linkDrag={source:connector.dataset.id,startX:e.clientX,startY:e.clientY,x:e.clientX,y:e.clientY,moved:false};view.linkSource=connector.dataset.id;$('.gantt-canvas')?.classList.add('linking');return;}
  if(e.button!==0||view.modal)return;
+ const feature=e.target.closest('.feature-bar[data-feature]');
+ if(feature&&!view.linkSource){
+  const id=feature.dataset.feature;if(!getFeature(id))return;
+  feature.setPointerCapture?.(e.pointerId);
+  const elements=[feature,...$$(`[data-parent-feature="${id}"] .task-bar,[data-parent-feature="${id}"] .dependency-handle`)];
+  view.drag={kind:'feature',el:feature,id,elements,startX:e.clientX,x:e.clientX,startLeft:$('#ganttScroller')?.scrollLeft||0,delta:0,moved:false};return;
+ }
  let bar=e.target.closest('.task-bar[data-task]'),pin=e.target.closest('.milestone-pin[data-id]');
  if(!bar&&!pin)return;
  if(bar){let t=getTask(bar.dataset.task);if(!t||['hold','done'].includes(t.status)||computed.schedule[t.id]?.blocked)return}
@@ -979,6 +1002,7 @@ listen(document,'pointermove',e=>{
  if(d.kind==='resize'){
   d.x=e.clientX;d.y=e.clientY;if(Math.abs(d.x-d.startX)>3||d.moved){e.preventDefault();d.moved=true;root.classList.add('bar-resizing');previewResize(d);if(!resizeFrame)resizeFrame=requestAnimationFrame(scrollResize);}return;
  }
+ if(d.kind==='feature'){d.x=e.clientX;if(Math.abs(d.x-d.startX)>5||d.moved){e.preventDefault();d.moved=true;previewFeatureMove(d);}return;}
  d.delta=e.clientX-d.startX;if(Math.abs(d.delta)>5){d.moved=true;if(d.kind==='task'){d.el.style.transform=`translate(${d.delta}px,-50%)`;d.el.classList.add('dragging')}else d.el.style.transform=`translateX(calc(-50% + ${d.delta}px))`}
 });
 listen(document,'pointerup',e=>{
@@ -990,6 +1014,7 @@ listen(document,'pointerup',e=>{
   const changed=d.window&&(d.window.start!==fromDay(d.bounds.start)||d.window.manualEnd!==fromDay(d.bounds.end)||d.window.manualEndFraction!==(d.bounds.endFraction??1));
   if(changed)commitResize(d.itemKind,d.id,d.window);else render();return;
  }
+ if(d.kind==='feature'){lastDragAt=Date.now();d.x=e.clientX;previewFeatureMove(d);moveFeature(d.id,Math.round(d.delta/view.zoom));return;}
  lastDragAt=Date.now();let shift=Math.round(d.delta/view.zoom);if(d.kind==='task'){let t=getTask(d.id);if(t&&shift){change(()=>{t.start=addDays(t.start,shift);if(t.manualEnd)t.manualEnd=addDays(t.manualEnd,shift)},`Task shifted ${Math.abs(shift)} day(s)`)}else render()}
  else {let m=data.milestones.find(m=>m.id===d.id);if(m&&shift){change(()=>{m.date=addDays(m.date,shift)},`Milestone moved ${Math.abs(shift)} day(s)`)}else render()}
 });
