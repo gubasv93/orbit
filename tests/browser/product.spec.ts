@@ -1,3 +1,4 @@
+import { setRoadmapFilter } from './filters';
 import { test, expect, type BrowserContext, type Page } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
 import { fullWorkspace } from '../fixtures';
@@ -77,8 +78,8 @@ test.describe.serial('real authentication, onboarding, planning, and durable own
     let data = (await (await owner.request.get('/api/workspace')).json()).workspace.projects[0].data; expect(data.tasks[0].status).toBe('hold'); expect(data.tasks[0].effort).toBe(5);
     await page.getByRole('button', { name: 'Resume task', exact: true }).click(); await page.keyboard.press('Escape'); await saved(page);
     for (const scale of ['day','week','month','quarter','year']) { await page.getByLabel('Timeline scale').selectOption(scale); await expect(page.locator(`.gantt-canvas.scale-${scale}`)).toBeVisible(); }
-    await page.getByLabel('Filter by team member').selectOption('u1'); await page.getByLabel('Filter by platform').selectOption('Backend'); await expect(page.locator('.gantt-row:not(.feature)')).toHaveCount(2);
-    await page.getByLabel('Filter by platform').selectOption('Frontend'); await expect(page.locator('.gantt-row:not(.feature)')).toHaveCount(0);
+    await setRoadmapFilter(page,'people',['Alex Dev']); await setRoadmapFilter(page,'platforms',['Backend']); await expect(page.locator('.gantt-row:not(.feature)')).toHaveCount(2);
+    await setRoadmapFilter(page,'platforms',['Frontend']); await expect(page.locator('.gantt-row:not(.feature)')).toHaveCount(0);
     await page.getByRole('button', { name: 'Clear filters' }).first().click(); await expect(page.locator('.gantt-row:not(.feature)')).toHaveCount(3);
     await expect(page.getByRole('button', {name:'Team capacity',exact:true})).toHaveCount(0);
     await openSettings(page); await page.getByRole('button', {name:'Manage meetings',exact:true}).click();

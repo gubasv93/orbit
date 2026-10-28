@@ -1,3 +1,4 @@
+import { setRoadmapFilter } from './filters';
 import {test,expect,type BrowserContext,type Page} from '@playwright/test';
 import {randomUUID} from 'node:crypto';
 import {fullWorkspace} from '../fixtures';
@@ -107,12 +108,12 @@ test.describe.serial('project setup and epic effort regressions',()=>{
     await page.getByLabel('Effort estimate').selectOption('automatic');await saved(page);await page.keyboard.press('Escape');
     await expect(effort).toHaveText('10d effort');
     expect((await snapshot()).workspace.projects[0].data.features[0]).not.toHaveProperty('effortOverride');
-    await page.getByLabel('Filter by platform').selectOption('Frontend');await expect(effort).toHaveText('10d effort');
+    await setRoadmapFilter(page,'platforms',['Frontend']);await expect(effort).toHaveText('10d effort');
     await page.locator('.gantt-corner').getByRole('button',{name:'Add feature'}).click();await page.getByLabel('Feature name').fill('Table-created epic');
     await page.getByLabel('Manual total effort (days)').fill('9.5');
     for(const checkbox of await page.locator('#modalForm input[type=checkbox][name^=phase_]').all())await checkbox.uncheck();
     await page.getByRole('button',{name:'Create feature',exact:true}).click();await saved(page);
-    await expect(page.getByLabel('Filter by platform')).toHaveValue('');
+    await expect(page.getByRole('button',{name:'Filter by platform',exact:true})).toContainText('All platforms');
     const created=(await snapshot()).workspace.projects[0].data.features.find((f:{title:string})=>f.title==='Table-created epic');
     expect(created.effortOverride).toBe(9.5);await expect(page.locator(`[data-feature-effort="${created.id}"]`)).toHaveText('9.5d manual effort');
     await page.reload();await expect(page.locator(`[data-feature-effort="${created.id}"]`)).toHaveText('9.5d manual effort');

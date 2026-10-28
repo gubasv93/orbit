@@ -115,7 +115,7 @@ const dependencyDefaultsMigrated=initializeDependencySettings(data);
 const SCALES={day:{label:'Days',zoom:38,days:91},week:{label:'Weeks',zoom:14,days:224},month:{label:'Months',zoom:5,days:640},quarter:{label:'Quarters',zoom:2.2,days:1150},year:{label:'Years',zoom:1.05,days:2192}};
 let uiPreferences=workspace.preferences||{};
 const initialScale=SCALES[uiPreferences.scale]?uiPreferences.scale:'day';
-let view={page:uiPreferences.page==='capacity'?'timeline':uiPreferences.page||'timeline',scale:initialScale,zoom:SCALES[initialScale].zoom,rangeStart:alignScaleStart(today(),initialScale),days:SCALES[initialScale].days,sidebarHidden:typeof uiPreferences.sidebarHidden==='boolean'?uiPreferences.sidebarHidden:window.innerWidth<=600,filterPerson:'',filterPlatform:'',scaleFocusDate:today(),scrollToStart:true,iteration:data.iterations[0]?.id,drawer:null,modal:null,toast:null,showOnlyRisks:false,drag:null,setupStep:currentProject()?.onboardingStep||0};
+let view={page:uiPreferences.page==='capacity'?'timeline':uiPreferences.page||'timeline',scale:initialScale,zoom:SCALES[initialScale].zoom,rangeStart:alignScaleStart(today(),initialScale),days:SCALES[initialScale].days,sidebarHidden:typeof uiPreferences.sidebarHidden==='boolean'?uiPreferences.sidebarHidden:window.innerWidth<=600,filterPeople:[],filterPlatforms:[],filterMenu:null,scaleFocusDate:today(),scrollToStart:true,iteration:data.iterations[0]?.id,drawer:null,modal:null,toast:null,showOnlyRisks:false,drag:null,setupStep:currentProject()?.onboardingStep||0};
 function saveUiPreferences(){workspace.preferences={sidebarHidden:view.sidebarHidden,scale:view.scale,page:view.page};persist();}
 function alignScaleStart(date,scale){let d=new Date(asDay(date)*DAY);if(scale==='day'||scale==='week')return monday(date);let year=d.getUTCFullYear(),month=d.getUTCMonth();if(scale==='month')return fromDay(Date.UTC(year,month,1)/DAY);if(scale==='quarter')return fromDay(Date.UTC(year,Math.floor(month/3)*3,1)/DAY);return fromDay(Date.UTC(year,0,1)/DAY)}
 function setScale(scale){if(!SCALES[scale])return;view.scale=scale;view.zoom=SCALES[scale].zoom;view.days=SCALES[scale].days;view.rangeStart=alignScaleStart(view.scaleFocusDate||today(),scale);view.scrollToStart=true;saveUiPreferences();render()}
@@ -143,7 +143,7 @@ function persist(){
 function switchProject(id){
  const project=workspace.projects.find(p=>p.id===id);if(!project)return;
  persist();workspace.activeId=id;data=project.data;data.meetings||=[];migrateTeam();initializeDependencySettings(data);
- view.page='timeline';view.iteration=data.iterations[0]?.id;view.drawer=null;view.modal=null;view.setupStep=project.onboardingStep||0;view.rangeStart=alignScaleStart(today(),view.scale);view.scaleFocusDate=today();view.scrollToStart=true;view.showOnlyRisks=false;view.filterPerson='';view.filterPlatform='';
+ view.page='timeline';view.iteration=data.iterations[0]?.id;view.drawer=null;view.modal=null;view.setupStep=project.onboardingStep||0;view.rangeStart=alignScaleStart(today(),view.scale);view.scaleFocusDate=today();view.scrollToStart=true;view.showOnlyRisks=false;view.filterPeople=[];view.filterPlatforms=[];view.filterMenu=null;
  persist();render();notify('Switched to '+project.name);
 }
 // Reuse setup from a different project without cloning its roadmap, work items, leave or milestones.
@@ -290,7 +290,7 @@ function storyItemsFromForm(F,featureId,fallbackTitle,start){
  return buildStoryWorkItems(featureId,{title:String(F.get('storyTitle')||'').trim()||fallbackTitle,start,teams,sequential:F.has('sequential')},data);
 }
 function revealStory(feature,start){
- feature.collapsed=false;view.modal=null;view.drawer=null;view.page='timeline';view.filterPerson='';view.filterPlatform='';view.showOnlyRisks=false;
+ feature.collapsed=false;view.modal=null;view.drawer=null;view.page='timeline';view.filterPeople=[];view.filterPlatforms=[];view.filterMenu=null;view.showOnlyRisks=false;
  view.scaleFocusDate=start;view.rangeStart=alignScaleStart(start,view.scale);view.scrollToStart=true;
 }
 
@@ -313,14 +313,41 @@ function sideNav(){let nav=[['timeline','Roadmap','timeline'],['team','Team sett
 function mainHeader(){let titles={timeline:'Roadmap',availability:'Time off & holidays',milestones:'Milestones',team:'Team settings'};return `<header class="topbar"><div class="topbar-start"><button class="sidebar-toggle" data-action="toggle-sidebar" aria-label="${view.sidebarHidden?'Show':'Hide'} sidebar" title="${view.sidebarHidden?'Show':'Hide'} sidebar">${icon('menu',17)}</button><div class="breadcrumb"><span class="breadcrumb-workspace">Workspace</span>${icon('chevron',12)}<span class="breadcrumb-project" title="${esc(currentProject().name)}">${esc(currentProject().name)}</span>${icon('chevron',12)}<b>${titles[view.page]}</b></div></div><div class="top-right"><button class="btn sm" data-action="logout">Log out</button></div></header>`}
 function heading(){const t={timeline:['Product roadmap','Strategic clarity. Tactical precision.'],availability:['Availability calendar','Time off is automatically reflected in every estimate.'],milestones:['Release milestones','Thin vertical markers, not extra Gantt rows.'],team:['Team settings','Maintain your team and roles. Work item options update automatically.']};let [name,description]=t[view.page];let btn=view.page==='timeline'?'':view.page==='team'?`<button class="btn" data-action="open-role">${icon('plus')} New role</button><button class="btn primary" data-action="open-team-member">${icon('plus')} Add member</button>`:view.page==='availability'?`<button class="btn" data-action="open-holiday">${icon('plus')} Holiday</button><button class="btn primary" data-action="open-leave">${icon('plus')} Add time off</button>`:`<button class="btn primary" data-action="open-milestone">${icon('plus')} New milestone</button>`;
  return `<div class="heading-row"><div>${view.page==='timeline'?'':`<div class="eyebrow">${icon('target',11)} PRODUCT PLANNING · PERSONAL WORKSPACE</div>`}<h1>${name}</h1>${view.page==='timeline'?'':`<p>${description}</p>`}</div><div class="heading-actions">${btn}</div></div>`}
-function timelineView(){const filtered=isFiltered(),availablePeople=data.people.map(p=>`<option value="${esc(p.id)}" ${view.filterPerson===p.id?'selected':''}>${esc(p.name)}</option>`).join(''),platforms=[...new Set([...platformNames(),...data.tasks.map(t=>t.platform)].filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+function filterOptions(kind){return kind==='people'?[...data.people.map(person=>[person.id,person.name]),['','Unassigned']]:[...new Set([...platformNames(),...data.tasks.map(task=>task.platform)].filter(Boolean))].sort((a,b)=>a.localeCompare(b)).map(value=>[value,value]);}
+function selectedFilters(kind){return kind==='people'?view.filterPeople:view.filterPlatforms;}
+function filterTrigger(kind){
+ const selected=selectedFilters(kind),options=filterOptions(kind),all=kind==='people'?'All people':'All platforms',label=kind==='people'?'Filter by team member':'Filter by platform';
+ const names=selected.map(value=>options.find(([id])=>id===value)?.[1]||value),summary=names.length===1?names[0]:names.length?`${names.length} ${kind}`:all;
+ return `<button class="filter-trigger ${selected.length?'is-filtered':''}" type="button" data-action="toggle-filter" data-id="${kind}" aria-label="${label}" aria-describedby="filter-summary-${kind}" aria-expanded="${view.filterMenu===kind}" aria-controls="roadmap-filter-menu" title="${esc(names.length?names.join(', '):all)}">${icon(kind==='people'?'users':'layers',14)}<span id="filter-summary-${kind}">${esc(summary)}</span>${icon('chevrondown',12)}</button>`;
+}
+function filterMenuMarkup(){
+ const kind=view.filterMenu;if(!kind||view.page!=='timeline')return '';
+ const selected=selectedFilters(kind),title=kind==='people'?'People':'Platforms';
+ return `<div class="roadmap-filter-popover" id="roadmap-filter-menu" role="group" aria-label="${title} filter options"><div class="filter-menu-heading"><strong>${title}</strong><small>Select multiple</small></div><div class="filter-options">${filterOptions(kind).map(([value,label])=>`<label class="filter-option"><input type="checkbox" data-filter-kind="${kind}" value="${esc(value)}" ${selected.includes(value)?'checked':''}><span>${esc(label)}</span></label>`).join('')}</div><div class="filter-menu-footer"><button type="button" data-action="clear-filter" data-id="${kind}">Clear selection</button><button type="button" class="btn sm" data-action="close-filter">Done</button></div></div>`;
+}
+function positionFilterMenu(){
+ const menu=$('.roadmap-filter-popover'),trigger=$(`[data-action="toggle-filter"][data-id="${view.filterMenu}"]`);if(!menu||!trigger)return;
+ const bounds=trigger.getBoundingClientRect(),below=window.innerHeight-bounds.bottom-14,above=bounds.top-14;
+ const height=Math.max(120,Math.min(360,below>=150||below>=above?below:above));menu.style.maxHeight=height+'px';
+ menu.style.left=clamp(bounds.left,8,Math.max(8,window.innerWidth-menu.offsetWidth-8))+'px';menu.style.top=(below>=150||below>=above?bounds.bottom+6:Math.max(8,bounds.top-menu.offsetHeight-6))+'px';
+}
+function closeFilterMenu(focus=false){const kind=view.filterMenu;view.filterMenu=null;$('.roadmap-filter-popover')?.remove();const trigger=$(`[data-action="toggle-filter"][data-id="${kind}"]`);trigger?.setAttribute('aria-expanded','false');if(focus)trigger?.focus({preventScroll:true});}
+listen(document,'pointerdown',event=>{if(view.filterMenu&&!event.target.closest('.filter-trigger,.roadmap-filter-popover'))closeFilterMenu();});
+listen(document,'focusin',event=>{if(view.filterMenu&&!event.target.closest('.filter-trigger,.roadmap-filter-popover'))closeFilterMenu();});
+listen(root,'keydown',event=>{
+ const menu=event.target.closest('.roadmap-filter-popover');if(!menu||event.key!=='Tab')return;
+ const fields=[...menu.querySelectorAll('input,button')],kind=view.filterMenu;
+ if(event.shiftKey&&event.target===fields[0]){event.preventDefault();closeFilterMenu(true);}
+ else if(!event.shiftKey&&event.target===fields.at(-1)){event.preventDefault();closeFilterMenu();$(kind==='people'?'[data-action="toggle-filter"][data-id="platforms"]':'.timeline-tools button')?.focus({preventScroll:true});}
+});
+function timelineView(){const filtered=isFiltered();
  return `<section class="card board"><h1 class="visually-hidden">Product roadmap</h1><div class="board-toolbar timeline-toolbar">
- <div class="timeline-filters"><span class="section-label">Timeline</span><label class="filter-select">${icon('users',14)}<select data-change="filter-person" aria-label="Filter by team member"><option value="">All people</option>${availablePeople}</select></label><label class="filter-select">${icon('layers',14)}<select data-change="filter-platform" aria-label="Filter by platform"><option value="">All platforms</option>${platforms.map(p=>`<option value="${esc(p)}" ${view.filterPlatform===p?'selected':''}>${esc(p)}</option>`).join('')}</select></label>${filtered?`<button class="clear-filters" data-action="clear-filters">${icon('close',13)} Clear filters</button>`:''}</div>
+ <div class="timeline-filters"><span class="section-label">Timeline</span>${filterTrigger('people')}${filterTrigger('platforms')}${filtered?`<button class="clear-filters" data-action="clear-filters" aria-label="Clear filters" title="Clear all filters">${icon('close',13)}<span>Clear filters</span></button>`:''}</div>
  <div class="timeline-tools"><button class="btn sm icon-only" data-action="prev" title="Earlier">${icon('chevronleft')}</button><button class="btn sm" data-action="today">Today</button><button class="btn sm icon-only" data-action="next" title="Later">${icon('chevron')}</button><label class="scale-picker">View <select data-change="scale" aria-label="Timeline scale">${Object.entries(SCALES).map(([key,scale])=>`<option value="${key}" ${view.scale===key?'selected':''}>${scale.label}</option>`).join('')}</select></label><button class="icon-action risk-action ${view.showOnlyRisks?'selected':''}" data-action="riskfilter" title="Only at-risk features" aria-label="Only at-risk features">${icon('warning',16)}</button></div>
  </div>${renderGantt()}</section>`;
 }
-function isFiltered(){return Boolean(view.filterPerson||view.filterPlatform)}
-function matchingTasks(featureId){return data.tasks.filter(t=>t.featureId===featureId&&(!view.filterPerson||t.assignee===view.filterPerson)&&(!view.filterPlatform||t.platform===view.filterPlatform))}
+function isFiltered(){return Boolean(view.filterPeople.length||view.filterPlatforms.length)}
+function matchingTasks(featureId){return data.tasks.filter(t=>t.featureId===featureId&&(!view.filterPeople.length||view.filterPeople.includes(t.assignee))&&(!view.filterPlatforms.length||view.filterPlatforms.includes(t.platform)))}
 function grouping(start,count,kind){let segments=[],last=null;for(let i=0;i<count;i++){let stamp=start+i,dt=new Date(stamp*DAY),year=dt.getUTCFullYear(),mon=dt.getUTCMonth(),key='',label='';
  if(kind==='decade'){let decade=Math.floor(year/10)*10;key=''+decade;label=decade+'–'+(decade+9)}
  else if(kind==='year'){key=''+year;label=''+year}
@@ -645,7 +672,7 @@ function syncMeetingForm(){
  }
  dates.textContent=upcoming.length?`Next: ${upcoming.join(' · ')}`:'No upcoming dates in the selected range.';
 }
-listen(window,'resize',()=>fitBarLabels());
+listen(window,'resize',()=>{fitBarLabels();positionFilterMenu();});
 function accessibility(){
  fitBarLabels();
  $$('label').forEach((label,index)=>{
@@ -669,17 +696,17 @@ function render(){cancelAnimationFrame(panFrame);if(!workspace.projects.length){
  if(!scroll&&view.page==='timeline')view.scrollToStart=true;
  if(view.scrollToStart)Object.assign(view,timelineWindow(view.scaleFocusDate||today(),SCALES[view.scale].days,view.zoom,Math.max(1,root.clientWidth-200)));
  let content=view.page==='timeline'?timelineView():view.page==='availability'?availabilityView():view.page==='team'?teamView():milestoneView();
- const markup=view.setupStep?`${setupWizard()}${modalMarkup()}`:`<div class="app ${view.sidebarHidden?'nav-hidden':''} ${view.page==='timeline'?'timeline-page':''}">${sideNav()}<main class="main">${mainHeader()}<div class="content">${view.page==='timeline'?'':heading()}${content}${view.page==='timeline'?'':footerTools()}</div></main></div>${drawerMarkup()}${modalMarkup()}`;
+ const markup=view.setupStep?`${setupWizard()}${modalMarkup()}`:`<div class="app ${view.sidebarHidden?'nav-hidden':''} ${view.page==='timeline'?'timeline-page':''}">${sideNav()}<main class="main">${mainHeader()}<div class="content">${view.page==='timeline'?'':heading()}${content}${view.page==='timeline'?'':footerTools()}</div></main></div>${drawerMarkup()}${filterMenuMarkup()}${modalMarkup()}`;
  $('#orbit-canvas').innerHTML=sanitizeMarkup(markup);
  let newer=$('#ganttScroller');if(newer){
   newer.scrollLeft=(view.scrollToStart?focusOffset(view.scaleFocusDate||today(),view.rangeStart,view.zoom,trackWidth(newer)):left);newer.scrollTop=top;
   let lastLeft=newer.scrollLeft;newer.onscroll=()=>{syncLinkTargets();if(Math.abs(newer.scrollLeft-lastLeft)<.01)return;lastLeft=newer.scrollLeft;queueTimelinePan(newer);};
   newer.onwheel=e=>{if(Math.abs(e.deltaX)>Math.abs(e.deltaY)&&((e.deltaX<0&&newer.scrollLeft<2)||(e.deltaX>0&&newer.scrollLeft>=newer.scrollWidth-newer.clientWidth-2)))queueTimelinePan(newer);};
- }view.scrollToStart=false;accessibility();syncMeetingForm();syncStoryTeams();syncDependencySettings();drawDependencyLines();
+ }view.scrollToStart=false;positionFilterMenu();const filters=$('.timeline-filters');if(filters)filters.onscroll=positionFilterMenu;accessibility();syncMeetingForm();syncStoryTeams();syncDependencySettings();drawDependencyLines();
 }
 function change(mutator,notif){mutator();persist();render();if(notif)notify(notif)}
-function openModal(type,extras={}){view.linkSource=null;view.linkDrag=null;view.selectedLink=null;view.modal={type,...extras};render();const f=$('#modalForm input[autofocus]');if(f)f.focus()}
-function openDrawer(type,id){view.linkSource=null;view.linkDrag=null;view.selectedLink=null;view.drawer={type,id};view.modal=null;render()}
+function openModal(type,extras={}){view.filterMenu=null;view.linkSource=null;view.linkDrag=null;view.selectedLink=null;view.modal={type,...extras};render();const f=$('#modalForm input[autofocus]');if(f)f.focus()}
+function openDrawer(type,id){view.filterMenu=null;view.linkSource=null;view.linkDrag=null;view.selectedLink=null;view.drawer={type,id};view.modal=null;render()}
 function closeModal(){view.modal=null;render()}
 function closeDrawer(){view.drawer=null;render()}
 function deleteDependency(id){data.tasks.forEach(t=>t.dependsOn=(t.dependsOn||[]).filter(x=>x!==id))}
@@ -816,7 +843,10 @@ listen(root,'click',e=>{
  case 'select-link':view.selectedLink={from:el.dataset.from,to:el.dataset.to};view.linkSource=null;render();break;
  case 'remove-link':removeMapDependency();break;
  case 'toggle-sidebar':view.sidebarHidden=!view.sidebarHidden;saveUiPreferences();render();break;
- case 'clear-filters':view.filterPerson='';view.filterPlatform='';render();break;
+ case 'toggle-filter':view.filterMenu=view.filterMenu===id?null:id;render();if(view.filterMenu)$('.roadmap-filter-popover input,.roadmap-filter-popover button')?.focus({preventScroll:true});else $(`[data-action="toggle-filter"][data-id="${id}"]`)?.focus({preventScroll:true});break;
+ case 'clear-filter':view[id==='people'?'filterPeople':'filterPlatforms']=[];render();$('.roadmap-filter-popover [data-action="clear-filter"]')?.focus({preventScroll:true});break;
+ case 'close-filter':closeFilterMenu(true);break;
+ case 'clear-filters':view.filterPeople=[];view.filterPlatforms=[];view.filterMenu=null;render();break;
  case 'new-project':openModal('new-project');break;
  case 'projects':openModal('projects');break;
  case 'switch-project':switchProject(id);break;
@@ -899,7 +929,7 @@ listen(root,'click',e=>{
  case 'export':exportJson();break;
  case 'import':$('#jsonImport')?.click();break;
  case 'reset':openModal('reset');break;
- case 'reset-confirm':change(()=>{data=newProjectData();view.modal=null;view.drawer=null;view.page='timeline';view.iteration=data.iterations[0].id;view.rangeStart=alignScaleStart(today(),view.scale);view.scaleFocusDate=today();view.scrollToStart=true;view.showOnlyRisks=false;view.filterPerson='';view.filterPlatform=''},'Project reset');break;
+ case 'reset-confirm':change(()=>{data=newProjectData();view.modal=null;view.drawer=null;view.page='timeline';view.iteration=data.iterations[0].id;view.rangeStart=alignScaleStart(today(),view.scale);view.scaleFocusDate=today();view.scrollToStart=true;view.showOnlyRisks=false;view.filterPeople=[];view.filterPlatforms=[];view.filterMenu=null},'Project reset');break;
  default:break;
  }
 });
@@ -932,8 +962,14 @@ listen(root,'change',e=>{
  if(target.dataset.rowAssignee){const task=getTask(target.dataset.rowAssignee);if(!task)return;const valid=!target.value||matchingAssignees(data,task).some(person=>person.id===target.value);if(!valid){notify('Choose a matching team member');render();return;}change(()=>assignTask(data,task.id,target.value),'Assignment updated');return;}
  if(target.dataset.change==='iteration'){view.iteration=target.value;render();return}
  if(target.dataset.change==='scale'){setScale(target.value);return}
- if(target.dataset.change==='filter-person'){view.filterPerson=target.value;render();return}
- if(target.dataset.change==='filter-platform'){view.filterPlatform=target.value;render();return}
+ if(target.dataset.filterKind){
+  const kind=target.dataset.filterKind,key=kind==='people'?'filterPeople':'filterPlatforms';
+  if(!filterOptions(kind).some(([value])=>value===target.value))return;
+  const top=$('.filter-options')?.scrollTop||0;
+  view[key]=target.checked?[...new Set([...view[key],target.value])]:view[key].filter(value=>value!==target.value);
+  render();const list=$('.filter-options');if(list)list.scrollTop=top;
+  $$('.roadmap-filter-popover input').find(input=>input.value===target.value)?.focus({preventScroll:true});return;
+ }
  if(target.dataset.updateTask){let t=getTask(view.drawer?.id);if(!t)return;let field=target.dataset.updateTask,val=target.value;
  if(field==='title'){if(!val.trim()){notify('Task title cannot be empty');return}change(()=>t.title=val.trim())}
  else if(field==='assignee'){if(val&&(getPerson(val)?.platform!==t.platform||(t.roleId&&getPerson(val)?.roleId!==t.roleId))){notify('Selected person does not match the workstream');render();return}change(()=>t.assignee=val,'Assignment updated')}
@@ -989,7 +1025,7 @@ listen(root,'input',e=>{
 listen(window,'resize',()=>{const scroller=$('#ganttScroller');if(scroller&&scroller.scrollWidth<=scroller.clientWidth){view.scrollToStart=true;render();}else drawDependencyLines();});
 listen(root,'keydown',e=>{if(e.target.matches('.dependency-edge')&&['Enter',' '].includes(e.key)){e.preventDefault();view.selectedLink={from:e.target.dataset.from,to:e.target.dataset.to};render();}if(e.key==='Delete'&&view.selectedLink&&!e.target.matches('input,textarea,select')){e.preventDefault();removeMapDependency();}});
 listen(root,'dblclick',e=>{let day=e.target.closest('.day-cell[data-date], .time-segment[data-date]');if(day){e.preventDefault();openModal('milestone',{date:day.dataset.date})}});
-listen(document,'keydown',e=>{if(e.key==='Escape'){if(['resize','feature'].includes(view.drag?.kind)){view.drag=null;clearResizePreview();lastDragAt=Date.now();render();return;}if(view.rowDrag){const d=endRowDrag();if(d?.moved)lastDragAt=Date.now();return;}if(view.linkSource||view.linkDrag||view.selectedLink){view.linkSource=null;view.linkDrag=null;view.selectedLink=null;render();return;}if(view.modal){closeModal()}else if(view.drawer){closeDrawer()}}});
+listen(document,'keydown',e=>{if(e.key==='Escape'){if(view.filterMenu){e.preventDefault();closeFilterMenu(true);return;}if(['resize','feature'].includes(view.drag?.kind)){view.drag=null;clearResizePreview();lastDragAt=Date.now();render();return;}if(view.rowDrag){const d=endRowDrag();if(d?.moved)lastDragAt=Date.now();return;}if(view.linkSource||view.linkDrag||view.selectedLink){view.linkSource=null;view.linkDrag=null;view.selectedLink=null;render();return;}if(view.modal){closeModal()}else if(view.drawer){closeDrawer()}}});
 listen(root,'keydown',e=>{
  const bar=e.target.closest('.feature-bar[data-feature]');if(!bar||e.target!==bar||view.modal||view.linkSource)return;
  if(['ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();const id=bar.dataset.feature;moveFeature(id,(e.key==='ArrowLeft'?-1:1)*(e.shiftKey?7:1));requestAnimationFrame(()=>$(`.feature-bar[data-feature="${id}"]`)?.focus());}

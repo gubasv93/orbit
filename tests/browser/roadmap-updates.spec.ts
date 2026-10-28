@@ -1,3 +1,4 @@
+import { setRoadmapFilter } from './filters';
 import {test,expect,type BrowserContext,type Page} from '@playwright/test';
 import {randomUUID} from 'node:crypto';
 import {projectData} from '../fixtures';
@@ -61,7 +62,7 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   await page.mouse.move(a.x+a.width/2,a.y+a.height/2);await page.mouse.down();await page.mouse.move(b.x+b.width/2,b.y+b.height/2,{steps:14});await page.mouse.up();await saved(page);
   let data=(await snapshot()).workspace.projects[0].data;expect(data.tasks.find((t:{id:string})=>t.id==='t2').dependsOn).toEqual(['t1']);const edge=page.locator('.dependency-edge[data-from=t1][data-to=t2]');await expect(edge).toHaveCount(1);const path=await edge.getAttribute('d');
   await page.getByLabel('Timeline scale').selectOption('week');await expect(edge).not.toHaveAttribute('d',path!);
-  await page.getByLabel('Filter by team member').selectOption('u2');await expect(edge).toHaveCount(0);await page.getByRole('button',{name:'Clear filters'}).click();await expect(edge).toHaveCount(1);
+  await setRoadmapFilter(page,'people',['Riley Reviewer']);await expect(edge).toHaveCount(0);await page.getByRole('button',{name:'Clear filters'}).click();await expect(edge).toHaveCount(1);
   await page.locator('[data-action=link-from][data-id=t2]').click();await page.locator('[data-action=link-to][data-id=t1]').click();await expect(page.locator('#toast-root')).toContainText('Circular dependencies');data=(await snapshot()).workspace.projects[0].data;expect(data.tasks[0].dependsOn).toEqual([]);
   await edge.focus();await page.keyboard.press('Enter');await page.getByRole('button',{name:'Remove selected dependency'}).click();await saved(page);await expect(edge).toHaveCount(0);expect((await snapshot()).workspace.projects[0].data.tasks[1].dependsOn).toEqual([]);
   await page.locator('[data-action=link-from][data-id=t1]').click();await page.locator('.task-bar[data-task=t3]').click();await saved(page);await page.reload();await saved(page);await expect(page.locator('.dependency-edge[data-from=t1][data-to=t3]')).toHaveCount(1);await page.screenshot({path:'test-results/dependency-arrows.png',fullPage:true});await page.close();
@@ -213,7 +214,7 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   await reset();const page=await context.newPage();await page.goto('/app');await saved(page);
   expect((await page.locator('.gantt-row[data-row-task=t1]').boundingBox())!.height).toBeLessThanOrEqual(44);expect((await page.locator('[data-row-feature=f1]').boundingBox())!.height).toBeLessThanOrEqual(50);
   expect((await page.locator('#ganttScroller').boundingBox())!.height).toBeGreaterThan(430);expect((await page.locator('#ganttScroller').boundingBox())!.y).toBeLessThan(160);
-  await page.getByLabel('Filter by team member').selectOption('u1');await expect(page.locator('[data-row-task]')).toHaveCount(1);await page.getByRole('button',{name:'Clear filters',exact:true}).click();await expect(page.locator('[data-row-task]')).toHaveCount(3);
+  await setRoadmapFilter(page,'people',['Alex Dev']);await expect(page.locator('[data-row-task]')).toHaveCount(1);await page.getByRole('button',{name:'Clear filters',exact:true}).click();await expect(page.locator('[data-row-task]')).toHaveCount(3);
   await page.setViewportSize({width:375,height:812});await page.getByRole('button',{name:'Today',exact:true}).scrollIntoViewIfNeeded();await page.getByRole('button',{name:'Today',exact:true}).click();await expect(page.locator('.today-tag')).toBeInViewport();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);const canvas=page.locator('.gantt-canvas'),start=await canvas.getAttribute('data-range-start');await page.locator('#ganttScroller').evaluate(node=>node.scrollLeft=0);await expect(canvas).not.toHaveAttribute('data-range-start',start!);
   await expect(page.locator('[data-row-assignee=t1]')).toBeInViewport();await page.screenshot({path:'test-results/compact-chart-mobile.png',fullPage:true});await page.close();
@@ -310,7 +311,7 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   expect(current.tasks[0]).toEqual({...initial.tasks[0],start:'2026-10-28'});expect(current.tasks[1]).toEqual({...initial.tasks[1],start:'2026-10-29',manualEnd:'2026-11-01'});expect(current.tasks[2]).toEqual({...initial.tasks[2],start:'2026-10-28',completedDate:'2026-10-29'});expect(current.tasks[3]).toEqual(initial.tasks[3]);await expect(page.locator('.drawer')).toHaveCount(0);
   const stable=current;await begin(-38);await page.keyboard.press('Escape');await page.mouse.up();expect((await snapshot()).workspace.projects[0].data).toEqual(stable);await expect(page.locator('.dragging')).toHaveCount(0);
   await begin(38);await bar.dispatchEvent('pointercancel',{pointerId:1});await page.mouse.up();expect((await snapshot()).workspace.projects[0].data).toEqual(stable);
-  await page.getByLabel('Filter by team member').selectOption('u1');await saved(page);await expect(page.locator('[data-parent-feature=f1]')).toHaveCount(1);await begin(38);await drop();
+  await setRoadmapFilter(page,'people',['Alex Dev']);await saved(page);await expect(page.locator('[data-parent-feature=f1]')).toHaveCount(1);await begin(38);await drop();
   current=(await snapshot()).workspace.projects[0].data;expect(current.tasks[1].start).toBe('2026-10-30');expect(current.tasks[2].completedDate).toBe('2026-10-30');expect(current.tasks[3]).toEqual(initial.tasks[3]);
   await page.getByRole('button',{name:'Clear filters',exact:true}).click();await page.locator('[data-row-feature=f1] .chevron').click();await saved(page);await expect(page.locator('[data-parent-feature=f1]')).toHaveCount(0);await begin(-38);await drop();
   expect((await snapshot()).workspace.projects[0].data.features[0].collapsed).toBe(true);await bar.focus();await page.keyboard.press('ArrowRight');await saved(page);expect((await snapshot()).workspace.projects[0].data.tasks[0].start).toBe('2026-10-29');
@@ -376,6 +377,33 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   await page.locator('.project-trigger').click();await page.locator('.project-pick-row').filter({hasText:'Other project'}).getByRole('button',{name:'Open project',exact:false}).click();await saved(page);
   await expect(field('title')).toBeVisible();await openSettings(page);await expect(page.getByRole('checkbox',{name:'Name',exact:true})).toBeChecked();await expect(page.getByRole('checkbox',{name:'Dev effort',exact:true})).not.toBeChecked();
   await page.setViewportSize({width:375,height:812});expect(await page.getByRole('dialog').evaluate(node=>node.scrollWidth<=node.clientWidth)).toBe(true);await page.getByRole('button',{name:'Save settings',exact:true}).scrollIntoViewIfNeeded();await page.screenshot({path:'test-results/custom-bar-fields-mobile.png',fullPage:true});await page.close();
+ });
+
+ test('combines multiple people and platforms with checkboxes, keyboard support and compact mobile panels',async()=>{
+  test.setTimeout(90000);
+  const w=workspace(),data=w.projects[0].data;data.settings.autoShiftDependencies=false;
+  data.roles.push({id:'rFront',name:'Frontend Developer',platform:'Frontend'},{id:'rDesign',name:'Designer',platform:'Design'});
+  data.people.push({...data.people[0],id:'uFront',name:'Casey Front',firstName:'Casey',lastName:'Front',roleId:'rFront',role:'Frontend Developer',platform:'Frontend'});
+  for(let i=0;i<18;i++)data.people.push({...data.people[0],id:'extra'+i,name:'Teammate '+String(i).padStart(2,'0'),firstName:'Teammate',lastName:String(i)});
+  data.features.push({...data.features[0],id:'f2',title:'Another epic'});
+  data.tasks.push({...data.tasks[0],id:'t4',featureId:'f2',title:'Frontend work',roleId:'rFront',platform:'Frontend',assignee:'uFront',effort:2,dependsOn:['t1']},{...data.tasks[0],id:'t5',featureId:'f2',title:'Design work',roleId:'rDesign',platform:'Design',assignee:'',effort:1});
+  await reset(w);const page=await context.newPage();await page.goto('/app');await saved(page);
+  const original=(await snapshot()).workspace.projects[0].data,people=page.getByRole('button',{name:'Filter by team member',exact:true}),platforms=page.getByRole('button',{name:'Filter by platform',exact:true}),menu=page.locator('.roadmap-filter-popover');
+  const rows=()=>page.locator('[data-row-task]').evaluateAll(nodes=>nodes.map(node=>node.getAttribute('data-row-task')));
+  await setRoadmapFilter(page,'people',['Alex Dev','Casey Front']);expect(await rows()).toEqual(['t1','t4']);await expect(people).toContainText('2 people');
+  await setRoadmapFilter(page,'platforms',['Backend','Frontend']);expect(await rows()).toEqual(['t1','t4']);await expect(platforms).toContainText('2 platforms');await expect(page.locator('[data-feature-effort=f1]')).toHaveText('8d effort');await expect(page.locator('[data-feature-effort=f2]')).toHaveText('3d effort');await expect(page.locator('.dependency-edge[data-from=t1][data-to=t4]')).toHaveCount(1);
+  await people.click();await menu.getByRole('checkbox',{name:'Riley Reviewer',exact:true}).check();await expect(menu).toBeVisible();expect(await rows()).toEqual(['t1','t2','t4']);await expect(menu.getByRole('checkbox',{name:'Riley Reviewer',exact:true})).toBeFocused();await page.keyboard.press('Space');expect(await rows()).toEqual(['t1','t4']);await page.keyboard.press('Escape');await expect(menu).toHaveCount(0);await expect(people).toBeFocused();
+  await people.click();await menu.getByRole('button',{name:'Clear selection',exact:true}).click();expect(await rows()).toEqual(['t1','t2','t3','t4']);await expect(platforms).toContainText('2 platforms');await menu.getByRole('button',{name:'Done',exact:true}).click();
+  await setRoadmapFilter(page,'platforms',['Frontend']);await setRoadmapFilter(page,'people',['Alex Dev']);await expect(page.getByRole('heading',{name:'No matching work items',exact:true})).toBeVisible();await page.locator('.timeline-filters').getByRole('button',{name:'Clear filters',exact:true}).click();expect(await rows()).toEqual(['t1','t2','t3','t4','t5']);
+  await setRoadmapFilter(page,'people',['Unassigned','Casey Front']);expect(await rows()).toEqual(['t3','t4','t5']);await setRoadmapFilter(page,'platforms',['Backend','Design']);expect(await rows()).toEqual(['t3','t5']);
+  await page.screenshot({path:'test-results/multi-filter-desktop.png',fullPage:true});
+  for(const width of [375,320]){
+   await page.setViewportSize({width,height:812});for(const button of await page.locator('.timeline-filters button').all()){const b=(await button.boundingBox())!;expect(b.x).toBeGreaterThanOrEqual(0);expect(b.x+b.width).toBeLessThanOrEqual(width);}await people.click();const last=menu.getByRole('checkbox',{name:'Teammate 17',exact:true});await last.scrollIntoViewIfNeeded();await last.check();await expect(menu).toBeVisible();await expect(last).toBeInViewport();
+   const box=(await menu.boundingBox())!;expect(box.x).toBeGreaterThanOrEqual(7);expect(box.x+box.width).toBeLessThanOrEqual(width-7);expect(box.y+box.height).toBeLessThanOrEqual(805);
+   expect(await last.evaluate(node=>{const b=node.getBoundingClientRect();return document.elementFromPoint(b.x+b.width/2,b.y+b.height/2)===node;})).toBe(true);await page.screenshot({path:`test-results/multi-filter-${width}.png`,fullPage:true});
+   await menu.getByRole('button',{name:'Done',exact:true}).click();await platforms.click();await expect(menu.getByRole('checkbox',{name:'Backend',exact:true})).toBeChecked();await page.locator('.breadcrumb').click();await expect(menu).toHaveCount(0);
+  }
+  await page.locator('.timeline-filters').getByRole('button',{name:'Clear filters',exact:true}).click();await saved(page);expect((await snapshot()).workspace.projects[0].data).toEqual(original);await page.close();
  });
 
 });

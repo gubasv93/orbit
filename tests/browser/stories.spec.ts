@@ -1,3 +1,4 @@
+import { setRoadmapFilter } from './filters';
 import { test, expect, type BrowserContext, type Page } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
 import { fullWorkspace } from '../fixtures';
@@ -76,7 +77,7 @@ test.describe.serial('user stories estimated by team', () => {
   test('adds a story to an existing collapsed epic, preserves selected estimates, and permits manual dependencies', async () => {
     await replace(); const page = await context.newPage(); await page.goto('/app');
     await page.locator('[data-action=collapse][data-id=f1]').click(); await saved(page);
-    await page.getByLabel('Filter by platform').selectOption('Frontend');
+    await setRoadmapFilter(page,'platforms',['Frontend']);
     await page.getByRole('button', { name: 'Add user story to Accounts', exact: true }).click();
     await page.getByLabel('User story name').fill('Add a specific rule');
     await page.getByLabel('Earliest start', { exact: true }).fill('2026-11-02');
@@ -88,7 +89,7 @@ test.describe.serial('user stories estimated by team', () => {
     await page.getByRole('checkbox', { name: 'Include QA Engineer', exact: true }).check();
     await expect(page.getByLabel('QA Engineer estimate (days)')).toHaveValue('0'); await expect(add).toBeDisabled();
     await page.getByLabel('QA Engineer estimate (days)').fill('2'); await add.click(); await saved(page);
-    await expect(page.getByLabel('Filter by platform')).toHaveValue('');
+    await expect(page.getByRole('button',{name:'Filter by platform',exact:true})).toContainText('All platforms');
     let state = await snapshot(), data = state.workspace.projects[0].data;
     expect(data.features[0].collapsed).toBe(false);
     const tasks = data.tasks.filter((item: { title: string }) => item.title === 'Add a specific rule'); expect(tasks).toHaveLength(3);
