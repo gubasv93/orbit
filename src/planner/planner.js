@@ -827,9 +827,10 @@ listen(root,'keydown',e=>{
  requestAnimationFrame(()=>$(`[data-resize-kind="${kind}"][data-id="${id}"][data-resize-edge="${edge}"]`)?.focus());
 });
 listen(root,'click',e=>{
- if(Date.now()-lastDragAt<260)return;
  let el=e.target.closest('[data-action]');if(!el)return;
  let action=el.dataset.action,id=el.dataset.id;
+ // Filters remain usable immediately after a map drag or its cancellation.
+ if(Date.now()-lastDragAt<260&&!['toggle-filter','clear-filter','close-filter','clear-filters'].includes(action))return;
  if(view.linkSource&&action==='drawer-task'){addMapDependency(view.linkSource,id);return;}
  if(action==='modal-backdrop'&&e.target!==el)return;
  switch(action){
