@@ -45,9 +45,9 @@ it('uses full work availability without serializing the teams, and allows later 
 
 it('supports custom workstreams, unassigned work, fractional estimates, and explicit dependency chaining', () => {
   const data = teamData(), value = draft();
-  value.teams = [{ platform: 'DevOps', assignee: '', effort: .25 }, { platform: 'QA', assignee: 'uQA', effort: 1.5 }];
+  value.teams = [{ platform: 'DevOps', assignee: '', effort: .5 }, { platform: 'QA', assignee: 'uQA', effort: 1.5 }];
   const tasks = buildStoryWorkItems('f1', { ...value, sequential: true }, data);
-  expect(tasks[0]).toMatchObject({ platform: 'DevOps', assignee: '', effort: .25, dependsOn: [] });
+  expect(tasks[0]).toMatchObject({ platform: 'DevOps', assignee: '', effort: .5, dependsOn: [] });
   expect(tasks[1].dependsOn).toEqual([tasks[0].id]);
   data.roles.push({ ...data.roles[0], id: 'duplicate-platform' });
   expect(workstreamNames(data)).toEqual(['Backend', 'DevOps', 'Frontend', 'QA']);
@@ -55,7 +55,7 @@ it('supports custom workstreams, unassigned work, fractional estimates, and expl
 
 it('rejects missing, zero, negative, non-finite, and excessive estimates instead of changing their values', () => {
   const data = teamData();
-  for (const effort of [0, -.5, NaN, Infinity, 3651, undefined]) {
+  for (const effort of [0, .1, .25, .75, -.5, NaN, Infinity, 3651, undefined]) {
     const value = draft(); Object.assign(value.teams[0], { effort });
     expect(() => buildStoryWorkItems('f1', value, data)).toThrow();
   }

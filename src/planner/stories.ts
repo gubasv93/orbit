@@ -14,7 +14,7 @@ const draftSchema = z.object({
   start: z.iso.date().refine(value => value >= '2000-01-01' && value <= '2200-12-31', 'Choose a date between 2000 and 2200'),
   teams: z.array(z.object({
     platform: z.string().trim().min(1).max(200).optional(), roleId: z.string().optional(), assignee: z.string(),
-    effort: z.number().min(0.1, 'Estimates must be at least 0.1 work days').max(3650, 'Estimates cannot exceed 3650 work days'),
+    effort: z.number().min(0.5, 'Estimates must be at least 0.5 work days').max(3650, 'Estimates cannot exceed 3650 work days').multipleOf(.5, 'Use 0.5-day steps'),
   })).min(1, 'Select at least one team').max(1000),
   sequential: z.boolean().default(false),
 });

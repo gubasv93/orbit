@@ -1,6 +1,11 @@
 # Validation record
 
-Current roadmap update (2026-10-27): the local suite covers manual-by-default dependency settings, push/follow scheduling, calendar/working gaps, warning visibility, legacy start pinning, retired percentage allocations, row ordering and reparenting, persistent array positions, and unchanged task data. The six-effort-day case now spans eight calendar days (75% development, 25% weekends), regardless of archived 50% allocation. Another case partitions eleven calendar days into 6d development, .875d recurring meetings, 2d weekends, 1d days off, 1d sick leave and .125d unused availability. Observed holidays are tested separately. Each category has one contiguous color section at every zoom. Parent calendar mixes remain distinct from summed effort.
+Current chart update (2026-10-28): 12 additional unit cases cover true half-day task/epic spans, quarter-day meeting reservation, aggregate rounding after meeting overlap removal, full-day reservations, fractional finishes around weekends, blank manual windows, compatible legacy inputs, exact-role inline assignment and calendar reforecasting, buffered windows at every scale/viewport, screen-position preservation and calendar bounds. Existing prototype comparison now isolates unchanged no-meeting calendar behavior; meetings have dedicated rounding assertions.
+
+Four added browser journeys exercise bidirectional scrolling across every scale, past tasks, Today and focus retention, actual half-width bars, 0.25-day input rejection/0.5-day creation, rounded meeting shares with exact stored minutes, no unused-work display, inline assignees/reload/unassignment/role rejection, compact desktop geometry, and mobile navigation/layout. Earlier product/setup/story/dependency regression journeys remain included. For long bars, date-drag assertions use their visible portion beyond the sticky metadata column.
+
+
+Earlier roadmap update (2026-10-27, before half-day planning): the local suite covers manual-by-default dependency settings, push/follow scheduling, calendar/working gaps, warning visibility, legacy start pinning, retired percentage allocations, row ordering and reparenting, persistent array positions, and unchanged task data. The six-effort-day case now spans eight calendar days (75% development, 25% weekends), regardless of archived 50% allocation. Another case partitions eleven calendar days into 6d development, .875d recurring meetings, 2d weekends, 1d days off, 1d sick leave and .125d unused availability. Observed holidays are tested separately. Each category has one contiguous color section at every zoom. Parent calendar mixes remain distinct from summed effort.
 
 The browser regression suite covers compact role selection, exact-role assignees, manual/automatic date windows, shortfalls, horizontal bar movement, graph creation/removal and cycle rejection, project-specific dependency settings, preserved positions after disabling auto-shift, mobile General settings, vertical row reordering, moves between epics, keyboard/mobile Move item controls, cancellation and save/reload. It also verifies that Team capacity controls are gone while recurring meetings remain editable. Existing authentication, ownership, backup/import, save recovery, setup, attendee selection and per-role story journeys remain included. Hosted release evidence is recorded separately below.
 
@@ -12,11 +17,13 @@ Validated through 2026-10-27 in the Codex Linux cloud workspace using Node.js 24
 | --- | --- |
 | TypeScript check | Passed |
 | Next.js production build | Passed |
-| Unit, auth-route, and PostgreSQL/RLS suite | 72 tests passed, 0 failed, 0 skipped |
-| Production-build browser journeys with real local backend | 25 journeys covering the preserved product, setup, Google entry, role-based stories, full-time forecasts, absences, manual dates, dependency preferences, and row ordering |
+| Unit, auth-route, and PostgreSQL/RLS suite | 84 tests passed, 0 failed, 0 skipped |
+| Production-build browser journeys with real local backend | 29 journeys covering the preserved product, setup, Google entry, role-based stories, full-time forecasts, absences, manual dates, dependency preferences, and row ordering |
 | Full dependency audit, including development dependencies | 0 vulnerabilities reported |
 | GitHub CI | Earlier deployments passed; the current release requires a fresh successful run |
 | Live HTTPS release and authenticated journeys | Earlier releases passed; new behavior requires release-specific checks after deployment. Public email delivery remains deferred |
+
+The current 18-case product/map regression run passed after updating drag tests to use visible coordinates beyond the sticky metadata column. Publication of the October 28 update is blocked by the cloud egress proxy returning HTTP 403 `Domain forbidden` for api.vercel.com, api.supabase.com, api.github.com and the canonical production site. The network-permission request was granted and an escalated read-only check hit the same domain policy; this is not an automatic approval-review rejection. The draft already includes these domains, but saved draft rules do not establish active access. No current-source hosted verification or Ready deployment is claimed. Activate the domain rules in environment settings before running the documented release script and live regression checks. No hosted account or data was created for this blocked release attempt.
 
 ## What was exercised
 

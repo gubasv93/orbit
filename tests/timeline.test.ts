@@ -9,7 +9,7 @@ import { fromDay } from '../src/planner/dates.js';
 it('explains six development days over eight calendar days regardless of retired allocations without inventing effort', () => {
   const data=projectData(); data.tasks[0].effort=6; data.people[0].capacity={feature:50,bugs:20,ongoing:20,ops:10};
   const engine=createScheduler(data),scheduled=engine.calculate().schedule.t1,b=taskTimeBreakdown(data.tasks[0],scheduled,data,engine)!;
-  expect(b.days).toBe(8); expect(b.totals).toEqual({development:6,meetings:0,weekends:2,holidays:0,timeoff:0,sick:0,available:0});
+  expect(b.days).toBe(8); expect(b.totals).toEqual({development:6,meetings:0,weekends:2,holidays:0,timeoff:0,sick:0});
   expect(Object.values(b.totals).reduce((a,b)=>a+b,0)).toBeCloseTo(8);
   expect(capacityGradient(b)).toContain('#7870db'); expect(capacityGradient(b)).toContain('#cbd2de');
   const gradient=capacityGradient(b),colors=gradient.match(/#[a-f0-9]{6}/g)!;
@@ -17,10 +17,10 @@ it('explains six development days over eight calendar days regardless of retired
   expect(gradient).toContain('#7870db 0.00000% 75.00000%');
   expect(gradient).toContain('#cbd2de 75.00000% 100.00000%');
 });
-it('accounts for meetings, leave, and unused final-day availability once', () => {
+it('accounts for rounded meetings and a half-day finish without an unused category', () => {
   const data=fullWorkspace().projects[0].data,engine=createScheduler(data),result=engine.calculate();
   const b=taskTimeBreakdown(data.tasks[0],result.schedule.t1,data,engine)!;
-  expect(b.totals.meetings).toBeGreaterThan(0);expect(b.totals.available).toBeGreaterThan(0);
+  expect(b.totals.meetings).toBeGreaterThan(0);expect(b.totals).not.toHaveProperty('available');
   expect(b.allocated).toBe(3);expect(Object.values(b.totals).reduce((a,b)=>a+b,0)).toBeCloseTo(b.days,5);
   expect(taskTimeBreakdown({...data.tasks[0],status:'done'}, {...result.schedule.t1,done:true},data,engine)).toBeNull();
 });
@@ -34,10 +34,10 @@ it('separates recurring meetings, weekends, sick leave and days off over the ent
   data.meetings.push({id:'daily',title:'Daily',recurrence:'workdays',weekday:1,interval:1,nth:1,startDate:'2026-10-26',endDate:'',startTime:'09:00',duration:60,allTeam:true,attendees:[],enabled:true});
   data.leave.push({id:'sick',person:'u1',type:'sick',from:'2026-10-27',to:'2026-10-27',note:''},{id:'off',person:'u1',type:'vacation',from:'2026-10-30',to:'2026-11-01',note:''});
   const engine=createScheduler(data),info=engine.calculate().schedule.t1,b=taskTimeBreakdown(data.tasks[0],info,data,engine)!;
-  expect(fromDay(info.end!)).toBe('2026-11-05');expect(b.days).toBe(11);
-  expect(b.totals).toEqual({development:6,meetings:.875,weekends:2,holidays:0,timeoff:1,sick:1,available:.125});
-  expect(Object.values(b.totals).reduce((sum,n)=>sum+n,0)).toBe(11);
-  expect(new Set(capacityGradient(b).match(/#[a-f0-9]{6}/g)).size).toBe(6);
+  expect(fromDay(info.end!)).toBe('2026-11-12');expect(b.days).toBe(18);
+  expect(b.totals).toEqual({development:6,meetings:6,weekends:4,holidays:0,timeoff:1,sick:1});
+  expect(Object.values(b.totals).reduce((sum,n)=>sum+n,0)).toBe(18);
+  expect(new Set(capacityGradient(b).match(/#[a-f0-9]{6}/g)).size).toBe(5);
   data.settings.observeHolidays=true;data.holidays.push({date:'2026-10-28',name:'Company holiday'});
   const changed=createScheduler(data);expect(taskTimeBreakdown(data.tasks[0],changed.calculate().schedule.t1,data,changed)!.totals.holidays).toBe(1);
 });

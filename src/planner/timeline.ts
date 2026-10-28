@@ -7,7 +7,6 @@ export const timeCategories = [
   ['development', 'Development', '#7870db'], ['meetings', 'Recurring meetings', '#e7c45f'],
   ['weekends', 'Weekends', '#cbd2de'], ['holidays', 'Public holidays', '#6abca8'],
   ['timeoff', 'Days off', '#91bce4'], ['sick', 'Sick leave', '#e9a09d'],
-  ['available', 'Unused availability', '#edf0f6'],
 ] as const;
 type Category = typeof timeCategories[number][0];
 type Parts = Record<Category, number>;
@@ -16,47 +15,45 @@ const empty = (): Parts => Object.fromEntries(timeCategories.map(([key]) => [key
 const rounded = (value: number) => Math.round(value * 1e6) / 1e6;
 export function taskTimeBreakdown(task: ProjectData['tasks'][number], scheduled: ScheduledTask, data: ProjectData, engine: Engine) {
   if (scheduled.start === null || scheduled.end === null || scheduled.done || scheduled.hold || scheduled.blocked) return null;
-  const slices: { day: number; parts: Parts }[] = [], totals = empty();
+  const slices: { day: number; span: number; parts: Parts }[] = [], totals = empty();
   for (let day = scheduled.start; day <= scheduled.end; day++) {
-    const date = fromDay(day), parts = empty();
-    if (dow(day) === 0 || dow(day) === 6) parts.weekends = 1;
-    else if (engine.isHoliday(day)) parts.holidays = 1;
+    const date = fromDay(day), parts = empty(), span=day===scheduled.end?(scheduled.endFraction??1):1;
+    if (dow(day) === 0 || dow(day) === 6) parts.weekends = span;
+    else if (engine.isHoliday(day)) parts.holidays = span;
     else if (engine.nonwork(day, task.assignee)) {
       const sick = data.leave.some(leave => leave.person === task.assignee && leave.type === 'sick' && asDay(leave.from) <= day && asDay(leave.to) >= day);
-      parts[sick ? 'sick' : 'timeoff'] = 1;
+      parts[sick ? 'sick' : 'timeoff'] = span;
     }
     else {
-      parts.meetings = task.assignee ? engine.meetingMinutes(task.assignee, date) / (data.settings.workHours * 60) : 0;
-      const afterMeetings = Math.max(0, 1 - parts.meetings);
+      parts.meetings = task.assignee ? Math.min(span,engine.meetingDays(task.assignee, date)) : 0;
+      const afterMeetings = Math.max(0, span - parts.meetings);
       parts.development = Math.min(afterMeetings, scheduled.alloc[date] || 0);
-      parts.available = Math.max(0, afterMeetings - parts.development);
     }
     for (const [key] of timeCategories) totals[key] += parts[key];
-    slices.push({ day, parts });
+    slices.push({ day, span, parts });
   }
   for (const [key] of timeCategories) totals[key] = rounded(totals[key]);
-  return { slices, totals, days: slices.length, required: task.remaining ?? task.effort, allocated: totals.development, missing: scheduled.shortfall || 0 };
+  return { slices, totals, days: scheduled.end-scheduled.start+(scheduled.endFraction??1), required: task.remaining ?? task.effort, allocated: totals.development, missing: scheduled.shortfall || 0 };
 }
 export type TimeBreakdown = NonNullable<ReturnType<typeof taskTimeBreakdown>>;
 
 // Parent bars show the average mix of the active children on each calendar day.
 // Their calendar fractions are deliberately separate from summed person-day effort.
-export function featureTimeBreakdown(start: number, end: number, children: (TimeBreakdown | null)[]): TimeBreakdown | null {
+export function featureTimeBreakdown(start: number, end: number, children: (TimeBreakdown | null)[],endFraction=1): TimeBreakdown | null {
   const active = children.filter((child): child is TimeBreakdown => child !== null);
   if (!active.length || end - start > 3650) return null;
-  const indexed = new Map<number, Parts[]>();
+  const indexed = new Map<number, TimeBreakdown['slices']>();
   for (const child of active) for (const slice of child.slices) {
-    const values = indexed.get(slice.day) || []; values.push(slice.parts); indexed.set(slice.day, values);
+    const values = indexed.get(slice.day) || []; values.push(slice); indexed.set(slice.day, values);
   }
   const totals = empty(), slices: TimeBreakdown['slices'] = [];
   for (let day = start; day <= end; day++) {
-    const parts = empty(), values = indexed.get(day) || [];
-    if (!values.length) parts.available = 1;
-    else for (const [key] of timeCategories) parts[key] = values.reduce((sum, value) => sum + value[key], 0) / values.length;
+    const parts = empty(), values = indexed.get(day) || [],span=day===end?endFraction:1;
+    if(values.length)for (const [key] of timeCategories) parts[key] = values.reduce((sum, value) => sum + value.parts[key]/value.span, 0) / values.length*span;
     for (const [key] of timeCategories) totals[key] += parts[key];
-    slices.push({ day, parts });
+    slices.push({ day, span, parts });
   }
-  return { slices, totals, days: slices.length, required: active.reduce((sum, child) => sum + child.required, 0), allocated: active.reduce((sum, child) => sum + child.allocated, 0), missing: active.reduce((sum, child) => sum + child.missing, 0) };
+  return { slices, totals, days: end-start+endFraction, required: active.reduce((sum, child) => sum + child.required, 0), allocated: active.reduce((sum, child) => sum + child.allocated, 0), missing: active.reduce((sum, child) => sum + child.missing, 0) };
 }
 
 export function capacityGradient(breakdown: TimeBreakdown) {
@@ -66,7 +63,9 @@ export function capacityGradient(breakdown: TimeBreakdown) {
     if (size < .00001) continue;
     stops.push(`${color} ${position.toFixed(5)}% ${(position + size).toFixed(5)}%`); position += size;
   }
-  return `linear-gradient(90deg,${stops.join(',') || '#edf0f6 0% 100%'})`;
+  // Deliberate gaps in manual windows stay blank, without inventing work.
+  if(position<99.99999)stops.push(`transparent ${position.toFixed(5)}% 100%`);
+  return `linear-gradient(90deg,${stops.join(',')})`;
 }
 
 export function dependencyPath(source: { x: number; y: number }, target: { x: number; y: number }) {

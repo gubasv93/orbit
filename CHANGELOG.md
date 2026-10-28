@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-28
+
+- Browse past and future dates by horizontal scrolling at all five scales; keep the scroll container/focus stable as a bounded calendar window slides. Today restores the current date.
+- Accept new estimates in 0.5-day steps, reserve daily recurring meetings in rounded half-day slots, and draw fractional task/epic finishes at their real width. Preserve exact stored meeting durations and legacy estimates.
+- Remove Unused availability from bars, legends and details; leave deliberate manual-window gaps blank.
+- Edit task assignees directly from row avatars with role/platform validation and cloud persistence.
+- Reduce row/header heights and duplicate headers/actions, use a compact inline legend, and expose mobile Today navigation first.
+
 ## 2026-10-27
 
 - Reorder epics and work items with a row grip; move work items between epics without altering dates, estimates or dependency IDs. Include keyboard/mobile move controls and persisted backup order.

@@ -98,7 +98,8 @@ test.describe.serial('real authentication, onboarding, planning, and durable own
     const start = before.projects[0].data.tasks[0].start;
     const nextDay = (value: string) => new Date(Date.parse(value+'T00:00:00Z')+86400000).toISOString().slice(0,10);
     const bar = page.locator('.task-bar[data-task=t1]'); await bar.scrollIntoViewIfNeeded(); const box = (await bar.boundingBox())!;
-    await page.mouse.move(box.x+15,box.y+box.height/2); await page.mouse.down(); await page.mouse.move(box.x+53,box.y+box.height/2,{steps:5}); await page.mouse.up();
+    const stickyRight=(await page.locator('.gantt-corner').boundingBox())!.x+(await page.locator('.gantt-corner').boundingBox())!.width;const dragX=Math.max(box.x+15,stickyRight+15);
+    await page.mouse.move(dragX,box.y+box.height/2); await page.mouse.down(); await page.mouse.move(dragX+38,box.y+box.height/2,{steps:5}); await page.mouse.up();
     await expect.poll(async () => (await (await owner.request.get('/api/workspace')).json()).workspace.projects[0].data.tasks[0].start).toBe(nextDay(start)); await saved(page);
     const pin = page.locator('.milestone-pin[data-id=m1]'); await pin.scrollIntoViewIfNeeded(); const position=(await pin.boundingBox())!;
     await page.mouse.move(position.x+10,position.y+position.height/2); await page.mouse.down(); await page.mouse.move(position.x+48,position.y+position.height/2,{steps:5}); await page.mouse.up();

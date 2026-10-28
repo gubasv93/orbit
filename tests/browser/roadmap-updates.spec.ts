@@ -12,7 +12,7 @@ function workspace(){const data=projectData();data.people[0].capacity={feature:5
  return {version:1,activeId:'project',preferences:{scale:'day',sidebarHidden:true},projects:[{id:'project',name:'Release checks',onboardingStep:0,data}]};}
 async function snapshot(){return(await context.request.get('/api/workspace')).json();}
 async function reset(value=workspace()){const current=await snapshot();expect((await context.request.put('/api/workspace',{headers:{Origin:origin},data:{revision:current.revision,workspace:value}})).status()).toBe(200);}
-async function saved(page:Page){await expect(page.locator('.save-bar [role=status]')).toHaveText('Saved to cloud');}
+async function saved(page:Page){await expect(page.locator('.gantt-canvas')).toBeVisible();await expect(page.locator('.save-bar [role=status]')).toHaveText('Saved to cloud');}
 test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
  test.beforeAll(async({browser})=>{context=await browser.newContext();const page=await context.newPage(),password='Orbit9'+randomUUID();await page.goto('/signup');await page.getByLabel('Email address').fill(`orbit-map-${randomUUID()}@example.com`);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByLabel('Confirm password').fill(password);await page.getByRole('button',{name:'Create account'}).click();await expect(page).toHaveURL(/\/app$/);await page.close();});
  test.afterAll(async()=>{await context?.close();});
@@ -99,8 +99,8 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   const order=()=>page.locator('[data-row-feature],[data-row-task]').evaluateAll(rows=>rows.map(row=>row.getAttribute('data-row-feature')||row.getAttribute('data-row-task')));
   async function drag(kind:string,id:string,target:string,position:'before'|'after'|'inside'){
    const grip=page.locator(`[data-row-drag=${kind}][data-id=${id}]`),row=page.locator(target);await grip.scrollIntoViewIfNeeded();await row.scrollIntoViewIfNeeded();
-   const a=(await grip.boundingBox())!,b=(await row.boundingBox())!;
-   await page.mouse.move(a.x+a.width/2,a.y+a.height/2);await page.mouse.down();await page.mouse.move(b.x+110,b.y+(position==='before'?4:position==='after'?b.height-4:b.height/2),{steps:12});await page.mouse.up();await saved(page);
+   const a=(await grip.boundingBox())!,b=(await row.boundingBox())!,meta=(await row.locator('.meta').boundingBox())!;
+   await page.mouse.move(a.x+a.width/2,a.y+a.height/2);await page.mouse.down();await page.mouse.move(meta.x+110,b.y+(position==='before'?4:position==='after'?b.height-4:b.height/2),{steps:12});await page.mouse.up();await saved(page);
   }
   await drag('feature','f3','[data-row-feature=f1]','before');expect(await order()).toEqual(['f3','f1','t1','t2','t3','f2','t4']);
   await drag('feature','f1','[data-row-task=t4]','after');expect(await order()).toEqual(['f3','f2','t4','f1','t1','t2','t3']);
@@ -130,10 +130,10 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   data.meetings=[{id:'daily',title:'Daily',recurrence:'workdays',weekday:1,interval:1,nth:1,startDate:'2026-10-26',endDate:'',startTime:'09:00',duration:60,allTeam:true,attendees:[],enabled:true}];
   data.leave=[{id:'sick',person:'u1',type:'sick',from:'2026-10-27',to:'2026-10-27',note:''},{id:'off',person:'u1',type:'vacation',from:'2026-10-30',to:'2026-11-01',note:''}];
   await reset(w);const page=await context.newPage();await page.goto('/app');const bar=page.locator('.task-bar[data-task=t1]');
-  await expect(bar).toHaveAttribute('title',/11 calendar days/);await expect(bar).toHaveAttribute('title',/Recurring meetings: 0.88d.*Weekends: 2d.*Days off: 1d.*Sick leave: 1d/);
-  expect(new Set((await bar.locator('.capacity-band').getAttribute('style'))!.match(/#[a-f0-9]{6}/g)).size).toBe(6);
+  await expect(bar).toHaveAttribute('title',/18 calendar days/);await expect(bar).toHaveAttribute('title',/Recurring meetings: 6d.*Weekends: 4d.*Days off: 1d.*Sick leave: 1d/);
+  expect(new Set((await bar.locator('.capacity-band').getAttribute('style'))!.match(/#[a-f0-9]{6}/g)).size).toBe(5);
   await page.getByRole('button',{name:'Show sidebar',exact:true}).click();await expect(page.getByRole('button',{name:'Team capacity',exact:true})).toHaveCount(0);
-  await page.locator('.work-name[data-action=drawer-task][data-id=t1]').click();await expect(page.getByLabel('End date')).toHaveValue('2026-11-05');await expect(page.locator('.drawer-content')).toContainText('Sick leave');await page.keyboard.press('Escape');
+  await page.locator('.work-name[data-action=drawer-task][data-id=t1]').click();await expect(page.getByLabel('End date')).toHaveValue('2026-11-12');await expect(page.locator('.drawer-content')).toContainText('Sick leave');await page.keyboard.press('Escape');
   await page.getByRole('button',{name:'General settings',exact:true}).click();await page.getByRole('button',{name:'Manage meetings',exact:true}).click();await expect(page.getByRole('heading',{name:'Recurring meetings',exact:true})).toBeVisible();await expect(page.locator('.meeting-list')).toContainText('Daily');await page.keyboard.press('Escape');await page.screenshot({path:'test-results/full-work-meetings-absences.png',fullPage:true});await page.close();
  });
 
@@ -145,10 +145,70 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   await page.mouse.move(a.x+10,a.y+14);await page.mouse.down();await page.mouse.move(bounds.x+110,bounds.y+bounds.height-8,{steps:10});
   await expect(page.locator('.row-drag-ghost')).toBeVisible();
   await expect.poll(()=>scroller.evaluate(node=>node.scrollHeight-node.clientHeight-node.scrollTop),{timeout:10000}).toBeLessThan(3);
-  const last=(await page.locator('[data-row-feature=f24]').boundingBox())!;await page.mouse.move(last.x+110,last.y+last.height-5,{steps:4});await page.mouse.up();await saved(page);
+  const last=(await page.locator('[data-row-feature=f24] .meta').boundingBox())!;await page.mouse.move(last.x+110,last.y+last.height-5,{steps:4});await page.mouse.up();await saved(page);
   expect((await snapshot()).workspace.projects[0].data.features.at(-1).id).toBe('f1');
   await expect(page.locator('[data-row-feature=f1]')).toHaveCount(1);await expect(page.locator('[data-parent-feature=f1]')).toHaveCount(3);await expect(page.locator('.row-drag-ghost')).toHaveCount(0);
   await page.close();
+ });
+
+ test('scrolls into past and future on every scale and Today restores the current date without changing work',async()=>{
+  test.setTimeout(90000);
+  const w=workspace(),data=w.projects[0].data;data.settings.autoShiftDependencies=false;
+  const today=new Date().toISOString().slice(0,10),past=new Date(Date.now()-30*86400000).toISOString().slice(0,10);
+  data.tasks[0].start=past;data.tasks[0].completedDate=past;data.tasks[0].status='done';
+  await reset(w);const page=await context.newPage();await page.goto('/app');await saved(page);const canvas=page.locator('.gantt-canvas'),scroller=page.locator('#ganttScroller');
+  const original=(await snapshot()).workspace.projects[0].data;
+  await expect(page.locator('.today-tag')).toBeInViewport();expect(await scroller.evaluate(node=>node.scrollLeft)).toBeGreaterThan(0);
+  const initial=(await canvas.getAttribute('data-range-start'))!;
+  await scroller.focus();await scroller.evaluate(node=>node.scrollLeft=0);await expect(canvas).not.toHaveAttribute('data-range-start',initial);await expect(scroller).toBeFocused();await expect(page.locator('.task-bar[data-task=t1]')).toBeInViewport();
+  const leading=()=>scroller.evaluate(node=>{const canvas=node.querySelector<HTMLElement>('.gantt-canvas')!;return Date.parse(canvas.dataset.rangeStart!)/86400000+node.scrollLeft/parseFloat(canvas.style.getPropertyValue('--cell'));});const before=await leading();await page.mouse.move(1000,300);await page.mouse.wheel(-600,0);await expect.poll(leading).toBeLessThan(before);
+  await page.getByRole('button',{name:'Today',exact:true}).click();await expect(page.locator('.today-tag')).toBeInViewport();
+  for(const scale of ['day','week','month','quarter','year']){
+   await page.getByLabel('Timeline scale').selectOption(scale);const start=(await canvas.getAttribute('data-range-start'))!;
+   await scroller.evaluate(node=>node.scrollLeft=node.scrollWidth);await expect(canvas).not.toHaveAttribute('data-range-start',start);
+   const future=(await canvas.getAttribute('data-range-start'))!;expect(future>start).toBe(true);
+   await scroller.evaluate(node=>node.scrollLeft=0);await expect(canvas).not.toHaveAttribute('data-range-start',future);
+   await page.getByRole('button',{name:'Today',exact:true}).click();await expect(page.locator('.today-tag')).toBeInViewport();
+  }
+  await page.getByLabel('Timeline scale').selectOption('day');await page.getByRole('button',{name:'Earlier',exact:true}).click();await page.getByRole('button',{name:'Later',exact:true}).click();await page.getByRole('button',{name:'Today',exact:true}).click();await saved(page);
+  await expect(page.locator(`.day-cell[data-date="${today}"]`)).toBeInViewport();expect((await snapshot()).workspace.projects[0].data).toEqual(original);
+  await page.screenshot({path:'test-results/scroll-history.png',fullPage:true});await page.close();
+ });
+ test('creates half-day estimates, rounds quarter-day meetings and draws genuine half-width bars without unused work',async()=>{
+  test.setTimeout(90000);
+  const w=workspace(),data=w.projects[0].data;data.settings.autoShiftDependencies=false;data.tasks[0].effort=.5;data.tasks[1].effort=1;data.tasks[1].assignee='';
+  await reset(w);const page=await context.newPage();await page.goto('/app');await saved(page);
+  const bar=page.locator('.task-bar[data-task=t1]'),full=page.locator('.task-bar[data-task=t2]');
+  await expect(bar).toHaveAttribute('title',/0.5 calendar days/);expect((await bar.boundingBox())!.width/(await full.boundingBox())!.width).toBeCloseTo(.5,2);
+  await expect(page.getByLabel('Timeline colors')).not.toContainText('Unused');await expect(page.locator('.capacity-band').first()).not.toHaveAttribute('style',/#edf0f6/);
+  await page.getByRole('button',{name:'Add user story to Configure suggestion categories as an administrator',exact:true}).click();await page.getByLabel('User story name').fill('Half-day change');await page.getByRole('checkbox',{name:'Include Backend Developer',exact:true}).check();
+  const input=page.getByLabel('Backend Developer estimate (days)');await expect(input).toHaveAttribute('min','0.5');await expect(input).toHaveAttribute('step','0.5');await input.fill('.25');await expect(page.getByRole('button',{name:'Add user story',exact:true})).toBeDisabled();await input.fill('.5');await page.getByRole('button',{name:'Add user story',exact:true}).click();await saved(page);
+  const created=(await snapshot()).workspace.projects[0].data.tasks.find((task:{title:string})=>task.title==='Half-day change');expect(created.effort).toBe(.5);await expect(page.locator(`.task-bar[data-task="${created.id}"]`)).toHaveAttribute('title',/0.5 calendar days/);
+  const changed=workspace();changed.projects[0].data.settings.autoShiftDependencies=false;changed.projects[0].data.tasks[0].effort=.5;
+  changed.projects[0].data.meetings=[{id:'quarter',title:'Quarter day',recurrence:'workdays',weekday:1,interval:1,nth:1,startDate:'2026-10-26',endDate:'',startTime:'09:00',duration:120,allTeam:true,attendees:[],enabled:true}];
+  await reset(changed);await page.reload();await saved(page);await expect(bar).toHaveAttribute('title',/1 calendar days/);await expect(bar).toHaveAttribute('title',/Development: 0.5d.*Recurring meetings: 0.5d/);
+  await page.locator('.work-name[data-action=drawer-task][data-id=t1]').click();await expect(page.locator('.drawer-content')).not.toContainText('Unused');await expect(page.getByLabel('Pure effort (days)',{exact:true})).toHaveValue('0.5');await page.keyboard.press('Escape');
+  expect((await snapshot()).workspace.projects[0].data.meetings[0].duration).toBe(120);await page.screenshot({path:'test-results/half-day-chart.png',fullPage:true});await page.close();
+ });
+ test('changes assignees directly in roadmap rows with exact-role choices and persistence',async()=>{
+  const w=workspace(),data=w.projects[0].data;data.settings.autoShiftDependencies=false;data.tasks[0].effort=.5;
+  data.people.push({...data.people[0],id:'u3',name:'Casey Dev'});data.leave.push({id:'sick',person:'u3',type:'sick',from:'2026-10-26',to:'2026-10-26',note:''});
+  await reset(w);const page=await context.newPage();await page.goto('/app');await saved(page);const select=page.locator('[data-row-assignee=t1]');
+  expect(await select.locator('option').evaluateAll(nodes=>nodes.map(node=>(node as HTMLOptionElement).value))).toEqual(['','u1','u3']);const original=structuredClone(data.tasks[0]);
+  await select.selectOption('u3');await saved(page);const changed=(await snapshot()).workspace.projects[0].data.tasks[0];expect(changed).toEqual({...original,assignee:'u3'});await expect(page.locator('.drawer-wrap')).toHaveCount(0);await expect(page.locator('.task-bar[data-task=t1]')).toHaveAttribute('title',/27 Oct/);
+  await page.reload();await saved(page);await expect(select).toHaveValue('u3');await select.selectOption('');await saved(page);await expect(select).toHaveValue('');
+  // An injected option still goes through the same role validation as the inspector.
+  await select.evaluate(node=>{const option=document.createElement('option');option.value='u2';option.textContent='Wrong role';node.append(option);});await select.selectOption('u2');await expect(page.locator('#toast-root')).toContainText('matching team member');expect((await snapshot()).workspace.projects[0].data.tasks[0].assignee).toBe('');
+  await page.setViewportSize({width:375,height:812});await select.selectOption('u1');await saved(page);await expect(select).toHaveValue('u1');expect((await select.boundingBox())!.width).toBeGreaterThan(20);await page.screenshot({path:'test-results/inline-assignee-mobile.png',fullPage:true});await page.close();
+ });
+ test('keeps the chart compact while row editing, filters, date dragging and mobile scrolling remain usable',async()=>{
+  await reset();const page=await context.newPage();await page.goto('/app');await saved(page);
+  expect((await page.locator('.gantt-row[data-row-task=t1]').boundingBox())!.height).toBeLessThanOrEqual(44);expect((await page.locator('[data-row-feature=f1]').boundingBox())!.height).toBeLessThanOrEqual(50);
+  expect((await page.locator('#ganttScroller').boundingBox())!.height).toBeGreaterThan(430);expect((await page.locator('#ganttScroller').boundingBox())!.y).toBeLessThan(160);
+  await page.getByLabel('Filter by team member').selectOption('u1');await expect(page.locator('[data-row-task]')).toHaveCount(1);await page.getByRole('button',{name:'Clear filters',exact:true}).click();await expect(page.locator('[data-row-task]')).toHaveCount(3);
+  await page.setViewportSize({width:375,height:812});await page.getByRole('button',{name:'Today',exact:true}).scrollIntoViewIfNeeded();await page.getByRole('button',{name:'Today',exact:true}).click();await expect(page.locator('.today-tag')).toBeInViewport();
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);const canvas=page.locator('.gantt-canvas'),start=await canvas.getAttribute('data-range-start');await page.locator('#ganttScroller').evaluate(node=>node.scrollLeft=0);await expect(canvas).not.toHaveAttribute('data-range-start',start!);
+  await expect(page.locator('[data-row-assignee=t1]')).toBeInViewport();await page.screenshot({path:'test-results/compact-chart-mobile.png',fullPage:true});await page.close();
  });
 
 });

@@ -168,3 +168,30 @@
 .row-dragging{user-select:none;cursor:grabbing}
 .row-drag-ghost{position:fixed;z-index:1000;max-width:255px;padding:10px 12px;border:1px solid #c4bbf0;border-radius:9px;background:#fff;color:#4c436b;box-shadow:0 5px 24px #2923392b;font-size:12px;line-height:1.5;pointer-events:none}
 @media(max-width:600px){.row-grip{flex-basis:24px;width:24px;height:38px}.gantt-row .task-indent{width:3px;flex-basis:3px}}
+
+/* Keep the working chart large and its row controls compact. */
+.timeline-page .topbar{height:45px;flex-basis:45px;padding:0 12px}
+.timeline-page .content{padding:7px 9px;gap:0}
+.timeline-page .gantt-scroller{min-height:180px;overscroll-behavior-x:contain;overflow-anchor:none}
+.timeline-page .gantt-row{height:42px}.timeline-page .gantt-row.feature{height:48px}
+.timeline-page .meta{gap:5px;padding:0 8px}.timeline-page .meta-mini{display:none}
+.timeline-page .meta .task-indent{width:5px;flex-basis:5px}
+.timeline-page .task-bar,.timeline-page .feature-bar{height:25px;min-width:2px;padding:0 4px;border-radius:4px}
+.timeline-page .feature-bar{height:28px}
+.timeline-page .task-bar .bar-txt,.timeline-page .feature-bar .bar-txt{background:transparent;padding:0;text-shadow:0 1px 2px #ffffff7d}
+.timeline-page .bar-tail{font-size:8px;padding:1px 3px;flex:none}
+.timeline-page .calendar-head{height:66px}.timeline-page .time-band{height:20px}.timeline-page .day-head,.timeline-page .day-cell{height:26px}
+.timeline-page .gantt-header:not(.scale-day) .calendar-head{height:48px}.timeline-page .time-band.lower{height:28px}
+.timeline-page .gantt-corner{padding:5px 8px;align-items:center}.timeline-page .gantt-corner>div{gap:2px}
+.timeline-page .capacity-legend{align-items:center;gap:5px 10px;padding:6px 9px;font-size:9px}
+.timeline-help{border:0;background:transparent;color:#7c789a;padding:3px;display:inline-flex;cursor:pointer;margin-left:auto}
+.inline-assignee{position:relative;display:inline-flex;align-items:center;gap:1px;flex:0 0 35px;width:35px;min-height:30px;border-radius:5px;cursor:pointer}
+.inline-assignee .tiny-avatar{display:inline-flex!important;width:23px;height:23px;flex-basis:23px;font-size:8px}
+.inline-assignee>select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.inline-assignee:hover,.inline-assignee:focus-within{background:#eae6fc;outline:2px solid #a395e3;outline-offset:1px}
+.timeline-page .day-cell{background-image:linear-gradient(90deg,transparent calc(50% - .5px),#e6e6f166 50%,transparent calc(50% + .5px))}
+@media(min-width:1100px){.timeline-page .timeline-toolbar{padding:6px 9px;gap:7px;align-items:center}.timeline-page .timeline-filters{width:auto;flex:1 1 310px}.timeline-page .timeline-tools{width:auto;flex:0 1 auto}.timeline-page .timeline-filters .section-label{display:none}.timeline-page .timeline-tools .select-inline{max-width:158px}.timeline-page .timeline-filters select{max-width:130px}}
+@media(max-width:600px){.timeline-page .topbar{padding:0 7px;height:45px;flex-basis:45px}.timeline-page .top-right{gap:5px}.timeline-page .top-right .btn{padding:5px 7px;font-size:10px}.timeline-page .breadcrumb{max-width:90px;overflow:hidden;white-space:nowrap}.timeline-page .content{padding:5px}.timeline-page .timeline-toolbar{padding:5px;gap:5px}.timeline-page .meta{gap:3px;padding:0 4px}.timeline-page .inline-assignee{flex-basis:30px;width:30px}.timeline-page .inline-assignee .tiny-avatar{width:21px;height:21px;flex-basis:21px}.timeline-page .meta .feature-icon{display:none}.timeline-page .gantt-row{height:43px}.timeline-page .gantt-row.feature{height:48px}.timeline-page .capacity-legend{gap:4px 7px;font-size:8px}.timeline-page .gantt-corner{align-items:flex-start;padding:5px}.timeline-page .gantt-corner strong{font-size:8px}}
+.timeline-page .task-bar:has(.capacity-band),.timeline-page .feature-bar:has(.capacity-band){background:#fafbfe}
+.timeline-page .gantt-header{height:66px}.timeline-page .gantt-header:not(.scale-day){height:48px}
+@media(max-width:600px){.timeline-page .timeline-tools>[data-action="prev"],.timeline-page .timeline-tools>[data-action="today"],.timeline-page .timeline-tools>[data-action="next"]{order:-3;flex:none}}

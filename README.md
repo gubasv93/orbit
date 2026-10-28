@@ -21,6 +21,11 @@ The source repository `gubasv93/orbit` is public with owner approval.
 
 ## Roadmap controls
 
+- Scroll horizontally to earlier or later dates at every scale. The calendar slides a bounded window, retaining focus and the same screen dates. **Today** returns to the current date; Earlier/Later remain available. Scrolling never changes task dates.
+- New estimates use **0.5-day steps**, with a minimum of 0.5 days. Automatic bars end at the actual half-day boundary. Recurring meeting intervals are merged per person/day, then their total is rounded up to half-day slots for planning; 0.25 day reserves 0.5. Exact meeting durations remain unchanged. Existing finer estimates load without being rewritten and are rounded up only for scheduling.
+- The assignee avatar in each work-item row opens a direct selector containing matching people and Unassigned. Exact-role filtering applies where a role is set; legacy items use platform matching. Reassignment saves normally and recalculates that person's calendar.
+- The chart uses compact rows, one main toolbar, an inline legend, and visible mobile date navigation. Unused availability is removed. Deliberately longer manual windows retain blank space without labelling it as work.
+
 - Drag the dotted row grip to reorder epics with their children, reorder work items, or move a work item to another epic. Click the grip for a keyboard/mobile **Move item** menu. These actions preserve dates, estimates, assignees and dependencies.
 - Estimates include all delivery work. Team allocation percentages are retired; old values stay in backups but do not reduce forecasts. Recurring meetings, weekends, enabled public holidays, days off and sick leave extend the calendar duration. Each bar has one total color section per category, with a numeric breakdown in item details.
 - **General settings** (header gear) controls dependency behavior for each project. Arrows default to manual placement. Enable **Auto-shift dependent work items** to choose a calendar/working-day gap and either push overlapping starts or follow predecessor finishes. Timing warnings can be hidden separately. Turning auto-shift off retains the displayed dependent starts.

@@ -1,5 +1,6 @@
 // Scheduling logic extracted from the supplied Orbit prototype. No UI or persistence dependencies.
 import {DAY,asDay,fromDay,addDays,dow,today,monday} from './dates.js';
+import {halfDay} from './precision.js';
 export function createScheduler(data, {legacyAllocation=false}={}) {
 const getPerson=id=>data.people.find(p=>p.id===id);
 const getFeature=id=>data.features.find(f=>f.id===id);
@@ -58,8 +59,9 @@ function meetingHoursInIteration(pid,iteration){
 function featureCapacity(pid,date){
  const hours=Math.max(1,Number(data.settings.workHours)||8);
  const timeAfterMeetings=Math.max(0,(hours*60-meetingMinutes(pid,date))/(hours*60));
- return timeAfterMeetings*(legacyAllocation?Math.max(0,Number(capacityParts(pid,date).feature||0)/100):1);
+ return legacyAllocation?timeAfterMeetings*Math.max(0,Number(capacityParts(pid,date).feature||0)/100):1-meetingDays(pid,date);
 }
+function meetingDays(pid,date){return Math.min(1,halfDay(meetingMinutes(pid,date)/(Math.max(1,Number(data.settings.workHours)||8)*60)));}
 function dependencyReadyDay(task,end){
  let day=end+1,gap=Math.max(0,Math.min(365,Number(data.settings.dependencyGapDays)||0));
  if(data.settings.dependencyGapUnit==='working'){for(let i=0;i<gap;i++)day=nextWork(day,task.assignee)+1;}
@@ -89,7 +91,7 @@ function calculate(){meetingDayCache.clear();const schedule={},working=new Map()
    last=asDay(t.completedDate||t.start);first=asDay(t.start);if(last<first)first=last;
    return (schedule[t.id]={start:first,end:last,blocked:false,done:true,alloc:{}})
   }
-  let remaining=Math.max(.1,Number(t.remaining??t.effort??1)),guard=0;
+  let remaining=Math.max(.1,Number(t.remaining??t.effort??1)),guard=0;if(!legacyAllocation)remaining=halfDay(remaining);
   while(remaining>0.0001&&guard++<(manual?3650:600)&&(!manual||current<=windowEnd)){
    if(!nonwork(current,t.assignee)){
     if(!manual&&Object.keys(allocation).length===0)first=current;
@@ -103,7 +105,8 @@ function calculate(){meetingDayCache.clear();const schedule={},working=new Map()
   for(let [date,effort] of Object.entries(allocation)){
    const k=`${t.assignee||'_'}:${date}`;working.set(k,(working.get(k)||0)+effort)
   }
-  return (schedule[t.id]={start:first,end:manual?windowEnd:last,blocked:false,alloc:allocation,...(manual?{manual:true,shortfall:Math.max(0,Math.round(remaining*1000000)/1000000)}:{})});
+  const endFraction=manual||legacyAllocation?1:Math.min(1,Math.max(.5,halfDay((allocation[fromDay(last)]||0)+meetingDays(t.assignee,fromDay(last)))));
+  return (schedule[t.id]={start:first,end:manual?windowEnd:last,endFraction,blocked:false,alloc:allocation,...(manual?{manual:true,shortfall:Math.max(0,Math.round(remaining*1000000)/1000000)}:{})});
  }
  data.tasks.forEach(t=>calc(t));
  const conflicts={};for(let t of data.tasks){let p=schedule[t.id],bad=[];for(let dt of Object.keys(p?.alloc||{})){let val=working.get(`${t.assignee||'_'}:${dt}`)||0;if(t.assignee&&val>featureCapacity(t.assignee,dt)+.001)bad.push(dt)}if(bad.length)conflicts[t.id]=bad}
@@ -116,7 +119,8 @@ function calculate(){meetingDayCache.clear();const schedule={},working=new Map()
    const manual=Boolean(f.manualEnd),displayStart=manual?asDay(f.start):start,displayEnd=manual?asDay(f.manualEnd):end;
    const windowConflict=manual&&entries.some(entry=>entry.start<displayStart||entry.end===null||entry.end>displayEnd);
    const shortfall=entries.some(entry=>entry.shortfall>0);
-   featureInfo[f.id]={start:displayStart,end:displayEnd,blocked,allDone,atRisk:blocked||shortfall||windowConflict||(displayEnd!==null&&displayEnd>asDay(f.baseline)),delta:displayEnd!==null?displayEnd-asDay(f.baseline):null,...(manual?{manual:true,forecastStart:start,forecastEnd:end,windowConflict}: {})}
+   const endFraction=manual||displayEnd===null?1:Math.max(...entries.filter(entry=>entry.end===displayEnd).map(entry=>entry.endFraction??1),.5);
+   featureInfo[f.id]={start:displayStart,end:displayEnd,endFraction,blocked,allDone,atRisk:blocked||shortfall||windowConflict||(displayEnd!==null&&displayEnd>asDay(f.baseline)),delta:displayEnd!==null?displayEnd-asDay(f.baseline):null,...(manual?{manual:true,forecastStart:start,forecastEnd:end,windowConflict}: {})}
  });
  const dependencyConflicts={};
  if(data.settings.showDependencyWarnings!==false)for(const task of data.tasks){
@@ -128,5 +132,5 @@ function calculate(){meetingDayCache.clear();const schedule={},working=new Map()
  return {schedule,conflicts,working,featureInfo,errors,dependencyConflicts};
 }
 
-return {calculate,isHoliday,nonwork,nextWork,capacityParts,meetingOccurs,meetingMinutes,meetingHoursInIteration,featureCapacity};
+return {calculate,isHoliday,nonwork,nextWork,capacityParts,meetingOccurs,meetingMinutes,meetingDays,meetingHoursInIteration,featureCapacity};
 }
