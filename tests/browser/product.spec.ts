@@ -4,6 +4,7 @@ import { fullWorkspace } from '../fixtures';
 test.skip(process.env.ORBIT_E2E_AUTH !== '1', 'Requires the disposable real Supabase backend or an explicitly configured test project.');
 const email = `orbit-${randomUUID()}@example.com`, otherEmail = `orbit-${randomUUID()}@example.com`, password = `Orbit9${randomUUID()}${randomUUID()}`.slice(0,72);
 let owner: BrowserContext, second: BrowserContext;
+async function openSettings(page:Page){const show=page.getByRole('button',{name:'Show sidebar',exact:true});if(await show.isVisible())await show.click();await page.getByRole('button',{name:'General settings',exact:true}).click();}
 async function saved(page: Page) { await expect(page.locator('.save-bar [role="status"]')).toHaveText('Saved to cloud', { timeout: 15000 }); }
 async function signup(page: Page, address: string) {
   await page.goto('/signup'); await page.getByLabel('Email address').fill(address);
@@ -31,7 +32,7 @@ test.describe.serial('real authentication, onboarding, planning, and durable own
     await page.getByLabel('Meeting name').fill('Daily sync'); await page.getByLabel('Duration (minutes)').fill('30');
     await page.getByRole('button', { name: 'Create meeting' }).click();
     await page.getByRole('button', { name: 'Finish setup', exact: true }).click();
-    await page.getByRole('button', { name: 'New feature', exact: true }).click(); await page.getByLabel('Feature name').fill('Secure accounts');
+    await page.getByRole('button', { name: 'Add feature', exact: true }).click(); await page.getByLabel('Feature name').fill('Secure accounts');
     await page.getByRole('checkbox', { name: 'Include DevOps Engineer', exact: true }).check();
     await page.getByLabel('DevOps Engineer estimate (days)').fill('2');
     await page.getByRole('button', { name: 'Create feature' }).click(); await saved(page);
@@ -80,7 +81,7 @@ test.describe.serial('real authentication, onboarding, planning, and durable own
     await page.getByLabel('Filter by platform').selectOption('Frontend'); await expect(page.locator('.gantt-row:not(.feature)')).toHaveCount(0);
     await page.getByRole('button', { name: 'Clear filters' }).first().click(); await expect(page.locator('.gantt-row:not(.feature)')).toHaveCount(3);
     await expect(page.getByRole('button', {name:'Team capacity',exact:true})).toHaveCount(0);
-    await page.getByRole('button', {name:'General settings',exact:true}).click(); await page.getByRole('button', {name:'Manage meetings',exact:true}).click();
+    await openSettings(page); await page.getByRole('button', {name:'Manage meetings',exact:true}).click();
     await page.getByRole('button', {name:'Add meeting',exact:true}).click(); await page.getByLabel('Meeting name').fill('Delivery sync');
     await page.getByRole('button', {name:'Create meeting',exact:true}).click(); await page.keyboard.press('Escape'); await saved(page);
     await page.getByRole('button', { name: 'Time off & holidays', exact: true }).click(); await page.getByRole('button', { name: 'Add time off', exact: true }).click();
@@ -114,8 +115,8 @@ test.describe.serial('real authentication, onboarding, planning, and durable own
     const result=await (await owner.request.get('/api/workspace')).json(); const [source,destination]=result.workspace.projects;
     expect(destination.data.people).toHaveLength(1); expect(destination.data.roles).toHaveLength(2); expect(destination.data.meetings).toHaveLength(source.data.meetings.length); expect(destination.data.features).toEqual([]);
     expect(destination.data.people[0].id).not.toBe(source.data.people[0].id); expect(destination.data.meetings[0].attendees).toEqual([destination.data.people[0].id]); expect(destination.data.people[0].capacity).toEqual(source.data.people[0].capacity);
-    const dl=page.waitForEvent('download'); await page.locator('.save-bar').getByRole('button',{name:'Export workspace',exact:true}).click(); const file=await dl;
-    const {readFile}=await import('node:fs/promises'); const exported=JSON.parse(await readFile((await file.path())!,'utf8')); expect(exported.workspace).toEqual(result.workspace);
+    const dl=page.waitForEvent('download'); await openSettings(page);await saved(page);await page.getByRole('button',{name:'Export workspace',exact:true}).click(); const file=await dl;
+    const {readFile}=await import('node:fs/promises'); const exported=JSON.parse(await readFile((await file.path())!,'utf8')); result.workspace.preferences.sidebarHidden=false;expect(exported.workspace).toEqual(result.workspace);
     await page.getByLabel('Import workspace backup').setInputFiles({name:'invalid.json',mimeType:'application/json',buffer:Buffer.from('{broken')}); await expect(page.locator('.save-error')).toContainText('Existing data was kept');
     expect((await (await owner.request.get('/api/workspace')).json()).workspace).toEqual(result.workspace);
     page.once('dialog',dialog=>dialog.accept()); const saving=page.waitForResponse(response=>response.url().endsWith('/api/workspace')&&response.request().method()==='PUT');
@@ -131,16 +132,16 @@ test.describe.serial('real authentication, onboarding, planning, and durable own
     const current=await (await owner.request.get('/api/workspace')).json(); expect((await owner.request.put('/api/workspace',{headers:{Origin:'http://localhost:3000'},data:{revision:current.revision,workspace:before.workspace}})).status()).toBe(200); await page.close();
   });
   test('retains unsaved work on a failed save and detects stale tabs', async () => {
-    const page = await owner.newPage(); await page.goto('/app'); await expect(page.getByRole('button', { name: 'New feature', exact: true })).toBeVisible();
+    const page = await owner.newPage(); await page.goto('/app'); await expect(page.getByRole('button', { name: 'Add feature', exact: true })).toBeVisible();
     await page.route('**/api/workspace', async route => { if (route.request().method() === 'PUT') await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Injected test outage' }) }); else await route.continue(); });
-    await page.getByRole('button', { name: 'New feature', exact: true }).click(); await page.getByLabel('Feature name').fill('Keep my unsaved work'); await page.getByRole('button', { name: 'Create feature' }).click();
+    await page.getByRole('button', { name: 'Add feature', exact: true }).click(); await page.getByLabel('Feature name').fill('Keep my unsaved work'); await page.getByRole('button', { name: 'Create feature' }).click();
     await expect(page.locator('.save-bar [role=status]')).toHaveText('Not saved'); await expect(page.locator('.save-error')).toContainText('Injected test outage');
-    const download = page.waitForEvent('download'); await page.locator('.save-bar').getByRole('button', { name: 'Export workspace' }).click(); expect((await download).suggestedFilename()).toMatch(/^orbit-workspace-/);
-    await page.unroute('**/api/workspace'); await page.getByRole('button', { name: 'Retry saving' }).click(); await saved(page);
-    const stale = await owner.newPage(); await stale.goto('/app'); await expect(stale.getByRole('button', { name: 'New feature', exact: true })).toBeVisible();
+    const download = page.waitForEvent('download'); await openSettings(page);await page.getByRole('button', { name: 'Export workspace',exact:true }).click(); expect((await download).suggestedFilename()).toMatch(/^orbit-workspace-/);
+    await page.keyboard.press('Escape');await page.unroute('**/api/workspace'); await page.getByRole('button', { name: 'Retry saving' }).click(); await saved(page);
+    const stale = await owner.newPage(); await stale.goto('/app'); await expect(stale.getByRole('button', { name: 'Add feature', exact: true })).toBeVisible();
     const current = await (await owner.request.get('/api/workspace')).json(); current.workspace.projects[0].name = 'Newer remote changes';
     expect((await owner.request.put('/api/workspace', { headers: { Origin: 'http://localhost:3000' }, data: { workspace: current.workspace, revision: current.revision } })).status()).toBe(200);
-    await stale.getByRole('button', { name: 'New feature', exact: true }).click(); await stale.getByLabel('Feature name').fill('Stale tab edit'); await stale.getByRole('button', { name: 'Create feature' }).click();
+    await stale.getByRole('button', { name: 'Add feature', exact: true }).click(); await stale.getByLabel('Feature name').fill('Stale tab edit'); await stale.getByRole('button', { name: 'Create feature' }).click();
     await expect(stale.locator('.save-bar [role=status]')).toHaveText('Newer changes exist');
     expect((await (await owner.request.get('/api/workspace')).json()).workspace.projects[0].name).toBe('Newer remote changes');
     page.on('dialog', dialog => dialog.accept()); stale.on('dialog', dialog => dialog.accept()); await page.close(); await stale.close();

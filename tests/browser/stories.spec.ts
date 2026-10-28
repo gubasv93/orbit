@@ -67,7 +67,7 @@ test.describe.serial('user stories estimated by team', () => {
     await expect(page.locator(`[data-feature-effort="${feature.id}"]`)).toHaveText('7d effort');
     await page.setViewportSize({ width: 1280, height: 900 });
     await expect(page.locator('.gantt-row:not(.feature)').filter({ hasText: 'Add a specific rule' })).toHaveCount(3);
-    for (const task of tasks) { const bar=page.locator(`.task-bar[data-task="${task.id}"]`); await expect(bar).toBeVisible(); await expect(bar.locator('.bar-role')).toHaveText(roleName(task.platform)); await expect(bar.locator('.bar-platform')).toHaveText(task.platform); await expect(bar).not.toContainText(/\b\d+(?:\.\d+)?d\b/); }
+    for (const task of tasks) { const bar=page.locator(`.task-bar[data-task="${task.id}"]`); await expect(bar).toBeVisible(); await expect(bar.locator('[data-bar-field=title]')).toHaveText('Add a specific rule'); await expect(bar.locator('[data-bar-field=role]')).toHaveText(roleName(task.platform)); await expect(bar).not.toContainText(/\b\d+(?:\.\d+)?d\b/); }
     await page.screenshot({ path: 'test-results/story-team-gantt.png', fullPage: true });
     await page.reload(); await saved(page); expect((await snapshot()).workspace).toEqual(first.workspace);
     await page.close();

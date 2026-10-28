@@ -43,6 +43,8 @@ export const projectDataSchema = z.object({
     autoShiftDependencies: z.boolean().optional(), dependencyGapDays: z.number().int().min(0).max(365).optional(),
     dependencyGapUnit: z.enum(['calendar', 'working']).optional(), dependencyShiftPolicy: z.enum(['push', 'follow']).optional(),
     showDependencyWarnings: z.boolean().optional(),
+    barFields: z.array(z.enum(['title', 'role', 'devEffort', 'calendarEffort', 'assignee'])).max(5)
+      .refine(fields => new Set(fields).size === fields.length, 'Duplicate bar fields').optional(),
   }),
   createdAt: date,
 }).superRefine((data, context) => {

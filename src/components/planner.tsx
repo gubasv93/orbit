@@ -11,6 +11,7 @@ function download(workspace: Workspace) {
 }
 export function Planner() {
   const root = useRef<HTMLDivElement>(null), controller = useRef<Autosave | null>(null);
+  const importInput = useRef<HTMLInputElement>(null);
   const snapshot = useRef<Workspace | null>(null), restore = useRef<((workspace: Workspace) => void) | null>(null);
   const [loaded, setLoaded] = useState<{ workspace: Workspace; revision: number; email: string } | null>(null);
   const [loadError, setLoadError] = useState(''), [saveState, setSaveState] = useState<SaveState>('saved');
@@ -51,6 +52,7 @@ export function Planner() {
         planner = mountPlanner(target, workspace, {
           onChange(next: Workspace) { snapshot.current = next; autosave.update(next); },
           onLogout: logout, onExport() { if (snapshot.current) download(snapshot.current); },
+          onImport() { importInput.current?.click(); }, email: loaded!.email,
         });
       };
       restore.current = workspace => { snapshot.current = workspace; autosave.update(workspace); mount(workspace); };
@@ -75,5 +77,5 @@ export function Planner() {
   if (loadError) return <main className="load-panel"><h1>Unable to load your workspace</h1><p role="alert">{loadError}</p><button className="btn" onClick={() => setLoadAttempt(v => v+1)}>Retry</button><a className="btn" href="/login">Log in</a></main>;
   if (!loaded) return <main className="load-panel" role="status">Loading your workspace…</main>;
   const failed = saveState === 'error' || saveState === 'conflict';
-  return <div className="workspace-shell"><div className={`save-bar ${failed ? 'failed' : ''}`}><span role="status" aria-live="polite">{({ saved: 'Saved to cloud', pending: 'Unsaved changes', saving: 'Saving…', error: 'Not saved', conflict: 'Newer changes exist' })[saveState]}</span><span className="account-email">{loaded.email}</span><button onClick={() => snapshot.current && download(snapshot.current)}>Export workspace</button><label className="import-label">Import workspace<input type="file" accept=".json,application/json" onChange={importBackup} aria-label="Import workspace backup"/></label>{saveState === 'error' && <button onClick={() => void controller.current?.retry()}>Retry saving</button>}{saveState === 'conflict' && <button onClick={() => { if (confirm('Export your unsaved work before reloading. Reload now?')) window.location.reload(); }}>Reload latest</button>}</div>{saveError && <div className="save-error" role="alert">{saveError}</div>}<div className="planner-root" ref={root}/></div>;
+  return <div className="workspace-shell"><div className={`save-bar ${failed ? 'failed' : ''}`}><span role="status" aria-live="polite">{({ saved: 'Saved to cloud', pending: 'Unsaved changes', saving: 'Saving…', error: 'Not saved', conflict: 'Newer changes exist' })[saveState]}</span>{saveState === 'error' && <button onClick={() => void controller.current?.retry()}>Retry saving</button>}{saveState === 'conflict' && <button onClick={() => { if (confirm('Export your unsaved work before reloading. Reload now?')) window.location.reload(); }}>Reload latest</button>}</div>{saveError && <div className="save-error" role="alert">{saveError}</div>}<input ref={importInput} type="file" accept=".json,application/json" onChange={importBackup} aria-label="Import workspace backup" hidden/><div className="planner-root" ref={root}/></div>;
 }
