@@ -29,7 +29,7 @@ describe('preserved scheduling behavior', () => {
     data.meetings = [meeting, { ...meeting, id: 'm2', startTime: '09:30' }];
     const engine = createScheduler(data);
     expect(engine.meetingMinutes('u1', '2026-10-26')).toBe(90);
-    expect(engine.featureCapacity('u1', '2026-10-26')).toBe(0.5);
+    expect(engine.featureCapacity('u1', '2026-10-26')).toBe(0.8125);
   });
   it('supports biweekly and nth/last weekday monthly recurrences', () => {
     const engine = createScheduler(projectData());

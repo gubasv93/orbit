@@ -2,6 +2,7 @@ import type { ProjectData } from '../lib/schema';
 import type { ScheduledTask } from './engine';
 import type { createScheduler } from './engine';
 import { fromDay, asDay, dow } from './dates.js';
+import {halfDay} from './precision.js';
 
 export const timeCategories = [
   ['development', 'Development', '#7870db'], ['meetings', 'Recurring meetings', '#e7c45f'],
@@ -16,6 +17,7 @@ const rounded = (value: number) => Math.round(value * 1e6) / 1e6;
 export function taskTimeBreakdown(task: ProjectData['tasks'][number], scheduled: ScheduledTask, data: ProjectData, engine: Engine) {
   if (scheduled.start === null || scheduled.end === null || scheduled.done || scheduled.hold || scheduled.blocked) return null;
   const slices: { day: number; span: number; parts: Parts }[] = [], totals = empty();
+  let actualMeetingMinutes=0;
   for (let day = scheduled.start; day <= scheduled.end; day++) {
     const date = fromDay(day), parts = empty(), span=day===scheduled.end?(scheduled.endFraction??1):1;
     if (dow(day) === 0 || dow(day) === 6) parts.weekends = span;
@@ -26,14 +28,24 @@ export function taskTimeBreakdown(task: ProjectData['tasks'][number], scheduled:
     }
     else {
       parts.meetings = task.assignee ? Math.min(span,engine.meetingDays(task.assignee, date)) : 0;
+      actualMeetingMinutes += parts.meetings * data.settings.workHours * 60;
       const afterMeetings = Math.max(0, span - parts.meetings);
       parts.development = Math.min(afterMeetings, scheduled.alloc[date] || 0);
     }
     for (const [key] of timeCategories) totals[key] += parts[key];
     slices.push({ day, span, parts });
   }
+  // Round the work item's combined meeting time once. The difference fits in
+  // the final half-day planning slot; never replace allocated development.
+  let padding=halfDay(totals.meetings)-totals.meetings;
+  for(let i=slices.length-1;i>=0&&padding>.000001;i--){
+    const slice=slices[i];if(engine.nonwork(slice.day,task.assignee))continue;
+    const used=Object.values(slice.parts).reduce((sum,value)=>sum+value,0);
+    const reserved=Math.min(padding,Math.max(0,slice.span-used));
+    slice.parts.meetings+=reserved;totals.meetings+=reserved;padding-=reserved;
+  }
   for (const [key] of timeCategories) totals[key] = rounded(totals[key]);
-  return { slices, totals, days: scheduled.end-scheduled.start+(scheduled.endFraction??1), required: task.remaining ?? task.effort, allocated: totals.development, missing: scheduled.shortfall || 0 };
+  return { slices, totals, days: scheduled.end-scheduled.start+(scheduled.endFraction??1), required: task.remaining ?? task.effort, allocated: totals.development, missing: scheduled.shortfall || 0, actualMeetingMinutes:rounded(actualMeetingMinutes) };
 }
 export type TimeBreakdown = NonNullable<ReturnType<typeof taskTimeBreakdown>>;
 
@@ -53,7 +65,7 @@ export function featureTimeBreakdown(start: number, end: number, children: (Time
     for (const [key] of timeCategories) totals[key] += parts[key];
     slices.push({ day, span, parts });
   }
-  return { slices, totals, days: end-start+endFraction, required: active.reduce((sum, child) => sum + child.required, 0), allocated: active.reduce((sum, child) => sum + child.allocated, 0), missing: active.reduce((sum, child) => sum + child.missing, 0) };
+  return { slices, totals, days: end-start+endFraction, required: active.reduce((sum, child) => sum + child.required, 0), allocated: active.reduce((sum, child) => sum + child.allocated, 0), missing: active.reduce((sum, child) => sum + child.missing, 0),actualMeetingMinutes:active.reduce((sum,child)=>sum+child.actualMeetingMinutes,0) };
 }
 
 export function capacityGradient(breakdown: TimeBreakdown) {

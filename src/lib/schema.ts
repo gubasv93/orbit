@@ -10,11 +10,11 @@ export const capacitySchema = z.object({
 }).refine(c => Math.abs(c.feature + c.bugs + c.ongoing + c.ops - 100) < 0.001, 'Capacity must total 100%');
 const feature = z.object({ id, title: text, description: z.string().max(10000).default(''), start: date,
   baseline: date, collapsed: z.boolean().default(false), color,
-  effortOverride: z.number().min(0).max(10_950_000).optional(), manualEnd: date.optional() })
+  effortOverride: z.number().min(0).max(10_950_000).optional(), manualEnd: date.optional(), manualEndFraction: z.union([z.literal(.5),z.literal(1)]).optional() })
   .refine(f => !f.manualEnd || f.manualEnd >= f.start, 'End precedes start')
   .refine(f => !f.manualEnd || Date.parse(f.manualEnd) - Date.parse(f.start) < 3650 * 86400000, 'Date window is too long');
 const task = z.object({ id, featureId: id, title: text, platform: text, assignee: id.or(z.literal('')),
-  roleId: id.optional(), manualEnd: date.optional(),
+  roleId: id.optional(), manualEnd: date.optional(), manualEndFraction: z.union([z.literal(.5),z.literal(1)]).optional(),
   effort: z.number().min(0.1).max(3650), remaining: z.number().min(0).max(3650).optional(), start: date,
   completedDate: date.optional(), status: z.enum(['planned', 'progress', 'hold', 'done']), dependsOn: z.array(id).max(1000) })
   .refine(t => !t.manualEnd || t.manualEnd >= t.start, 'End precedes start')

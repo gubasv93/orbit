@@ -130,10 +130,10 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   data.meetings=[{id:'daily',title:'Daily',recurrence:'workdays',weekday:1,interval:1,nth:1,startDate:'2026-10-26',endDate:'',startTime:'09:00',duration:60,allTeam:true,attendees:[],enabled:true}];
   data.leave=[{id:'sick',person:'u1',type:'sick',from:'2026-10-27',to:'2026-10-27',note:''},{id:'off',person:'u1',type:'vacation',from:'2026-10-30',to:'2026-11-01',note:''}];
   await reset(w);const page=await context.newPage();await page.goto('/app');const bar=page.locator('.task-bar[data-task=t1]');
-  await expect(bar).toHaveAttribute('title',/18 calendar days/);await expect(bar).toHaveAttribute('title',/Recurring meetings: 6d.*Weekends: 4d.*Days off: 1d.*Sick leave: 1d/);
+  await expect(bar).toHaveAttribute('title',/11 calendar days/);await expect(bar).toHaveAttribute('title',/Recurring meetings: 1d.*Weekends: 2d.*Days off: 1d.*Sick leave: 1d/);
   expect(new Set((await bar.locator('.capacity-band').getAttribute('style'))!.match(/#[a-f0-9]{6}/g)).size).toBe(5);
   await page.getByRole('button',{name:'Show sidebar',exact:true}).click();await expect(page.getByRole('button',{name:'Team capacity',exact:true})).toHaveCount(0);
-  await page.locator('.work-name[data-action=drawer-task][data-id=t1]').click();await expect(page.getByLabel('End date')).toHaveValue('2026-11-12');await expect(page.locator('.drawer-content')).toContainText('Sick leave');await page.keyboard.press('Escape');
+  await page.locator('.work-name[data-action=drawer-task][data-id=t1]').click();await expect(page.getByLabel('End date')).toHaveValue('2026-11-05');await expect(page.locator('.drawer-content')).toContainText('Sick leave');await page.keyboard.press('Escape');
   await page.getByRole('button',{name:'General settings',exact:true}).click();await page.getByRole('button',{name:'Manage meetings',exact:true}).click();await expect(page.getByRole('heading',{name:'Recurring meetings',exact:true})).toBeVisible();await expect(page.locator('.meeting-list')).toContainText('Daily');await page.keyboard.press('Escape');await page.screenshot({path:'test-results/full-work-meetings-absences.png',fullPage:true});await page.close();
  });
 
@@ -209,6 +209,79 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   await page.setViewportSize({width:375,height:812});await page.getByRole('button',{name:'Today',exact:true}).scrollIntoViewIfNeeded();await page.getByRole('button',{name:'Today',exact:true}).click();await expect(page.locator('.today-tag')).toBeInViewport();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);const canvas=page.locator('.gantt-canvas'),start=await canvas.getAttribute('data-range-start');await page.locator('#ganttScroller').evaluate(node=>node.scrollLeft=0);await expect(canvas).not.toHaveAttribute('data-range-start',start!);
   await expect(page.locator('[data-row-assignee=t1]')).toBeInViewport();await page.screenshot({path:'test-results/compact-chart-mobile.png',fullPage:true});await page.close();
+ });
+
+ test('resizes work items and epic date windows with half-day ends, keyboard controls and cancellation',async()=>{
+  test.setTimeout(90000);
+  const w=workspace(),data=w.projects[0].data;data.settings.autoShiftDependencies=false;data.tasks[0].assignee='';data.tasks[0].effort=2;
+  await reset(w);const page=await context.newPage();await page.goto('/app');await saved(page);
+  const handle=(kind:string,id:string,edge:string)=>page.locator(`[data-resize-kind=${kind}][data-id=${id}][data-resize-edge=${edge}]`);
+  const drag=async(kind:string,id:string,edge:string,dx:number)=>{const h=handle(kind,id,edge);await h.scrollIntoViewIfNeeded();const box=(await h.boundingBox())!;await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();await page.mouse.move(box.x+box.width/2+dx,box.y+box.height/2,{steps:8});await expect(page.locator('.bar-resize-preview')).toBeVisible();await page.mouse.up();await saved(page);};
+  const original=(await snapshot()).workspace.projects[0].data;
+  await drag('task','t1','end',19);
+  await expect.poll(async()=>(await snapshot()).workspace.projects[0].data.tasks[0].manualEnd).toBe('2026-10-28');
+  let task=(await snapshot()).workspace.projects[0].data.tasks[0];expect(task).toMatchObject({effort:2,start:'2026-10-26',manualEndFraction:.5});
+  await expect(page.locator('.task-bar[data-task=t1]')).toHaveAttribute('title',/2.5 calendar days/);
+  await drag('task','t1','end',-57);await expect(page.locator('.task-bar[data-task=t1]')).toHaveAttribute('title',/1d does not fit/);
+  await handle('task','t1','end').focus();await page.keyboard.press('ArrowLeft');await saved(page);
+  expect((await snapshot()).workspace.projects[0].data.tasks[0]).toMatchObject({effort:2,manualEnd:'2026-10-26',manualEndFraction:.5});
+  await page.keyboard.press('ArrowLeft');await saved(page);await expect(page.locator('.task-bar[data-task=t1]')).toHaveAttribute('title',/0.5 calendar days/);
+  for(let i=0;i<3;i++){await page.keyboard.press('ArrowRight');await saved(page);}
+  await drag('task','t1','start',38);task=(await snapshot()).workspace.projects[0].data.tasks[0];expect(task).toMatchObject({start:'2026-10-27',manualEnd:'2026-10-27',effort:2});
+  const stable=(await snapshot()).workspace.projects[0].data;
+  const h=handle('task','t1','end'),b=(await h.boundingBox())!;await page.mouse.move(b.x+3,b.y+8);await page.mouse.down();await page.mouse.move(b.x+60,b.y+8,{steps:6});await page.keyboard.press('Escape');await page.mouse.up();
+  expect((await snapshot()).workspace.projects[0].data).toEqual(stable);await expect(page.locator('.bar-resize-preview')).toHaveCount(0);
+  await drag('feature','f1','end',19);let current=(await snapshot()).workspace.projects[0].data;expect(current.tasks).toEqual(stable.tasks);expect(current.features[0].manualEndFraction).toBe(.5);
+  await page.reload();await saved(page);await page.locator('.work-name[data-action=drawer-task][data-id=t1]').click();await expect(page.getByLabel('Date mode')).toHaveValue('manual');await expect(page.getByLabel('Start date')).toHaveValue('2026-10-27');
+  await page.getByLabel('Date mode').selectOption('automatic');await saved(page);await page.keyboard.press('Escape');
+  task=(await snapshot()).workspace.projects[0].data.tasks[0];expect(task).not.toHaveProperty('manualEnd');expect(task).not.toHaveProperty('manualEndFraction');expect(task.effort).toBe(2);
+  await page.setViewportSize({width:375,height:812});await page.getByRole('button',{name:'Today',exact:true}).click();await drag('task','t1','end',19);await page.screenshot({path:'test-results/resize-bars-mobile.png',fullPage:true});
+  current=(await snapshot()).workspace.projects[0].data;expect(current.tasks[0].manualEndFraction).toBe(.5);expect(current.tasks.slice(1)).toEqual(original.tasks.slice(1));await page.close();
+ });
+ test('opens recurring meetings directly and shows exact hours with one combined half-day planning reserve',async()=>{
+  const w=workspace(),data=w.projects[0].data;data.settings.autoShiftDependencies=false;data.tasks[0].effort=6;
+  const base={enabled:true,endDate:'',allTeam:true,attendees:[],weekday:1,interval:1,nth:1,startDate:'2026-10-26'};
+  data.meetings=[{...base,id:'daily',title:'Daily 30 minutes',recurrence:'workdays',startTime:'09:00',duration:30},
+   {...base,id:'planning',title:'Weekly planning',recurrence:'weekly',startTime:'10:00',duration:60},
+   {...base,id:'demo',title:'Fortnightly demo',recurrence:'interval',weekday:5,interval:2,startDate:'2026-10-30',startTime:'14:00',duration:60}];
+  await reset(w);const page=await context.newPage();await page.goto('/app');await saved(page);
+  const bar=page.locator('.task-bar[data-task=t1]');await expect(bar).toHaveAttribute('title',/9 calendar days.*Recurring meetings: 1d.*Actual meeting time: 6.5h/);
+  await page.locator('.work-name[data-action=drawer-task][data-id=t1]').click();await expect(page.locator('.meeting-time-summary')).toContainText('6.5h');await expect(page.locator('.meeting-time-summary')).toContainText('Planning reserve: 1d');await page.keyboard.press('Escape');
+  await page.getByRole('button',{name:'Recurring meetings',exact:true}).click();await expect(page.getByRole('heading',{name:'Recurring meetings',exact:true})).toBeVisible();
+  await page.locator('.meeting-item').filter({hasText:'Weekly planning'}).getByRole('button',{name:'Edit',exact:true}).click();await expect(page.getByLabel('Repeat every (weeks)')).toHaveValue('1');
+  await page.getByLabel('Duration (minutes)').fill('30');await page.getByRole('button',{name:'Save changes',exact:true}).click();await saved(page);
+  await page.locator('.dialog-foot').getByRole('button',{name:'Close',exact:true}).click();await expect(bar).toHaveAttribute('title',/Actual meeting time: 5.5h/);
+  await page.getByRole('button',{name:'Recurring meetings',exact:true}).click();
+  for(const title of ['Daily 30 minutes','Weekly planning','Fortnightly demo']){await page.locator('.meeting-item').filter({hasText:title}).getByRole('button',{name:'Enabled',exact:true}).click();await saved(page);}
+  await page.setViewportSize({width:375,height:812});await expect(page.locator('.dialog-feedback')).toBeVisible();const feedback=(await page.locator('.dialog-feedback').boundingBox())!,actions=(await page.locator('.dialog-foot').boundingBox())!;expect(feedback.y+feedback.height).toBeLessThanOrEqual(actions.y);await page.screenshot({path:'test-results/meeting-management-mobile.png',fullPage:true});
+  await page.locator('.dialog-foot').getByRole('button',{name:'Close',exact:true}).click();await expect(bar).toHaveAttribute('title',/8 calendar days/);await expect(bar).not.toHaveAttribute('title',/Recurring meetings:/);
+  await page.reload();await saved(page);await page.getByRole('button',{name:'Recurring meetings',exact:true}).click();await expect(page.getByRole('button',{name:'Paused',exact:true})).toHaveCount(3);await page.close();
+ });
+ test('keeps long labels and controls aligned on desktop, tablet and narrow mobile screens',async()=>{
+  test.setTimeout(90000);
+  const w=workspace(),data=w.projects[0].data;data.settings.autoShiftDependencies=false;
+  w.projects[0].name='A project with a very long name for planning cross-functional product development and releases';
+  data.roles[0].name='Backend developer responsible for configuration and administrator permissions';
+  data.people[0].name='Alexandra Developer With A Very Long Display Name';data.features[0].title+=' with a long descriptive feature name';data.tasks[0].title='A user story with a long descriptive name for administrator configuration';
+  await reset(w);const page=await context.newPage();await page.goto('/app');await saved(page);
+  for(const width of [1440,1100,768,375,320]){
+   await page.setViewportSize({width,height:900});await page.getByRole('button',{name:'Today',exact:true}).click();
+   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+   const app=(await page.locator('.app').boundingBox())!,container=(await page.locator('.planner-root').boundingBox())!;expect(Math.abs(app.height-container.height)).toBeLessThan(1);
+   const chart=(await page.locator('#ganttScroller').boundingBox())!;expect(chart.y+chart.height).toBeLessThanOrEqual(900);
+   const left=(await page.locator('.topbar-start').boundingBox())!,right=(await page.locator('.top-right').boundingBox())!;expect(left.x+left.width).toBeLessThanOrEqual(right.x+1);
+   for(const selector of ['.top-right .btn','.save-bar button','.save-bar .import-label'])for(const element of await page.locator(selector+':visible').all()){const box=(await element.boundingBox())!;expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(width+1);}
+   await page.getByRole('button',{name:'Recurring meetings',exact:true}).click();await page.getByRole('button',{name:'Add meeting',exact:true}).click();await page.getByRole('checkbox',{name:'Entire team'}).uncheck();
+   const person=page.locator('.meeting-person').first();await expect(person).toBeVisible();expect(await page.getByRole('dialog').evaluate(node=>node.scrollWidth<=node.clientWidth)).toBe(true);
+   const check=(await person.locator('input').boundingBox())!,name=(await person.locator('.meeting-person-name').boundingBox())!;expect(check.x+check.width).toBeLessThan(name.x);expect(name.x+name.width).toBeLessThanOrEqual(width);
+   if(width===375)await page.screenshot({path:'test-results/aligned-meeting-attendees-mobile.png',fullPage:true});await page.keyboard.press('Escape');
+   await page.locator('.gantt-corner').getByRole('button',{name:'Add feature',exact:true}).click();await page.getByRole('checkbox',{name:'Include '+data.roles[0].name,exact:true}).check();expect(await page.getByRole('dialog').evaluate(node=>node.scrollWidth<=node.clientWidth)).toBe(true);
+   if(width===375)await page.screenshot({path:'test-results/aligned-story-estimates-mobile.png',fullPage:true});await page.keyboard.press('Escape');
+  }
+  await page.getByRole('button',{name:'Show sidebar',exact:true}).click();
+  for(const selector of ['.project-new','.project-trigger'])expect(await page.locator(selector).evaluate(node=>node.scrollWidth<=node.clientWidth)).toBe(true);
+  for(const pageId of ['team','availability','milestones']){await page.locator(`.nav-item[data-action=page][data-id=${pageId}]`).click();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:`test-results/aligned-${pageId}-mobile.png`,fullPage:true});}
+  await page.close();
  });
 
 });

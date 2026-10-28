@@ -19,18 +19,18 @@ it('renders half-day work and its epic as half a calendar day, with no unused ca
  const parent=result.featureInfo.f1;expect(calendarSpan(parent)).toBe(.5);
  expect(featureTimeBreakdown(parent.start,parent.end!,[breakdown],parent.endFraction)!.days).toBe(.5);
 });
-it('rounds daily quarter-day meetings to a half-day once while retaining exact minutes',()=>{
+it('rounds the combined quarter-day meeting time once while retaining exact daily availability',()=>{
  const data=projectData();data.tasks[0].effort=.5;data.meetings=[{...meeting,duration:60},{...meeting,id:'second',startTime:'11:00',duration:60}];
  const engine=createScheduler(data),info=engine.calculate().schedule.t1;
- expect(engine.meetingMinutes('u1','2026-10-26')).toBe(120);expect(engine.meetingDays('u1','2026-10-26')).toBe(.5);
+ expect(engine.meetingMinutes('u1','2026-10-26')).toBe(120);expect(engine.meetingDays('u1','2026-10-26')).toBe(.25);
  expect(calendarSpan(info)).toBe(1);expect(info.alloc['2026-10-26']).toBe(.5);
  expect(taskTimeBreakdown(data.tasks[0],info,data,engine)!.totals).toMatchObject({development:.5,meetings:.5});
  expect(data.meetings.map(m=>m.duration)).toEqual([60,60]);
 });
-it('unions meeting overlaps before rounding and reserves a full day above a half-day',()=>{
+it('unions meeting overlaps before calculating exact availability',()=>{
  const data=projectData();data.meetings=[{...meeting,duration:180},{...meeting,id:'overlap',startTime:'10:00',duration:120}];
- let engine=createScheduler(data);expect(engine.meetingMinutes('u1','2026-10-26')).toBe(180);expect(engine.meetingDays('u1','2026-10-26')).toBe(.5);
- data.meetings[0].duration=270;engine=createScheduler(data);expect(engine.meetingDays('u1','2026-10-26')).toBe(1);
+ let engine=createScheduler(data);expect(engine.meetingMinutes('u1','2026-10-26')).toBe(180);expect(engine.meetingDays('u1','2026-10-26')).toBe(.375);
+ data.meetings[0].duration=270;engine=createScheduler(data);expect(engine.meetingDays('u1','2026-10-26')).toBe(.5625);
 });
 it('retains weekends and half a final workday in a 1.5-day estimate starting Friday',()=>{
  const data=projectData();data.tasks[0].start='2026-10-30';data.tasks[0].effort=1.5;

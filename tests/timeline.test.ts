@@ -34,9 +34,9 @@ it('separates recurring meetings, weekends, sick leave and days off over the ent
   data.meetings.push({id:'daily',title:'Daily',recurrence:'workdays',weekday:1,interval:1,nth:1,startDate:'2026-10-26',endDate:'',startTime:'09:00',duration:60,allTeam:true,attendees:[],enabled:true});
   data.leave.push({id:'sick',person:'u1',type:'sick',from:'2026-10-27',to:'2026-10-27',note:''},{id:'off',person:'u1',type:'vacation',from:'2026-10-30',to:'2026-11-01',note:''});
   const engine=createScheduler(data),info=engine.calculate().schedule.t1,b=taskTimeBreakdown(data.tasks[0],info,data,engine)!;
-  expect(fromDay(info.end!)).toBe('2026-11-12');expect(b.days).toBe(18);
-  expect(b.totals).toEqual({development:6,meetings:6,weekends:4,holidays:0,timeoff:1,sick:1});
-  expect(Object.values(b.totals).reduce((sum,n)=>sum+n,0)).toBe(18);
+  expect(fromDay(info.end!)).toBe('2026-11-05');expect(b.days).toBe(11);
+  expect(b.totals).toEqual({development:6,meetings:1,weekends:2,holidays:0,timeoff:1,sick:1});
+  expect(Object.values(b.totals).reduce((sum,n)=>sum+n,0)).toBe(11);
   expect(new Set(capacityGradient(b).match(/#[a-f0-9]{6}/g)).size).toBe(5);
   data.settings.observeHolidays=true;data.holidays.push({date:'2026-10-28',name:'Company holiday'});
   const changed=createScheduler(data);expect(taskTimeBreakdown(data.tasks[0],changed.calculate().schedule.t1,data,changed)!.totals.holidays).toBe(1);
