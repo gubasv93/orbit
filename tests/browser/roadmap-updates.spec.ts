@@ -25,7 +25,14 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   expect((await row.boundingBox())!.height).toBeLessThan(72);
   await page.setViewportSize({width:375,height:812});expect(await page.getByRole('dialog').evaluate(node=>node.scrollWidth<=node.clientWidth)).toBe(true);expect((await row.boundingBox())!.height).toBeLessThan(105);
   await page.screenshot({path:'test-results/compact-roles.png',fullPage:true});await page.getByRole('button',{name:'Create feature',exact:true}).click();await saved(page);
-  const data=(await snapshot()).workspace.projects[0].data,created=data.features.find((f:{title:string})=>f.title==='Role-based epic');expect(data.tasks.filter((t:{featureId:string})=>t.featureId===created.id).map((t:{roleId:string;assignee:string})=>[t.roleId,t.assignee])).toEqual([['r1','u1'],['rReview','u2']]);await page.reload();await saved(page);await page.close();
+  const data=(await snapshot()).workspace.projects[0].data,created=data.features.find((f:{title:string})=>f.title==='Role-based epic');expect(data.tasks.filter((t:{featureId:string})=>t.featureId===created.id).map((t:{roleId:string;assignee:string})=>[t.roleId,t.assignee])).toEqual([['r1','u1'],['rReview','u2']]);await page.reload();await saved(page);
+  await page.setViewportSize({width:1280,height:720});
+  for(const task of data.tasks.filter((item:{featureId:string})=>item.featureId===created.id)){
+   const bar=page.locator(`.task-bar[data-task="${task.id}"]`),name=task.roleId==='r1'?'Backend Developer':'Backend Reviewer';
+   await expect(bar.locator('.bar-role')).toHaveText(name);await expect(bar.locator('.bar-platform')).toHaveText('Backend');await expect(bar).not.toContainText(/\b\d+(?:\.\d+)?d\b/);await expect(bar).toHaveAttribute('title',new RegExp('Role: '+name+' · Platform: Backend · '+task.effort+'d effort'));
+  }
+  await expect(page.locator('.task-bar[data-task=t3] .bar-role')).toHaveText('Backend');await expect(page.locator('.task-bar[data-task=t3] .bar-platform')).toHaveCount(0);
+  await page.screenshot({path:'test-results/role-platform-bar-labels.png',fullPage:true});await page.close();
  });
  test('explains six effort days over eight calendar days and synchronizes manual and automatic dates',async()=>{
   await reset();const page=await context.newPage();await page.goto('/app');const bar=page.locator('.task-bar[data-task=t1]');
@@ -269,6 +276,7 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
    const app=(await page.locator('.app').boundingBox())!,container=(await page.locator('.planner-root').boundingBox())!;expect(Math.abs(app.height-container.height)).toBeLessThan(1);
    const chart=(await page.locator('#ganttScroller').boundingBox())!;expect(chart.y+chart.height).toBeLessThanOrEqual(900);
+   const taskBar=page.locator('.task-bar[data-task=t1]'),roleBox=(await taskBar.locator('.bar-role').boundingBox())!,platformBox=(await taskBar.locator('.bar-platform').boundingBox())!,barBox=(await taskBar.boundingBox())!;expect(roleBox.y+roleBox.height).toBeLessThanOrEqual(platformBox.y+.5);expect(platformBox.y+platformBox.height).toBeLessThanOrEqual(barBox.y+barBox.height);await expect(taskBar.locator('.bar-role')).toHaveText(data.roles[0].name);await expect(taskBar.locator('.bar-platform')).toHaveText('Backend');
    const left=(await page.locator('.topbar-start').boundingBox())!,right=(await page.locator('.top-right').boundingBox())!;expect(left.x+left.width).toBeLessThanOrEqual(right.x+1);
    for(const selector of ['.top-right .btn','.save-bar button','.save-bar .import-label'])for(const element of await page.locator(selector+':visible').all()){const box=(await element.boundingBox())!;expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(width+1);}
    await page.getByRole('button',{name:'Recurring meetings',exact:true}).click();await page.getByRole('button',{name:'Add meeting',exact:true}).click();await page.getByRole('checkbox',{name:'Entire team'}).uncheck();
