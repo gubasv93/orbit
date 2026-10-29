@@ -14,6 +14,7 @@ import {resizeWindow,taskResizeEstimate,resizeTask} from './resize';
 import {getItemDetails} from './item-details';
 import {shiftFeatureDates} from './feature-dates';
 import {moveRoadmapItem} from './roadmap-order';
+import {roadmapDeletionPlan,deleteRoadmapItems} from './roadmap-selection';
 import {initializeDependencySettings,pinDependentDates} from './dependency-settings';
 import {taskTimeBreakdown,featureTimeBreakdown,capacityGradient,timeCategories,dependencyPath} from './timeline';
 import {buildStoryWorkItems,workstreamNames,storyWorkItems,storyRoleIds,planStoryRoles} from './stories';
@@ -116,7 +117,7 @@ const dependencyDefaultsMigrated=initializeDependencySettings(data);
 const SCALES={day:{label:'Days',zoom:38,days:91},week:{label:'Weeks',zoom:14,days:224},month:{label:'Months',zoom:5,days:640},quarter:{label:'Quarters',zoom:2.2,days:1150},year:{label:'Years',zoom:1.05,days:2192}};
 let uiPreferences=workspace.preferences||{};
 const initialScale=SCALES[uiPreferences.scale]?uiPreferences.scale:'day';
-let view={page:uiPreferences.page==='capacity'?'timeline':uiPreferences.page||'timeline',scale:initialScale,zoom:SCALES[initialScale].zoom,rangeStart:alignScaleStart(today(),initialScale),days:SCALES[initialScale].days,sidebarHidden:typeof uiPreferences.sidebarHidden==='boolean'?uiPreferences.sidebarHidden:window.innerWidth<=600,filterPeople:[],filterPlatforms:[],filterMenu:null,scaleFocusDate:today(),scrollToStart:true,iteration:data.iterations[0]?.id,drawer:null,modal:null,toast:null,showOnlyRisks:false,drag:null,setupStep:currentProject()?.onboardingStep||0};
+let view={selectionMode:false,selectedFeatureIds:[],selectedTaskIds:[],page:uiPreferences.page==='capacity'?'timeline':uiPreferences.page||'timeline',scale:initialScale,zoom:SCALES[initialScale].zoom,rangeStart:alignScaleStart(today(),initialScale),days:SCALES[initialScale].days,sidebarHidden:typeof uiPreferences.sidebarHidden==='boolean'?uiPreferences.sidebarHidden:window.innerWidth<=600,filterPeople:[],filterPlatforms:[],filterMenu:null,scaleFocusDate:today(),scrollToStart:true,iteration:data.iterations[0]?.id,drawer:null,modal:null,toast:null,showOnlyRisks:false,drag:null,setupStep:currentProject()?.onboardingStep||0};
 function saveUiPreferences(){workspace.preferences={sidebarHidden:view.sidebarHidden,scale:view.scale,page:view.page};persist();}
 function alignScaleStart(date,scale){let d=new Date(asDay(date)*DAY);if(scale==='day'||scale==='week')return monday(date);let year=d.getUTCFullYear(),month=d.getUTCMonth();if(scale==='month')return fromDay(Date.UTC(year,month,1)/DAY);if(scale==='quarter')return fromDay(Date.UTC(year,Math.floor(month/3)*3,1)/DAY);return fromDay(Date.UTC(year,0,1)/DAY)}
 function setScale(scale){if(!SCALES[scale])return;view.scale=scale;view.zoom=SCALES[scale].zoom;view.days=SCALES[scale].days;view.rangeStart=alignScaleStart(view.scaleFocusDate||today(),scale);view.scrollToStart=true;saveUiPreferences();render()}
@@ -143,7 +144,7 @@ function persist(){
 }
 function switchProject(id){
  const project=workspace.projects.find(p=>p.id===id);if(!project)return;
- persist();workspace.activeId=id;data=project.data;data.meetings||=[];migrateTeam();initializeDependencySettings(data);
+ persist();clearRoadmapSelection();workspace.activeId=id;data=project.data;data.meetings||=[];migrateTeam();initializeDependencySettings(data);
  view.page='timeline';view.iteration=data.iterations[0]?.id;view.drawer=null;view.modal=null;view.setupStep=project.onboardingStep||0;view.rangeStart=alignScaleStart(today(),view.scale);view.scaleFocusDate=today();view.scrollToStart=true;view.showOnlyRisks=false;view.filterPeople=[];view.filterPlatforms=[];view.filterMenu=null;
  persist();render();notify('Switched to '+project.name);
 }
@@ -208,6 +209,7 @@ function importSummary(result){
  return 'Copied: '+details.join(' · ');
 }
 function createProject(name,sourceId='',includeTeam=false,includeMeetings=false){
+ clearRoadmapSelection();
  const p={id:uid('proj'),name,data:newProjectData()};workspace.projects.push(p);workspace.activeId=p.id;data=p.data;
  const copied=sourceId?importSetup(sourceId,includeTeam,includeMeetings):null;
  view.page='timeline';view.iteration=data.iterations[0].id;view.drawer=null;view.modal=null;view.setupStep=1;view.rangeStart=monday(today());view.showOnlyRisks=false;
@@ -270,7 +272,7 @@ function hideItemPopup(restoreFocus=false){
  if(previous?.target.isConnected){if(previous.description)previous.target.setAttribute('aria-describedby',previous.description);else previous.target.removeAttribute('aria-describedby');if(restoreFocus){itemPopupDismissed=itemPopupPointer?popupItemTarget(document.elementFromPoint(itemPopupPointer.x,itemPopupPointer.y))?.target||null:null;if(previous.target.tabIndex>=0){itemPopupIgnoreFocus=previous.target;previous.target.focus({preventScroll:true});itemPopupIgnoreFocus=null;}}}
 }
 function queueItemPopup(item,x,keyboard=false){
- if(!item){clearTimeout(itemPopupTimer);itemPopupPending=null;return;}if(view.modal||view.drawer||view.filterMenu||view.drag||view.rowDrag||view.linkDrag||view.linkSource||view.selectedLink)return;
+ if(!item){clearTimeout(itemPopupTimer);itemPopupPending=null;return;}if(view.selectionMode||view.modal||view.drawer||view.filterMenu||view.drag||view.rowDrag||view.linkDrag||view.linkSource||view.selectedLink)return;
  if(item.target===itemPopupIgnoreFocus){itemPopupIgnoreFocus=null;return;}
  if(keyboard)itemPopupDismissed=null;else if(item.target===itemPopupDismissed)return;
  clearTimeout(itemPopupCloseTimer);clearTimeout(itemPopupTimer);if(itemPopup?.target===item.target)return;
@@ -406,11 +408,19 @@ listen(root,'keydown',event=>{
  if(event.shiftKey&&event.target===fields[0]){event.preventDefault();closeFilterMenu(true);}
  else if(!event.shiftKey&&event.target===fields.at(-1)){event.preventDefault();closeFilterMenu();$(kind==='people'?'[data-action="toggle-filter"][data-id="platforms"]':'.timeline-tools button')?.focus({preventScroll:true});}
 });
+function clearRoadmapSelection(exit=true){view.selectedFeatureIds=[];view.selectedTaskIds=[];if(exit)view.selectionMode=false;}
+function currentDeletionPlan(){return roadmapDeletionPlan(data,{featureIds:view.selectedFeatureIds,taskIds:view.selectedTaskIds});}
+function isRoadmapSelected(kind,item){return view.selectionMode&&(kind==='feature'?view.selectedFeatureIds.includes(item.id):view.selectedTaskIds.includes(item.id)||view.selectedFeatureIds.includes(item.featureId));}
+function rowSelectionCheckbox(kind,item){const inherited=kind==='task'&&view.selectedFeatureIds.includes(item.featureId);return `<label class="row-selection"><input type="checkbox" data-row-select="${kind}" data-id="${item.id}" aria-label="Select ${kind==='feature'?'epic':'task'} ${esc(item.title)}${kind==='task'?' · '+esc(taskRole(item)||'No role'):''}" ${isRoadmapSelected(kind,item)?'checked':''} ${inherited?'disabled':''}><span class="visually-hidden">${inherited?'Included with the selected epic':''}</span></label>`;}
+function toggleRoadmapSelection(kind,id){const item=kind==='feature'?getFeature(id):getTask(id);if(!item||kind==='task'&&view.selectedFeatureIds.includes(item.featureId))return;const key=kind==='feature'?'selectedFeatureIds':'selectedTaskIds';view[key]=view[key].includes(id)?view[key].filter(value=>value!==id):[...view[key],id];render();$(`[data-row-select="${kind}"][data-id="${id}"]`)?.focus({preventScroll:true});}
+function visibleRoadmapFeatures(){return data.features.filter(f=>(!view.showOnlyRisks||computed.featureInfo[f.id].atRisk)&&(!isFiltered()||matchingTasks(f.id).length));}
+function visibleRoadmapTasks(){return visibleRoadmapFeatures().flatMap(f=>f.collapsed?[]:matchingTasks(f.id));}
+function selectionToolbar(){if(!view.selectionMode)return '';const plan=currentDeletionPlan();return `<div class="bulk-selection-toolbar" role="region" aria-label="Roadmap selection"><span role="status">${plan.total?`${plan.features.length?plan.features.length+' epic'+(plan.features.length===1?'':'s')+' · ':''}${plan.tasks.length} work item${plan.tasks.length===1?'':'s'} selected`:'Select rows to delete'}</span><div class="bulk-selection-actions"><button class="mini-btn" data-action="select-visible-items" aria-label="Select visible work items" ${!visibleRoadmapTasks().length?'disabled':''}>Select visible tasks</button><button class="mini-btn" data-action="clear-roadmap-selection" ${!plan.total?'disabled':''}>Clear</button><button class="btn sm danger" data-action="bulk-delete" ${!plan.total?'disabled':''}>${icon('trash',13)} Delete selected</button></div></div>`;}
 function timelineView(){const filtered=isFiltered();
  return `<section class="card board"><h1 class="visually-hidden">Product roadmap</h1><div class="board-toolbar timeline-toolbar">
  <div class="timeline-filters"><span class="section-label">Timeline</span>${filterTrigger('people')}${filterTrigger('platforms')}${filtered?`<button class="clear-filters" data-action="clear-filters" aria-label="Clear filters" title="Clear all filters">${icon('close',13)}<span>Clear filters</span></button>`:''}</div>
- <div class="timeline-tools"><button class="btn sm icon-only" data-action="prev" title="Earlier">${icon('chevronleft')}</button><button class="btn sm" data-action="today">Today</button><button class="btn sm icon-only" data-action="next" title="Later">${icon('chevron')}</button><label class="scale-picker">View <select data-change="scale" aria-label="Timeline scale">${Object.entries(SCALES).map(([key,scale])=>`<option value="${key}" ${view.scale===key?'selected':''}>${scale.label}</option>`).join('')}</select></label><button class="icon-action risk-action ${view.showOnlyRisks?'selected':''}" data-action="riskfilter" title="Only at-risk features" aria-label="Only at-risk features">${icon('warning',16)}</button></div>
- </div>${renderGantt()}</section>`;
+ <div class="timeline-tools"><button class="btn sm selection-toggle ${view.selectionMode?'is-active':''}" data-action="toggle-selection" aria-pressed="${view.selectionMode}" aria-label="${view.selectionMode?'Finish selecting items':'Select items'}" title="${view.selectionMode?'Finish selecting items':'Select items'}">${icon('check',14)}<span>${view.selectionMode?'Done':'Select items'}</span></button><button class="btn sm icon-only" data-action="prev" title="Earlier">${icon('chevronleft')}</button><button class="btn sm" data-action="today">Today</button><button class="btn sm icon-only" data-action="next" title="Later">${icon('chevron')}</button><label class="scale-picker">View <select data-change="scale" aria-label="Timeline scale">${Object.entries(SCALES).map(([key,scale])=>`<option value="${key}" ${view.scale===key?'selected':''}>${scale.label}</option>`).join('')}</select></label><button class="icon-action risk-action ${view.showOnlyRisks?'selected':''}" data-action="riskfilter" title="Only at-risk features" aria-label="Only at-risk features">${icon('warning',16)}</button></div>
+ </div>${selectionToolbar()}${renderGantt()}</section>`;
 }
 function isFiltered(){return Boolean(view.filterPeople.length||view.filterPlatforms.length)}
 function matchingTasks(featureId){return data.tasks.filter(t=>t.featureId===featureId&&(!view.filterPeople.length||view.filterPeople.includes(t.assignee))&&(!view.filterPlatforms.length||view.filterPlatforms.includes(t.platform)))}
@@ -432,7 +442,7 @@ function headings(){let start=asDay(view.rangeStart),days=view.days,scale=view.s
  else if(scale==='month')header=timeBand(grouping(start,days,'year'),'upper')+timeBand(grouping(start,days,'month'),'lower');
  else if(scale==='quarter')header=timeBand(grouping(start,days,'year'),'upper')+timeBand(grouping(start,days,'quarter'),'lower');
  else header=timeBand(grouping(start,days,'decade'),'upper')+timeBand(grouping(start,days,'year'),'lower');
- return `<div class="gantt-header scale-${scale}"><div class="gantt-corner"><div><strong>FEATURE / WORK ITEM</strong><small>${isFiltered()?'Filtered view':data.tasks.length+' work items'}</small></div><button class="table-add-feature" data-action="open-feature">${icon('plus',13)} Add feature</button></div><div class="calendar-head" style="width:${days*cell}px">${header}</div></div>`;
+ return `<div class="gantt-header scale-${scale}"><div class="gantt-corner"><div><strong>FEATURE / WORK ITEM</strong><small>${isFiltered()?'Filtered view':data.tasks.length+' work items'}</small></div><button class="table-add-feature" data-action="open-feature" ${view.selectionMode?'disabled':''}>${icon('plus',13)} Add feature</button></div><div class="calendar-head" style="width:${days*cell}px">${header}</div></div>`;
 }
 function leftPct(n){return (n-asDay(view.rangeStart))*view.zoom}
 function widthSpan(start,end,fraction=1){return Math.max(2,(end-start+fraction)*view.zoom)}
@@ -448,7 +458,7 @@ function shades(pid){let start=asDay(view.rangeStart),end=start+view.days,cell=v
  }
  return out;
 }
-function rowGrip(kind,item){return `<button class="row-grip" data-action="move-row-menu" data-row-drag="${kind}" data-id="${item.id}" aria-label="Move ${esc(item.title)}${kind==='task'?' · '+esc(roleById(item.roleId)?.name||item.platform):''}" title="Drag to reorder${kind==='task'?' or change parent epic':''}. Click for move options.">${icon('grip',13)}</button>`}
+function rowGrip(kind,item){if(view.selectionMode)return rowSelectionCheckbox(kind,item);return `<button class="row-grip" data-action="move-row-menu" data-row-drag="${kind}" data-id="${item.id}" aria-label="Move ${esc(item.title)}${kind==='task'?' · '+esc(roleById(item.roleId)?.name||item.platform):''}" title="Drag to reorder${kind==='task'?' or change parent epic':''}. Click for move options.">${icon('grip',13)}</button>`}
 function movePositionOptions(kind,id,parentId){
  const rows=kind==='feature'?data.features:data.tasks.filter(t=>t.featureId===parentId);
  return rows.filter(item=>item.id!==id).map(item=>`<option value="${item.id}">Before ${esc(item.title)}${kind==='task'?' · '+esc(roleById(item.roleId)?.name||item.platform):''}</option>`).join('')+'<option value="" selected>At the end</option>';
@@ -507,7 +517,7 @@ function featureRow(f,visibleCount=null){let info=computed.featureInfo[f.id],tas
  let bar='';if(info.end!==null){let l=leftPct(info.start),w=widthSpan(info.start,info.end,info.endFraction??1);bar=`<div class="feature-bar ${noTimeMix?'no-time-mix':''} ${w<64?'narrow-bar':''} ${info.atRisk?'risk':''} ${count===0?'empty':''} ${info.pausedCount?'has-paused':''}" style="left:${l}px;width:${w}px;--color:${f.color}" data-feature="${f.id}" tabindex="0" role="button" aria-label="Move epic ${esc(f.title)}" data-action="drawer-feature" data-id="${f.id}" data-item-summary="${esc(f.title)} · ${esc(effortText)} · ${info.end!==null?calendarSpan(info):0} calendar days · ${noTimeMix?'No scheduled work inside this date window':'Color proportions show accounted time across active work items'}">${capacityBand(mix)}${info.pausedCount?`<span class="epic-paused-marker" role="img" aria-label="${info.pausedCount} paused work item${info.pausedCount===1?'':'s'}">${icon('pause',11)}<span>${info.pausedCount}</span></span>`:''}${!info.allDone?resizeHandles('feature',f):''}${barLabel(f.title,uniqueLabels(taskList.map(taskRole)),info.needsEstimate&&!effort.manual?null:effort.total,calendarSpan(info),uniqueLabels(taskList.map(t=>personFullName(t.assignee))))}</div>`}
  else if(!count){let l=leftPct(info.start),w=widthSpan(info.start,asDay(f.baseline));bar=`<div class="feature-bar empty" style="left:${l}px;width:${w}px" data-action="open-story" data-id="${f.id}" data-item-summary="Add user story">+ Add user story · target ${dmy(f.baseline)}</div>`}
  else if(info.blocked)bar=`<div class="bar-placeholder ${info.pausedCount?'has-paused':''}" style="left:${Math.max(0,leftPct(info.start))}px">${icon(info.needsEstimate?'info':'pause',13)} ${info.needsEstimate?'Add estimates to forecast':'Awaiting resumption · TBD'}</div>`;
- return `<div class="gantt-row feature" data-row-feature="${f.id}"><div class="meta">${rowGrip('feature',f)}<button class="chevron" data-action="collapse" data-id="${f.id}" title="Collapse / expand">${icon(f.collapsed?'chevron':'chevrondown',14)}</button><span class="feature-icon" style="background:${f.color}1d;color:${f.color}">${icon('grid',15)}</span><div class="work-name" data-action="drawer-feature" data-id="${f.id}"><strong>${esc(f.title)}</strong><small data-item-summary="${String(effort.total)} work days of effort${effort.manual?' (manual estimate)':' from work items'} · Baseline ${dmy(f.baseline)}">${visibleCount!==null?`${visibleCount} of ${count} tasks`:`${count} tasks`} · <span data-feature-effort="${f.id}">${esc(effortText)}</span>${info.end!==null?` · ${calendarSpan(info)}d calendar`: ""} · Baseline ${dmy(f.baseline)}</small></div>${pills}<span class="meta-mini">${text}</span><button class="more-button story-add-button" data-action="open-story" data-id="${f.id}" data-item-summary="Add user story" aria-label="Add user story to ${esc(f.title)}">${icon('plus',14)}</button></div><div class="track">${shades(null)}${bar}</div></div>`}
+ return `<div class="gantt-row feature ${isRoadmapSelected('feature',f)?'row-selected':''}" data-row-feature="${f.id}"><div class="meta">${rowGrip('feature',f)}<button class="chevron" data-action="collapse" data-id="${f.id}" title="Collapse / expand">${icon(f.collapsed?'chevron':'chevrondown',14)}</button><span class="feature-icon" style="background:${f.color}1d;color:${f.color}">${icon('grid',15)}</span><div class="work-name" data-action="drawer-feature" data-id="${f.id}"><strong>${esc(f.title)}</strong><small data-item-summary="${String(effort.total)} work days of effort${effort.manual?' (manual estimate)':' from work items'} · Baseline ${dmy(f.baseline)}">${visibleCount!==null?`${visibleCount} of ${count} tasks`:`${count} tasks`} · <span data-feature-effort="${f.id}">${esc(effortText)}</span>${info.end!==null?` · ${calendarSpan(info)}d calendar`: ""} · Baseline ${dmy(f.baseline)}</small></div>${pills}<span class="meta-mini">${text}</span><button class="more-button story-add-button" data-action="open-story" data-id="${f.id}" data-item-summary="Add user story" aria-label="Add user story to ${esc(f.title)}">${icon('plus',14)}</button></div><div class="track">${shades(null)}${bar}</div></div>`}
 const BAR_FIELDS=[['title','Name'],['role','Role'],['devEffort','Estimate'],['calendarEffort','Calendar effort'],['assignee','Assignee full name']];
 function barFields(){return data.settings.barFields??['title','role'];}
 function personFullName(id){const person=getPerson(id);return person?[person.firstName,person.lastName].filter(Boolean).join(' ').trim()||person.name:'Unassigned';}
@@ -529,7 +539,7 @@ function fitBarLabels(scope=root){
   }
  });
 }
-function inlineAssignee(t){const label=`Assignee for ${t.title} · ${roleById(t.roleId)?.name||t.platform||'Not set'}`;return `<label class="inline-assignee" title="${esc(label+' · '+(getPerson(t.assignee)?.name||'Unassigned'))}">${personAvatar(t.assignee)}${icon('chevrondown',9)}<select data-row-assignee="${t.id}" aria-label="${esc(label)}"><option value="">Unassigned</option>${matchingAssignees(data,t).map(person=>`<option value="${person.id}" ${person.id===t.assignee?'selected':''}>${esc(person.name)}</option>`).join('')}</select></label>`}
+function inlineAssignee(t){const label=`Assignee for ${t.title} · ${roleById(t.roleId)?.name||t.platform||'Not set'}`;return `<label class="inline-assignee" title="${esc(label+' · '+(getPerson(t.assignee)?.name||'Unassigned'))}">${personAvatar(t.assignee)}${icon('chevrondown',9)}<select data-row-assignee="${t.id}" ${view.selectionMode?'disabled':''} aria-label="${esc(label)}"><option value="">Unassigned</option>${matchingAssignees(data,t).map(person=>`<option value="${person.id}" ${person.id===t.assignee?'selected':''}>${esc(person.name)}</option>`).join('')}</select></label>`}
 function taskRow(t){let info=computed.schedule[t.id],mix=taskBreakdown(t),conf=computed.conflicts[t.id]||[],none=!t.assignee;
  const role=roleById(t.roleId),assignmentLabel=role?`Role: ${role.name} · Platform: ${t.platform}`:`Platform: ${t.platform}`;
  let timing=computed.dependencyConflicts[t.id]||[];let status=t.status==='hold'?'hold':info.blocked?'blocked':t.status==='done'?'done':'';
@@ -539,7 +549,7 @@ function taskRow(t){let info=computed.schedule[t.id],mix=taskBreakdown(t),conf=c
  let helper=t.status==='hold'?'Paused':info.needsEstimate?'Needs estimate':info.blocked?'Blocked':info.end!==null?dmy(fromDay(info.end)):'—';
  let circle=t.status==='done'?`<span class="status-circle done">${icon('check',10)}</span>`:t.status==='hold'?`<span class="status-circle hold">${icon('pause',10)}</span>`:`<span class="status-circle ${t.status==='progress'?'progress':''}"></span>`;
  let bad=conf.length?`<span title="Conflicting capacity on ${conf.length} day(s)" style="color:#e27f8e">${icon('warning',13)}</span>`:'';
- return `<div class="gantt-row" data-row-task="${t.id}" data-parent-feature="${t.featureId}"><div class="meta">${rowGrip('task',t)}<span class="task-indent"></span>${circle}<div class="work-name" data-action="drawer-task" data-id="${t.id}"><strong>${esc(t.title)}</strong><small>${esc(roleById(t.roleId)?.name||t.platform||'No role')} · ${t.effort===0?'Not estimated':String(t.effort)+'d effort'}${info.end!==null?` · ${calendarSpan(info)}d calendar`: ""} ${t.dependsOn?.length?' · '+t.dependsOn.length+' dep.':''}</small></div>${bad}${inlineAssignee(t)}<span class="meta-mini">${helper}</span><button class="more-button" data-action="drawer-task" data-id="${t.id}" data-item-summary="Edit task">${icon('more',15)}</button></div><div class="track">${shades(t.assignee)}${view.scale==='day'||view.scale==='week'?conf.map(s=>`<div class="shade overload" style="left:${leftPct(asDay(s))}px;width:${view.zoom}px" title="Overbooked: ${s}"></div>`).join(''):''}${bar}${info.needsEstimate?'':dependencyHandles(t,l,width)}</div></div>`}
+ return `<div class="gantt-row ${isRoadmapSelected('task',t)?'row-selected':''}" data-row-task="${t.id}" data-parent-feature="${t.featureId}"><div class="meta">${rowGrip('task',t)}<span class="task-indent"></span>${circle}<div class="work-name" data-action="drawer-task" data-id="${t.id}"><strong>${esc(t.title)}</strong><small>${esc(roleById(t.roleId)?.name||t.platform||'No role')} · ${t.effort===0?'Not estimated':String(t.effort)+'d effort'}${info.end!==null?` · ${calendarSpan(info)}d calendar`: ""} ${t.dependsOn?.length?' · '+t.dependsOn.length+' dep.':''}</small></div>${bad}${inlineAssignee(t)}<span class="meta-mini">${helper}</span><button class="more-button" data-action="drawer-task" data-id="${t.id}" data-item-summary="Edit task">${icon('more',15)}</button></div><div class="track">${shades(t.assignee)}${view.scale==='day'||view.scale==='week'?conf.map(s=>`<div class="shade overload" style="left:${leftPct(asDay(s))}px;width:${view.zoom}px" title="Overbooked: ${s}"></div>`).join(''):''}${bar}${info.needsEstimate?'':dependencyHandles(t,l,width)}</div></div>`}
 function resizeHandles(kind,item){return ['start','end'].map(edge=>`<button class="bar-resize-handle ${edge}" data-action="resize-bar" data-resize-kind="${kind}" data-resize-edge="${edge}" data-id="${item.id}" aria-label="Resize ${edge} of ${esc(item.title)}" title="Drag to resize ${edge}. Arrow keys also resize; Escape cancels."></button>`).join('')}
 function dependencyHandles(t,left,width){return `<button class="dependency-handle from" style="left:${left+width+2}px" data-action="link-from" data-id="${t.id}" aria-label="Connect from ${esc(t.title)} · ${esc(t.platform)}" title="Drag to a dependent work item">○</button><button class="dependency-handle to" style="left:${Math.max(2,left-12)}px" data-link-anchor="${left}" data-action="link-to" data-id="${t.id}" aria-label="Connect to ${esc(t.title)} · ${esc(t.platform)}" title="Link a predecessor; date movement follows General settings">○</button>`}
 function addMapDependency(sourceId,targetId){
@@ -560,7 +570,7 @@ function drawDependencyLines(){
  svg.setAttribute('viewBox',`0 0 ${width} ${height}`);svg.style.width=width+'px';svg.style.height=height+'px';
  const anchors=new Map();$$('.task-bar[data-task]').forEach(bar=>{const rect=bar.getBoundingClientRect();anchors.set(bar.dataset.task,{left:rect.left-base.left,right:rect.right-base.left,y:rect.top-base.top+rect.height/2});});
  let html=`<defs><marker id="orbit-arrowhead" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 z" fill="#8376c9"/></marker><marker id="orbit-arrowhead-warning" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 z" fill="#c78a34"/></marker><clipPath id="orbit-link-clip"><rect x="${meta}" y="0" width="${width-meta}" height="${height}"/></clipPath></defs><g clip-path="url(#orbit-link-clip)">`;
- for(const target of data.tasks){const end=anchors.get(target.id);if(!end)continue;for(const id of target.dependsOn||[]){const start=anchors.get(id);if(!start)continue;const warning=(computed.dependencyConflicts[target.id]||[]).includes(id);const selected=view.selectedLink?.from===id&&view.selectedLink?.to===target.id;html+=`<path class="dependency-edge ${warning?'timing-warning':''} ${selected?'selected':''}" data-dependency-edge data-action="select-link" data-from="${id}" data-to="${target.id}" d="${dependencyPath({x:start.right+3,y:start.y},{x:end.left-3,y:end.y})}" marker-end="url(#${warning?'orbit-arrowhead-warning':'orbit-arrowhead'})" fill="none" tabindex="0" role="button" aria-label="Dependency: ${esc(getTask(id)?.title)} → ${esc(target.title)}"/>`;}}
+ for(const target of data.tasks){const end=anchors.get(target.id);if(!end)continue;for(const id of target.dependsOn||[]){const start=anchors.get(id);if(!start)continue;const warning=(computed.dependencyConflicts[target.id]||[]).includes(id);const selected=view.selectedLink?.from===id&&view.selectedLink?.to===target.id;html+=`<path class="dependency-edge ${warning?'timing-warning':''} ${selected?'selected':''}" data-dependency-edge data-action="select-link" data-from="${id}" data-to="${target.id}" d="${dependencyPath({x:start.right+3,y:start.y},{x:end.left-3,y:end.y})}" marker-end="url(#${warning?'orbit-arrowhead-warning':'orbit-arrowhead'})" fill="none" tabindex="${view.selectionMode?-1:0}" role="button" aria-label="Dependency: ${esc(getTask(id)?.title)} → ${esc(target.title)}"/>`;}}
  const drag=view.linkDrag,source=anchors.get(drag?.source||view.linkSource);if(drag&&source)html+=`<path class="dependency-preview" d="${dependencyPath({x:source.right+3,y:source.y},{x:drag.x-base.left,y:drag.y-base.top})}" fill="none"/>`;
  html+='</g>';const holder=document.createElement('div');holder.innerHTML=sanitizeMarkup(`<svg xmlns="http://www.w3.org/2000/svg">${html}</svg>`);const safe=holder.querySelector('svg');svg.replaceChildren(...(safe?[...safe.childNodes]:[]));
 }
@@ -570,11 +580,11 @@ function ganttOverlay(){let arr=[],range=asDay(view.rangeStart),max=range+view.d
  arr.push(`<div class="milestone-line ${missed?'risk':''}" style="left:${x};border-color:${missed?'#ed7d89':m.color}"></div><button class="milestone-pin ${missed?'risk':''}" style="left:${x}" data-action="drawer-milestone" data-id="${m.id}" title="${esc(m.title)} · ${fullD(m.date)} · Drag to move">${icon('flag',11)} <span>${esc(m.title)}</span></button>`)}
  return arr.join('')}
 function renderGantt(){
- let list=data.features.filter(f=>(!view.showOnlyRisks||computed.featureInfo[f.id].atRisk)&&(!isFiltered()||matchingTasks(f.id).length));
+ let list=visibleRoadmapFeatures();
  let rows=list.flatMap(f=>{let tasks=matchingTasks(f.id);return [featureRow(f,isFiltered()?tasks.length:null),...(f.collapsed?[]:tasks.map(taskRow))]});
  let filtered=isFiltered()||view.showOnlyRisks;
  let empty=`<div class="empty-message"><h3>${filtered?'No matching work items':'Your roadmap is ready'}</h3><p>${filtered?'Try clearing the filters or choosing another team member.':'Create your first feature to begin planning.'}</p>${isFiltered()?'<button class="btn sm" data-action="clear-filters">Clear filters</button>':''}</div>`;
- return `<div class="gantt-scroller" id="ganttScroller" tabindex="0" role="region" aria-label="Roadmap timeline. Scroll left or right to browse dates."><div class="gantt-canvas scale-${view.scale}" data-range-start="${view.rangeStart}" data-range-days="${view.days}" style="--total-days:${view.days};--cell:${view.zoom}px;min-width:calc(var(--meta-w) + ${view.days*view.zoom}px)">${headings()}${rows.join('')||empty}${ganttOverlay()}<svg class="dependency-layer" aria-label="Work item dependencies"></svg></div></div>${capacityLegend()}${view.linkSource?'<div class="map-link-notice" role="status">Choose a target connector. Escape cancels.</div>':''}${view.selectedLink?'<button class="map-link-remove btn sm danger" data-action="remove-link">Remove selected dependency</button>':''}`;
+ return `<div class="gantt-scroller" id="ganttScroller" tabindex="0" role="region" aria-label="Roadmap timeline. Scroll left or right to browse dates."><div class="gantt-canvas scale-${view.scale} ${view.selectionMode?'selecting':''}" data-range-start="${view.rangeStart}" data-range-days="${view.days}" style="--total-days:${view.days};--cell:${view.zoom}px;min-width:calc(var(--meta-w) + ${view.days*view.zoom}px)">${headings()}${rows.join('')||empty}${ganttOverlay()}<svg class="dependency-layer" aria-label="Work item dependencies"></svg></div></div>${capacityLegend()}${view.linkSource?'<div class="map-link-notice" role="status">Choose a target connector. Escape cancels.</div>':''}${view.selectedLink?'<button class="map-link-remove btn sm danger" data-action="remove-link">Remove selected dependency</button>':''}`;
 }
 function teamView(){
  return `<div class="team-layout">
@@ -600,7 +610,10 @@ function milestoneInspector(m){let risk=(m.featureIds||[]).map(id=>({f:getFeatur
 function modalMarkup(){if(!view.modal)return '';let m=view.modal,content='',title='',subtitle='',footer='',wide=false;
  const dismiss=`<button type="button" class="btn" data-action="close-modal">Cancel</button>`;
  const submit=(name)=>`${dismiss}<button type="submit" class="btn primary">${icon('check')} ${name}</button>`;
- if(m.type==='move-row'){
+ if(m.type==='bulk-delete'){
+ const plan=currentDeletionPlan();title='Delete selected items?';subtitle=`${plan.features.length} epic${plan.features.length===1?'':'s'} and ${plan.tasks.length} work item${plan.tasks.length===1?'':'s'}.`;
+ content=`<form id="modalForm" data-form="bulk-delete">${plan.features.length?'<div class="notice warn">Selected epics include all their work items, including collapsed or filtered items.</div>':''}<ul class="bulk-delete-list" aria-label="Items to delete">${plan.features.map(f=>`<li><strong>${esc(f.title)}</strong><small>Epic</small></li>`).join('')}${plan.tasks.map(t=>`<li><strong>${esc(t.title)}</strong><small>${esc([taskRole(t),getFeature(t.featureId)?.title].filter(Boolean).join(' · '))}</small></li>`).join('')}</ul><div class="dialog-foot">${dismiss}<button type="submit" class="btn danger" ${!plan.total?'disabled':''}>Delete ${plan.total} item${plan.total===1?'':'s'}</button></div></form>`;
+ }else if(m.type==='move-row'){
  const item=m.kind==='feature'?getFeature(m.id):getTask(m.id);if(!item)return '';
  title='Move item';subtitle=m.kind==='feature'?'The epic moves with all its work items. Dates stay unchanged.':'Choose the parent epic and position. Dates, estimates and dependencies stay unchanged.';
  content=`<form id="modalForm" data-form="move-row"><p class="panel-sub">${esc(item.title)}</p>${m.kind==='task'?selectField('Parent epic','moveParent',data.features.map(f=>[f.id,f.title]),item.featureId):''}<div class="field"><label for="movePosition">Position</label><select id="movePosition" name="movePosition">${movePositionOptions(m.kind,m.id,item.featureId)}</select></div><div class="dialog-foot">${submit('Move item')}</div></form>`;
@@ -759,7 +772,7 @@ listen(document,'keydown',event=>{
  else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}
 });
 
-function render(){hideItemPopup();cancelAnimationFrame(panFrame);if(!workspace.projects.length){$('#orbit-canvas').innerHTML=sanitizeMarkup(welcomeMarkup()+modalMarkup());accessibility();return;}computed=calcSchedule();timeBreakdowns.clear();let scroll=$('#ganttScroller'),left=scroll?.scrollLeft||0,top=scroll?.scrollTop||0;
+function render(){view.selectedFeatureIds=view.selectedFeatureIds.filter(id=>getFeature(id));view.selectedTaskIds=view.selectedTaskIds.filter(id=>getTask(id));hideItemPopup();cancelAnimationFrame(panFrame);if(!workspace.projects.length){$('#orbit-canvas').innerHTML=sanitizeMarkup(welcomeMarkup()+modalMarkup());accessibility();return;}computed=calcSchedule();timeBreakdowns.clear();let scroll=$('#ganttScroller'),left=scroll?.scrollLeft||0,top=scroll?.scrollTop||0;
  if(!scroll&&view.page==='timeline')view.scrollToStart=true;
  if(view.scrollToStart)Object.assign(view,timelineWindow(view.scaleFocusDate||today(),SCALES[view.scale].days,view.zoom,Math.max(1,root.clientWidth-200)));
  let content=view.page==='timeline'?timelineView():view.page==='availability'?availabilityView():view.page==='team'?teamView():milestoneView();
@@ -774,11 +787,13 @@ function render(){hideItemPopup();cancelAnimationFrame(panFrame);if(!workspace.p
 function change(mutator,notif){mutator();persist();render();if(notif)notify(notif)}
 function openModal(type,extras={}){view.filterMenu=null;view.linkSource=null;view.linkDrag=null;view.selectedLink=null;view.modal={type,...extras};render();const f=$('#modalForm input[autofocus]');if(f)f.focus()}
 function openDrawer(type,id){view.filterMenu=null;view.linkSource=null;view.linkDrag=null;view.selectedLink=null;view.drawer={type,id};view.modal=null;render()}
-function closeModal(){view.modal=null;render()}
+function closeModal(){const bulk=view.modal?.type==='bulk-delete';view.modal=null;render();if(bulk)$('[data-action=bulk-delete]')?.focus({preventScroll:true});}
 function closeDrawer(){view.drawer=null;render()}
 function deleteDependency(id){data.tasks.forEach(t=>t.dependsOn=(t.dependsOn||[]).filter(x=>x!==id))}
 function applyForm(form){let m=view.modal;const F=new FormData(form),g=k=>F.get(k);if(!m)return;
- if(m.type==='move-row'){
+ if(m.type==='bulk-delete'){
+  change(()=>{deleteRoadmapItems(data,{featureIds:view.selectedFeatureIds,taskIds:view.selectedTaskIds});clearRoadmapSelection();view.modal=null;view.drawer=null;view.linkSource=null;view.linkDrag=null;view.selectedLink=null;},'Selected items deleted');$('[data-action=toggle-selection]')?.focus({preventScroll:true});
+ }else if(m.type==='move-row'){
  const parent=String(g('moveParent')||''),before=String(g('movePosition')||'');
  let move;
  if(m.kind==='task')move={kind:'task',id:m.id,targetKind:before?'task':'feature',targetId:before||parent,placement:before?'before':'inside'};
@@ -902,7 +917,8 @@ listen(root,'click',e=>{
  let el=e.target.closest('[data-action]');if(!el)return;
  let action=el.dataset.action,id=el.dataset.id;
  // Filters remain usable immediately after a map drag or its cancellation.
- if(Date.now()-lastDragAt<260&&!['toggle-filter','clear-filter','close-filter','clear-filters','toggle-item-conflicts','close-item-popup','popup-open-details'].includes(action))return;
+ if(Date.now()-lastDragAt<260&&!['toggle-filter','clear-filter','close-filter','clear-filters','toggle-item-conflicts','close-item-popup','popup-open-details','toggle-selection','select-visible-items','clear-roadmap-selection','bulk-delete'].includes(action))return;
+ if(view.selectionMode&&(['drawer-task','drawer-feature'].includes(action)&&el.closest('.gantt-row')||action==='open-story'&&el.matches('.feature-bar'))){toggleRoadmapSelection(action==='drawer-task'?'task':'feature',id);return;}
  if(view.linkSource&&action==='drawer-task'){addMapDependency(view.linkSource,id);return;}
  if(action==='modal-backdrop'&&e.target!==el)return;
  switch(action){
@@ -913,6 +929,10 @@ listen(root,'click',e=>{
  case 'export-workspace':callbacks.onExport();break;
  case 'import-workspace':callbacks.onImport();break;
  case 'noop':break;
+ case 'toggle-selection':if(view.selectionMode)clearRoadmapSelection();else {view.selectionMode=true;view.drawer=null;view.linkSource=null;view.linkDrag=null;view.selectedLink=null;}render();$('[data-action=toggle-selection]')?.focus({preventScroll:true});break;
+ case 'clear-roadmap-selection':clearRoadmapSelection(false);render();$('.bulk-selection-actions button:not([disabled]),[data-action=toggle-selection]')?.focus({preventScroll:true});break;
+ case 'select-visible-items':view.selectedTaskIds=[...new Set([...view.selectedTaskIds,...visibleRoadmapTasks().map(t=>t.id)])];render();$('[data-action=select-visible-items]')?.focus({preventScroll:true});break;
+ case 'bulk-delete':if(currentDeletionPlan().total)openModal('bulk-delete');break;
  case 'resize-bar':openDrawer(el.dataset.resizeKind,id);break;
  case 'link-from':view.linkSource=id;view.selectedLink=null;render();break;
  case 'link-to':if(view.linkSource)addMapDependency(view.linkSource,id);break;
@@ -950,7 +970,7 @@ listen(root,'click',e=>{
   if(!confirm(`Remove ${p.name} from this project?`))return;
   change(()=>{data.people=data.people.filter(x=>x.id!==id);data.meetings.forEach(mt=>mt.attendees=(mt.attendees||[]).filter(x=>x!==id));data.leave=data.leave.filter(x=>x.person!==id);data.tasks.forEach(t=>{if(t.assignee===id)t.assignee=''});data.iterations.forEach(i=>delete i.overrides[id])},'Team member removed');break;
  }
- case 'page':view.linkSource=null;view.linkDrag=null;view.selectedLink=null;view.page=id;view.drawer=null;view.modal=null;saveUiPreferences();render();break;
+ case 'page':clearRoadmapSelection();view.linkSource=null;view.linkDrag=null;view.selectedLink=null;view.page=id;view.drawer=null;view.modal=null;saveUiPreferences();render();break;
  case 'collapse':change(()=>{let f=getFeature(id);if(f)f.collapsed=!f.collapsed});break;
  case 'drawer-feature':openDrawer('feature',id);break;
  case 'drawer-task':openDrawer('task',id);break;
@@ -1011,12 +1031,13 @@ listen(root,'click',e=>{
  case 'export':exportJson();break;
  case 'import':$('#jsonImport')?.click();break;
  case 'reset':openModal('reset');break;
- case 'reset-confirm':change(()=>{data=newProjectData();view.modal=null;view.drawer=null;view.page='timeline';view.iteration=data.iterations[0].id;view.rangeStart=alignScaleStart(today(),view.scale);view.scaleFocusDate=today();view.scrollToStart=true;view.showOnlyRisks=false;view.filterPeople=[];view.filterPlatforms=[];view.filterMenu=null},'Project reset');break;
+ case 'reset-confirm':change(()=>{clearRoadmapSelection();data=newProjectData();view.modal=null;view.drawer=null;view.page='timeline';view.iteration=data.iterations[0].id;view.rangeStart=alignScaleStart(today(),view.scale);view.scaleFocusDate=today();view.scrollToStart=true;view.showOnlyRisks=false;view.filterPeople=[];view.filterPlatforms=[];view.filterMenu=null},'Project reset');break;
  default:break;
  }
 });
 listen(root,'change',e=>{
  let target=e.target;
+ if(target.dataset.rowSelect){toggleRoadmapSelection(target.dataset.rowSelect,target.dataset.id);return;}
  if(target.id==='newProjectSource'){
   const panel=$('#newProjectCopyOptions');if(panel)panel.hidden=!target.value;
   return;
@@ -1027,7 +1048,7 @@ listen(root,'change',e=>{
   file.text().then(text=>{try{
    const candidate=projectDataSchema.parse(JSON.parse(text));
    if(!confirm('Replace the current project with this backup? Export your existing data first.'))return;
-   change(()=>{data=candidate;currentProject().data=data;view.iteration=data.iterations[0]?.id;view.drawer=null;view.modal=null;view.page='timeline'},'Roadmap imported');
+   change(()=>{clearRoadmapSelection();data=candidate;currentProject().data=data;view.iteration=data.iterations[0]?.id;view.drawer=null;view.modal=null;view.page='timeline'},'Roadmap imported');
   }catch{notify('Invalid roadmap backup. Existing data was kept.')}});return;
  }
  if(view.modal?.type==='meeting'&&target.closest('#modalForm')){
@@ -1105,15 +1126,17 @@ listen(root,'input',e=>{
 });
 listen(window,'resize',()=>{const scroller=$('#ganttScroller');if(scroller&&scroller.scrollWidth<=scroller.clientWidth){view.scrollToStart=true;render();}else drawDependencyLines();});
 listen(root,'keydown',e=>{if(e.target.matches('.dependency-edge')&&['Enter',' '].includes(e.key)){e.preventDefault();view.selectedLink={from:e.target.dataset.from,to:e.target.dataset.to};render();}if(e.key==='Delete'&&view.selectedLink&&!e.target.matches('input,textarea,select')){e.preventDefault();removeMapDependency();}});
-listen(root,'dblclick',e=>{let day=e.target.closest('.day-cell[data-date], .time-segment[data-date]');if(day){e.preventDefault();openModal('milestone',{date:day.dataset.date})}});
-listen(document,'keydown',e=>{if(e.key==='Escape'){if(itemPopup){e.preventDefault();hideItemPopup(true);return;}if(view.filterMenu){e.preventDefault();closeFilterMenu(true);return;}if(['resize','feature'].includes(view.drag?.kind)){view.drag=null;clearResizePreview();lastDragAt=Date.now();render();return;}if(view.rowDrag){const d=endRowDrag();if(d?.moved)lastDragAt=Date.now();return;}if(view.linkSource||view.linkDrag||view.selectedLink){view.linkSource=null;view.linkDrag=null;view.selectedLink=null;render();return;}if(view.modal){closeModal()}else if(view.drawer){closeDrawer()}}});
+listen(root,'dblclick',e=>{if(view.selectionMode)return;let day=e.target.closest('.day-cell[data-date], .time-segment[data-date]');if(day){e.preventDefault();openModal('milestone',{date:day.dataset.date})}});
+listen(document,'keydown',e=>{if(e.key==='Escape'){if(itemPopup){e.preventDefault();hideItemPopup(true);return;}if(view.filterMenu){e.preventDefault();closeFilterMenu(true);return;}if(['resize','feature'].includes(view.drag?.kind)){view.drag=null;clearResizePreview();lastDragAt=Date.now();render();return;}if(view.rowDrag){const d=endRowDrag();if(d?.moved)lastDragAt=Date.now();return;}if(view.linkSource||view.linkDrag||view.selectedLink){view.linkSource=null;view.linkDrag=null;view.selectedLink=null;render();return;}if(view.modal){closeModal()}else if(view.drawer){closeDrawer()}else if(view.selectionMode){clearRoadmapSelection();render();$('[data-action=toggle-selection]')?.focus({preventScroll:true});}}});
 listen(root,'keydown',e=>{
+ if(view.selectionMode){const item=popupItemTarget(e.target);if(item&&['Enter',' '].includes(e.key)){e.preventDefault();toggleRoadmapSelection(item.kind,item.id);}return;}
  const task=e.target.closest('.task-bar[data-task]');if(task&&e.target===task&&['Enter',' '].includes(e.key)){e.preventDefault();openDrawer('task',task.dataset.task);return;}
  const bar=e.target.closest('.feature-bar[data-feature]');if(!bar||e.target!==bar||view.modal||view.linkSource)return;
  if(['ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();const id=bar.dataset.feature;moveFeature(id,(e.key==='ArrowLeft'?-1:1)*(e.shiftKey?7:1));requestAnimationFrame(()=>$(`.feature-bar[data-feature="${id}"]`)?.focus());}
  else if(['Enter',' '].includes(e.key)){e.preventDefault();openDrawer('feature',bar.dataset.feature);}
 });
 listen(root,'pointerdown',e=>{
+ if(view.selectionMode&&e.target.closest('.task-bar,.feature-bar,[data-row-select]'))return;
  const handle=e.target.closest('[data-resize-edge]');
  if(handle&&e.button===0&&!view.modal){
   const kind=handle.dataset.resizeKind,id=handle.dataset.id,info=resizeInfo(kind,id),item=kind==='feature'?getFeature(id):getTask(id);
