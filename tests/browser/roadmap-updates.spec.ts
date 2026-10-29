@@ -31,18 +31,18 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   await page.setViewportSize({width:1280,height:720});
   for(const task of data.tasks.filter((item:{featureId:string})=>item.featureId===created.id)){
    const bar=page.locator(`.task-bar[data-task="${task.id}"]`),name=task.roleId==='r1'?'Backend Developer':'Backend Reviewer';
-   await expect(bar.locator('[data-bar-field=title]')).toHaveText(task.title);await expect(bar.locator('[data-bar-field=role]')).toHaveText(name);await expect(bar).not.toContainText(/\b\d+(?:\.\d+)?d\b/);await expect(bar).toHaveAttribute('title',new RegExp('Role: '+name+' · Platform: Backend · '+task.effort+'d effort'));
+   await expect(bar.locator('[data-bar-field=title]')).toHaveText(task.title);await expect(bar.locator('[data-bar-field=role]')).toHaveText(name);await expect(bar).not.toContainText(/\b\d+(?:\.\d+)?d\b/);await expect(bar).toHaveAttribute('data-item-summary',new RegExp('Role: '+name+' · Platform: Backend · '+task.effort+'d effort'));
   }
   await expect(page.locator('.task-bar[data-task=t3] [data-bar-field=title]')).toHaveText('Release categories');await expect(page.locator('.task-bar[data-task=t3] [data-bar-field=role]')).toHaveText('Backend');
   await page.screenshot({path:'test-results/role-platform-bar-labels.png',fullPage:true});await page.close();
  });
  test('explains six effort days over eight calendar days and synchronizes manual and automatic dates',async()=>{
   await reset();const page=await context.newPage();await page.goto('/app');const bar=page.locator('.task-bar[data-task=t1]');
-  await expect(bar).toHaveAttribute('title',/8 calendar days/);await expect(bar.locator('.capacity-band')).toHaveAttribute('style',/linear-gradient/);await expect(page.getByLabel('Timeline colors')).toContainText('Recurring meetings');
+  await expect(bar).toHaveAttribute('data-item-summary',/8 calendar days/);await expect(bar.locator('.capacity-band')).toHaveAttribute('style',/linear-gradient/);await expect(page.getByLabel('Timeline colors')).toContainText('Recurring meetings');
   const fill=bar.locator('.capacity-band'),gradient=(await fill.getAttribute('style'))!,colors=gradient.match(/#[a-f0-9]{6}/g)!;
   expect(colors).toHaveLength(2);expect(new Set(colors).size).toBe(2);
   const parentColors=(await page.locator('.feature-bar .capacity-band').getAttribute('style'))!.match(/#[a-f0-9]{6}/g)!;expect(new Set(parentColors).size).toBe(parentColors.length);
-  await expect(bar).toHaveAttribute('title',/Accounted time mix/);
+  await expect(bar).toHaveAttribute('data-item-summary',/Accounted time mix/);
   for(const scale of ['week','month','quarter','year','day']){await page.getByLabel('Timeline scale').selectOption(scale);await expect(fill).toHaveAttribute('style',gradient);}
   await page.screenshot({path:'test-results/capacity-totals.png',fullPage:true});
   await page.locator('.work-name[data-action=drawer-task][data-id=t1]').click();await expect(page.getByLabel('Start date')).toHaveValue('2026-10-26');await expect(page.getByLabel('End date')).toHaveValue('2026-11-02');
@@ -139,7 +139,7 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   data.meetings=[{id:'daily',title:'Daily',recurrence:'workdays',weekday:1,interval:1,nth:1,startDate:'2026-10-26',endDate:'',startTime:'09:00',duration:60,allTeam:true,attendees:[],enabled:true}];
   data.leave=[{id:'sick',person:'u1',type:'sick',from:'2026-10-27',to:'2026-10-27',note:''},{id:'off',person:'u1',type:'vacation',from:'2026-10-30',to:'2026-11-01',note:''}];
   await reset(w);const page=await context.newPage();await page.goto('/app');const bar=page.locator('.task-bar[data-task=t1]');
-  await expect(bar).toHaveAttribute('title',/11 calendar days/);await expect(bar).toHaveAttribute('title',/Recurring meetings: 1d.*Weekends: 2d.*Days off: 1d.*Sick leave: 1d/);
+  await expect(bar).toHaveAttribute('data-item-summary',/11 calendar days/);await expect(bar).toHaveAttribute('data-item-summary',/Recurring meetings: 1d.*Weekends: 2d.*Days off: 1d.*Sick leave: 1d/);
   expect(new Set((await bar.locator('.capacity-band').getAttribute('style'))!.match(/#[a-f0-9]{6}/g)).size).toBe(5);
   if(await page.getByRole('button',{name:'Show sidebar',exact:true}).isVisible())await page.getByRole('button',{name:'Show sidebar',exact:true}).click();await expect(page.getByRole('button',{name:'Team capacity',exact:true})).toHaveCount(0);
   await page.locator('.work-name[data-action=drawer-task][data-id=t1]').click();await expect(page.getByLabel('End date')).toHaveValue('2026-11-05');await expect(page.locator('.drawer-content')).toContainText('Sick leave');await page.keyboard.press('Escape');
@@ -188,14 +188,14 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   const w=workspace(),data=w.projects[0].data;data.settings.autoShiftDependencies=false;data.tasks[0].effort=.5;data.tasks[1].effort=1;data.tasks[1].assignee='';
   await reset(w);const page=await context.newPage();await page.goto('/app');await saved(page);
   const bar=page.locator('.task-bar[data-task=t1]'),full=page.locator('.task-bar[data-task=t2]');
-  await expect(bar).toHaveAttribute('title',/0.5 calendar days/);expect((await bar.boundingBox())!.width/(await full.boundingBox())!.width).toBeCloseTo(.5,2);
+  await expect(bar).toHaveAttribute('data-item-summary',/0.5 calendar days/);expect((await bar.boundingBox())!.width/(await full.boundingBox())!.width).toBeCloseTo(.5,2);
   await expect(page.getByLabel('Timeline colors')).not.toContainText('Unused');await expect(page.locator('.capacity-band').first()).not.toHaveAttribute('style',/#edf0f6/);
   await page.getByRole('button',{name:'Add user story to Configure suggestion categories as an administrator',exact:true}).click();await page.getByLabel('User story name').fill('Half-day change');await page.getByRole('checkbox',{name:'Include Backend Developer',exact:true}).check();
   const input=page.getByLabel('Backend Developer estimate (days)');await expect(input).toHaveAttribute('min','0.5');await expect(input).toHaveAttribute('step','0.5');await input.fill('.25');await expect(page.getByRole('button',{name:'Add user story',exact:true})).toBeDisabled();await input.fill('.5');await page.getByRole('button',{name:'Add user story',exact:true}).click();await saved(page);
-  const created=(await snapshot()).workspace.projects[0].data.tasks.find((task:{title:string})=>task.title==='Half-day change');expect(created.effort).toBe(.5);await expect(page.locator(`.task-bar[data-task="${created.id}"]`)).toHaveAttribute('title',/0.5 calendar days/);
+  const created=(await snapshot()).workspace.projects[0].data.tasks.find((task:{title:string})=>task.title==='Half-day change');expect(created.effort).toBe(.5);await expect(page.locator(`.task-bar[data-task="${created.id}"]`)).toHaveAttribute('data-item-summary',/0.5 calendar days/);
   const changed=workspace();changed.projects[0].data.settings.autoShiftDependencies=false;changed.projects[0].data.tasks[0].effort=.5;
   changed.projects[0].data.meetings=[{id:'quarter',title:'Quarter day',recurrence:'workdays',weekday:1,interval:1,nth:1,startDate:'2026-10-26',endDate:'',startTime:'09:00',duration:120,allTeam:true,attendees:[],enabled:true}];
-  await reset(changed);await page.reload();await saved(page);await expect(bar).toHaveAttribute('title',/1 calendar days/);await expect(bar).toHaveAttribute('title',/Development: 0.5d.*Recurring meetings: 0.5d/);
+  await reset(changed);await page.reload();await saved(page);await expect(bar).toHaveAttribute('data-item-summary',/1 calendar days/);await expect(bar).toHaveAttribute('data-item-summary',/Development: 0.5d.*Recurring meetings: 0.5d/);
   await page.locator('.work-name[data-action=drawer-task][data-id=t1]').click();await expect(page.locator('.drawer-content')).not.toContainText('Unused');await expect(page.getByLabel('Pure effort (days)',{exact:true})).toHaveValue('0.5');await page.keyboard.press('Escape');
   expect((await snapshot()).workspace.projects[0].data.meetings[0].duration).toBe(120);await page.screenshot({path:'test-results/half-day-chart.png',fullPage:true});await page.close();
  });
@@ -204,7 +204,7 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   data.people.push({...data.people[0],id:'u3',name:'Casey Dev'});data.leave.push({id:'sick',person:'u3',type:'sick',from:'2026-10-26',to:'2026-10-26',note:''});
   await reset(w);const page=await context.newPage();await page.goto('/app');await saved(page);const select=page.locator('[data-row-assignee=t1]');
   expect(await select.locator('option').evaluateAll(nodes=>nodes.map(node=>(node as HTMLOptionElement).value))).toEqual(['','u1','u3']);const original=structuredClone(data.tasks[0]);
-  await select.selectOption('u3');await saved(page);const changed=(await snapshot()).workspace.projects[0].data.tasks[0];expect(changed).toEqual({...original,assignee:'u3'});await expect(page.locator('.drawer-wrap')).toHaveCount(0);await expect(page.locator('.task-bar[data-task=t1]')).toHaveAttribute('title',/27 Oct/);
+  await select.selectOption('u3');await saved(page);const changed=(await snapshot()).workspace.projects[0].data.tasks[0];expect(changed).toEqual({...original,assignee:'u3'});await expect(page.locator('.drawer-wrap')).toHaveCount(0);await expect(page.locator('.task-bar[data-task=t1]')).toHaveAttribute('data-item-summary',/27 Oct/);
   await page.reload();await saved(page);await expect(select).toHaveValue('u3');await select.selectOption('');await saved(page);await expect(select).toHaveValue('');
   // An injected option still goes through the same role validation as the inspector.
   await select.evaluate(node=>{const option=document.createElement('option');option.value='u2';option.textContent='Wrong role';node.append(option);});await select.selectOption('u2');await expect(page.locator('#toast-root')).toContainText('matching team member');expect((await snapshot()).workspace.projects[0].data.tasks[0].assignee).toBe('');
@@ -229,21 +229,21 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   const original=(await snapshot()).workspace.projects[0].data;
   await drag('task','t1','end',19);
   await expect.poll(async()=>(await snapshot()).workspace.projects[0].data.tasks[0].manualEnd).toBe('2026-10-28');
-  let task=(await snapshot()).workspace.projects[0].data.tasks[0];expect(task).toMatchObject({effort:2,start:'2026-10-26',manualEndFraction:.5});
-  await expect(page.locator('.task-bar[data-task=t1]')).toHaveAttribute('title',/2.5 calendar days/);
-  await drag('task','t1','end',-57);await expect(page.locator('.task-bar[data-task=t1]')).toHaveAttribute('title',/1d does not fit/);
+  let task=(await snapshot()).workspace.projects[0].data.tasks[0];expect(task).toMatchObject({effort:2.5,remaining:2.5,start:'2026-10-26',manualEndFraction:.5});
+  await expect(page.locator('.task-bar[data-task=t1]')).toHaveAttribute('data-item-summary',/2.5 calendar days/);
+  await drag('task','t1','end',-57);expect((await snapshot()).workspace.projects[0].data.tasks[0]).toMatchObject({effort:1,remaining:1});await expect(page.locator('.task-bar[data-task=t1]')).not.toHaveClass(/date-shortfall/);
   await handle('task','t1','end').focus();await page.keyboard.press('ArrowLeft');await saved(page);
-  expect((await snapshot()).workspace.projects[0].data.tasks[0]).toMatchObject({effort:2,manualEnd:'2026-10-26',manualEndFraction:.5});
-  await page.keyboard.press('ArrowLeft');await saved(page);await expect(page.locator('.task-bar[data-task=t1]')).toHaveAttribute('title',/0.5 calendar days/);
+  expect((await snapshot()).workspace.projects[0].data.tasks[0]).toMatchObject({effort:.5,remaining:.5,manualEnd:'2026-10-26',manualEndFraction:.5});
+  await page.keyboard.press('ArrowLeft');await saved(page);await expect(page.locator('.task-bar[data-task=t1]')).toHaveAttribute('data-item-summary',/0.5 calendar days/);
   for(let i=0;i<3;i++){await page.keyboard.press('ArrowRight');await saved(page);}
-  await drag('task','t1','start',38);task=(await snapshot()).workspace.projects[0].data.tasks[0];expect(task).toMatchObject({start:'2026-10-27',manualEnd:'2026-10-27',effort:2});
+  await drag('task','t1','start',38);task=(await snapshot()).workspace.projects[0].data.tasks[0];expect(task).toMatchObject({start:'2026-10-27',manualEnd:'2026-10-27',effort:1,remaining:1});
   const stable=(await snapshot()).workspace.projects[0].data;
   const h=handle('task','t1','end'),b=(await h.boundingBox())!;await page.mouse.move(b.x+3,b.y+8);await page.mouse.down();await page.mouse.move(b.x+60,b.y+8,{steps:6});await page.keyboard.press('Escape');await page.mouse.up();
   expect((await snapshot()).workspace.projects[0].data).toEqual(stable);await expect(page.locator('.bar-resize-preview')).toHaveCount(0);
   await drag('feature','f1','end',19);let current=(await snapshot()).workspace.projects[0].data;expect(current.tasks).toEqual(stable.tasks);expect(current.features[0].manualEndFraction).toBe(.5);
   await page.reload();await saved(page);await page.locator('.work-name[data-action=drawer-task][data-id=t1]').click();await expect(page.getByLabel('Date mode')).toHaveValue('manual');await expect(page.getByLabel('Start date')).toHaveValue('2026-10-27');
   await page.getByLabel('Date mode').selectOption('automatic');await saved(page);await page.keyboard.press('Escape');
-  task=(await snapshot()).workspace.projects[0].data.tasks[0];expect(task).not.toHaveProperty('manualEnd');expect(task).not.toHaveProperty('manualEndFraction');expect(task.effort).toBe(2);
+  task=(await snapshot()).workspace.projects[0].data.tasks[0];expect(task).not.toHaveProperty('manualEnd');expect(task).not.toHaveProperty('manualEndFraction');expect(task.effort).toBe(1);
   await page.setViewportSize({width:375,height:812});await page.getByRole('button',{name:'Today',exact:true}).click();await drag('task','t1','end',19);await page.screenshot({path:'test-results/resize-bars-mobile.png',fullPage:true});
   current=(await snapshot()).workspace.projects[0].data;expect(current.tasks[0].manualEndFraction).toBe(.5);expect(current.tasks.slice(1)).toEqual(original.tasks.slice(1));await page.close();
  });
@@ -254,16 +254,16 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
    {...base,id:'planning',title:'Weekly planning',recurrence:'weekly',startTime:'10:00',duration:60},
    {...base,id:'demo',title:'Fortnightly demo',recurrence:'interval',weekday:5,interval:2,startDate:'2026-10-30',startTime:'14:00',duration:60}];
   await reset(w);const page=await context.newPage();await page.goto('/app');await saved(page);
-  const bar=page.locator('.task-bar[data-task=t1]');await expect(bar).toHaveAttribute('title',/9 calendar days.*Recurring meetings: 1d.*Actual meeting time: 6.5h/);
+  const bar=page.locator('.task-bar[data-task=t1]');await expect(bar).toHaveAttribute('data-item-summary',/9 calendar days.*Recurring meetings: 1d.*Actual meeting time: 6.5h/);
   await page.locator('.work-name[data-action=drawer-task][data-id=t1]').click();await expect(page.locator('.meeting-time-summary')).toContainText('6.5h');await expect(page.locator('.meeting-time-summary')).toContainText('Planning reserve: 1d');await page.keyboard.press('Escape');
   if(await page.getByRole('button',{name:'Show sidebar',exact:true}).isVisible())await page.getByRole('button',{name:'Show sidebar',exact:true}).click();await page.getByRole('button',{name:'Manage recurring meetings',exact:true}).click();await expect(page.getByRole('heading',{name:'Recurring meetings',exact:true})).toBeVisible();
   await page.locator('.meeting-item').filter({hasText:'Weekly planning'}).getByRole('button',{name:'Edit',exact:true}).click();await expect(page.getByLabel('Repeat every (weeks)')).toHaveValue('1');
   await page.getByLabel('Duration (minutes)').fill('30');await page.getByRole('button',{name:'Save changes',exact:true}).click();await saved(page);
-  await page.locator('.dialog-foot').getByRole('button',{name:'Close',exact:true}).click();await expect(bar).toHaveAttribute('title',/Actual meeting time: 5.5h/);
+  await page.locator('.dialog-foot').getByRole('button',{name:'Close',exact:true}).click();await expect(bar).toHaveAttribute('data-item-summary',/Actual meeting time: 5.5h/);
   if(await page.getByRole('button',{name:'Show sidebar',exact:true}).isVisible())await page.getByRole('button',{name:'Show sidebar',exact:true}).click();await page.getByRole('button',{name:'Manage recurring meetings',exact:true}).click();
   for(const title of ['Daily 30 minutes','Weekly planning','Fortnightly demo']){await page.locator('.meeting-item').filter({hasText:title}).getByRole('button',{name:'Enabled',exact:true}).click();await saved(page);}
   await page.setViewportSize({width:375,height:812});await expect(page.locator('.dialog-feedback')).toBeVisible();const feedback=(await page.locator('.dialog-feedback').boundingBox())!,actions=(await page.locator('.dialog-foot').boundingBox())!;expect(feedback.y+feedback.height).toBeLessThanOrEqual(actions.y);await page.screenshot({path:'test-results/meeting-management-mobile.png',fullPage:true});
-  await page.locator('.dialog-foot').getByRole('button',{name:'Close',exact:true}).click();await expect(bar).toHaveAttribute('title',/8 calendar days/);await expect(bar).not.toHaveAttribute('title',/Recurring meetings:/);
+  await page.locator('.dialog-foot').getByRole('button',{name:'Close',exact:true}).click();await expect(bar).toHaveAttribute('data-item-summary',/8 calendar days/);await expect(bar).not.toHaveAttribute('data-item-summary',/Recurring meetings:/);
   await page.reload();await saved(page);if(await page.getByRole('button',{name:'Show sidebar',exact:true}).isVisible())await page.getByRole('button',{name:'Show sidebar',exact:true}).click();await page.getByRole('button',{name:'Manage recurring meetings',exact:true}).click();await expect(page.getByRole('button',{name:'Paused',exact:true})).toHaveCount(3);await page.close();
  });
  test('keeps long labels and controls aligned on desktop, tablet and narrow mobile screens',async()=>{
@@ -321,9 +321,9 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
  });
  test('reforecasts an automatically dated epic after dragging while preserving estimates and date mode',async()=>{
   const w=workspace();w.projects[0].data.settings.autoShiftDependencies=false;w.projects[0].data.tasks[0].effort=3;
-  await reset(w);const page=await context.newPage();await page.goto('/app');await saved(page);const bar=page.locator('.feature-bar[data-feature=f1]');await expect(bar).toHaveAttribute('title',/3 calendar days/);
+  await reset(w);const page=await context.newPage();await page.goto('/app');await saved(page);const bar=page.locator('.feature-bar[data-feature=f1]');await expect(bar).toHaveAttribute('data-item-summary',/3 calendar days/);
   const b=(await bar.boundingBox())!;await page.mouse.move(b.x+b.width/2,b.y+b.height/2);await page.mouse.down();await page.mouse.move(b.x+b.width/2+152,b.y+b.height/2,{steps:10});await page.mouse.up();await saved(page);
-  await expect.poll(async()=>(await snapshot()).workspace.projects[0].data.tasks[0].start).toBe('2026-10-30');await expect(bar).toHaveAttribute('title',/5 calendar days/);
+  await expect.poll(async()=>(await snapshot()).workspace.projects[0].data.tasks[0].start).toBe('2026-10-30');await expect(bar).toHaveAttribute('data-item-summary',/5 calendar days/);
   const data=(await snapshot()).workspace.projects[0].data;expect(data.tasks.map((task:{effort:number})=>task.effort)).toEqual([3,1,1]);expect(data.features[0]).not.toHaveProperty('manualEnd');expect(data.tasks[0]).not.toHaveProperty('manualEnd');await page.close();
  });
 
@@ -335,14 +335,14 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   const parent=page.locator('.feature-bar[data-feature=f1]'),task=page.locator('.task-bar[data-task=t1]');
   const before=(await snapshot()).workspace.projects[0].data,parentMix=(await parent.locator('.capacity-band').getAttribute('style'))!,taskMix=(await task.locator('.capacity-band').getAttribute('style'))!;
   expect(parentMix).not.toMatch(/transparent|NaN|Infinity/);expect(parentMix).toContain('100.00000%');expect(taskMix).toContain('#7870db 0.00000% 66.66667%');expect(taskMix).toContain('#e7c45f 66.66667% 100.00000%');
-  await expect(parent).toHaveAttribute('title',/9 calendar days/);await expect(task).toHaveAttribute('title',/1d effort.*3 calendar days/);await expect(page.getByLabel('Timeline colors')).not.toContainText('Unused');
+  await expect(parent).toHaveAttribute('data-item-summary',/9 calendar days/);await expect(task).toHaveAttribute('data-item-summary',/1d effort.*3 calendar days/);await expect(page.getByLabel('Timeline colors')).not.toContainText('Unused');
   for(const scale of ['week','month','quarter','year','day']){await page.getByLabel('Timeline scale').selectOption(scale);await expect(parent.locator('.capacity-band')).toHaveAttribute('style',parentMix);await expect(task.locator('.capacity-band')).toHaveAttribute('style',taskMix);}
   expect((await snapshot()).workspace.projects[0].data).toEqual(before);
   await page.locator('.work-name[data-action=drawer-task][data-id=t1]').click();await expect(page.getByLabel('Pure effort (days)',{exact:true})).toHaveValue('1');await expect(page.getByLabel('End date')).toHaveValue('2026-10-28');await expect(page.locator('.drawer-content')).toContainText('relative mix of accounted');await page.keyboard.press('Escape');
   await page.setViewportSize({width:375,height:812});await page.getByRole('button',{name:'Today',exact:true}).click();await page.screenshot({path:'test-results/filled-accounted-time-mix-mobile.png',fullPage:true});
   const outside=workspace();outside.projects[0].data.settings.autoShiftDependencies=false;outside.projects[0].data.features[0].manualEnd='2026-10-27';for(const t of outside.projects[0].data.tasks)t.start='2026-11-09';
   // Scale preferences autosave too; finish that write before replacing fixtures.
-  await saved(page);await reset(outside);await page.reload();await saved(page);await expect(parent).toHaveClass(/no-time-mix/);await expect(parent.locator('.capacity-band')).toHaveCount(0);await expect(parent).toHaveAttribute('title',/No scheduled work inside this date window/);
+  await saved(page);await reset(outside);await page.reload();await saved(page);await expect(parent).toHaveClass(/no-time-mix/);await expect(parent.locator('.capacity-band')).toHaveCount(0);await expect(parent).toHaveAttribute('data-item-summary',/No scheduled work inside this date window/);
   expect(await parent.evaluate(node=>getComputedStyle(node).backgroundImage)).toContain('repeating-linear-gradient');expect((await snapshot()).workspace.projects[0].data.tasks[0].start).toBe('2026-11-09');await page.close();
  });
 
@@ -361,21 +361,21 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   await expect(page.locator('.side-user .workspace-email')).toHaveText((await snapshot()).email);await expect(page.locator('.sidebar [data-action=manage-meetings]')).toHaveCount(1);
   const original=(await snapshot()).workspace.projects[0].data;
   for(const label of ['Name','Role'])await expect(page.getByRole('checkbox',{name:label,exact:true})).toBeChecked();
-  for(const label of ['Dev effort','Calendar effort','Assignee full name'])await page.getByRole('checkbox',{name:label,exact:true}).check();
+  for(const label of ['Estimate','Calendar effort','Assignee full name'])await page.getByRole('checkbox',{name:label,exact:true}).check();
   await page.getByRole('button',{name:'Save settings',exact:true}).click();await saved(page);
-  for(const [key,value]of [['title','API'],['role','Backend Developer'],['devEffort','1.5d dev'],['calendarEffort','19d calendar'],['assignee','Alex Dev']]){await expect(field(key)).toHaveText(value);await expect(field(key)).toBeVisible();}
+  for(const [key,value]of [['title','API'],['role','Backend Developer'],['devEffort','1.5d estimate'],['calendarEffort','19d calendar'],['assignee','Alex Dev']]){await expect(field(key)).toHaveText(value);await expect(field(key)).toBeVisible();}
   await expect(page.locator('.side-user .workspace-email')).toBeInViewport();const stored=(await snapshot()).workspace.projects[0].data;expect(stored.tasks).toEqual(original.tasks);expect(stored.features).toEqual(original.features);
   expect(stored.settings.barFields).toEqual(['title','role','devEffort','calendarEffort','assignee']);
   await expect(page.locator('.feature-bar[data-feature=f1] [data-bar-field=title]')).toHaveText(data.features[0].title);
   await page.screenshot({path:'test-results/custom-bar-fields-desktop.png',fullPage:true});
   await page.getByLabel('Timeline scale').selectOption('week');await expect(field('title')).toBeVisible();await expect(field('assignee')).toBeHidden();
-  await page.reload();await saved(page);await openSettings(page);for(const label of ['Name','Role','Dev effort','Calendar effort','Assignee full name'])await expect(page.getByRole('checkbox',{name:label,exact:true})).toBeChecked();
-  await page.getByRole('checkbox',{name:'Name',exact:true}).uncheck();await page.getByRole('checkbox',{name:'Dev effort',exact:true}).uncheck();await page.getByRole('checkbox',{name:'Calendar effort',exact:true}).uncheck();await page.getByRole('checkbox',{name:'Assignee full name',exact:true}).uncheck();
+  await page.reload();await saved(page);await openSettings(page);for(const label of ['Name','Role','Estimate','Calendar effort','Assignee full name'])await expect(page.getByRole('checkbox',{name:label,exact:true})).toBeChecked();
+  await page.getByRole('checkbox',{name:'Name',exact:true}).uncheck();await page.getByRole('checkbox',{name:'Estimate',exact:true}).uncheck();await page.getByRole('checkbox',{name:'Calendar effort',exact:true}).uncheck();await page.getByRole('checkbox',{name:'Assignee full name',exact:true}).uncheck();
   await page.getByRole('button',{name:'Save settings',exact:true}).click();await saved(page);await expect(field('title')).toHaveCount(0);await expect(field('role')).toBeVisible();
   await openSettings(page);await page.getByRole('checkbox',{name:'Role',exact:true}).uncheck();await page.getByRole('button',{name:'Save settings',exact:true}).click();await saved(page);await expect(page.locator('.bar-label [data-bar-field]')).toHaveCount(0);
-  await page.reload();await saved(page);await expect(page.locator('.bar-label [data-bar-field]')).toHaveCount(0);await expect(bar).toHaveAttribute('title',/^API/);
+  await page.reload();await saved(page);await expect(page.locator('.bar-label [data-bar-field]')).toHaveCount(0);await expect(bar).toHaveAttribute('data-item-summary',/^API/);
   await page.locator('.project-trigger').click();await page.locator('.project-pick-row').filter({hasText:'Other project'}).getByRole('button',{name:'Open project',exact:false}).click();await saved(page);
-  await expect(field('title')).toBeVisible();await openSettings(page);await expect(page.getByRole('checkbox',{name:'Name',exact:true})).toBeChecked();await expect(page.getByRole('checkbox',{name:'Dev effort',exact:true})).not.toBeChecked();
+  await expect(field('title')).toBeVisible();await openSettings(page);await expect(page.getByRole('checkbox',{name:'Name',exact:true})).toBeChecked();await expect(page.getByRole('checkbox',{name:'Estimate',exact:true})).not.toBeChecked();
   await page.setViewportSize({width:375,height:812});expect(await page.getByRole('dialog').evaluate(node=>node.scrollWidth<=node.clientWidth)).toBe(true);await page.getByRole('button',{name:'Save settings',exact:true}).scrollIntoViewIfNeeded();await page.screenshot({path:'test-results/custom-bar-fields-mobile.png',fullPage:true});await page.close();
  });
 
