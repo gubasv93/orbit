@@ -15,7 +15,7 @@ const draftSchema = z.object({
   teams: z.array(z.object({
     platform: z.string().trim().min(1).max(200).optional(), roleId: z.string().optional(), assignee: z.string(),
     effort: z.number().min(0.5, 'Estimates must be at least 0.5 work days').max(3650, 'Estimates cannot exceed 3650 work days').multipleOf(.5, 'Use 0.5-day steps'),
-  })).min(1, 'Select at least one team').max(1000),
+  })).max(1000),
   sequential: z.boolean().default(false),
 });
 
@@ -24,7 +24,9 @@ const draftSchema = z.object({
 export function buildStoryWorkItems(featureId: string, draft: unknown, data: TeamData): ProjectData['tasks'] {
   const parsed = draftSchema.parse(draft), platforms = new Set(workstreamNames(data));
   if (new Set(parsed.teams.map(team => team.roleId || team.platform)).size !== parsed.teams.length) throw new Error('Select each role only once');
-  if (data.tasks.length + parsed.teams.length > 3000) throw new Error('A project can contain at most 3000 work items');
+  if (data.tasks.length + Math.max(1, parsed.teams.length) > 3000) throw new Error('A project can contain at most 3000 work items');
+  if (!parsed.teams.length) return [{ id: `t${crypto.randomUUID()}`, featureId, title: parsed.title,
+    platform: '', assignee: '', effort: 0, start: parsed.start, status: 'planned', dependsOn: [] }];
   for (const team of parsed.teams) {
     const role = team.roleId ? data.roles.find(role => role.id === team.roleId) : undefined;
     if (team.roleId && !role) throw new Error('Choose a role from this project');

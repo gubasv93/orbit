@@ -66,7 +66,7 @@ it('rejects invalid assignees, duplicate or unknown teams, empty stories, and da
   const data = teamData(), wrong = draft(); wrong.teams[0].assignee = 'uFrontend';
   expect(() => buildStoryWorkItems('f1', wrong, data)).toThrow('matching team member');
   for (const changes of [
-    { teams: [] }, { teams: [draft().teams[0], draft().teams[0]] },
+    { teams: [draft().teams[0], draft().teams[0]] },
     { teams: [{ platform: 'Unknown', assignee: '', effort: 2 }] },
     { title: '  ' }, { start: '1999-12-31' },
   ]) expect(() => buildStoryWorkItems('f1', { ...draft(), ...changes }, data)).toThrow();
@@ -76,4 +76,14 @@ it('refuses a batch above the project work-item limit without partially adding i
   const data = teamData(); data.tasks = Array.from({ length: 2998 }, (_, index) => ({ ...projectData().tasks[0], id: `t${index}` }));
   expect(() => buildStoryWorkItems('f1', draft(), data)).toThrow('3000 work items');
   expect(data.tasks).toHaveLength(2998);
+});
+
+it('captures a title-only story with no assignment or fabricated estimate, including an empty team',()=>{
+ const data=teamData();data.people=[];data.roles=[];
+ const [task]=buildStoryWorkItems('f1',{title:'  Explore a rule  ',start:'2026-11-02',teams:[]},data);
+ expect(task).toMatchObject({title:'Explore a rule',platform:'',assignee:'',effort:0,dependsOn:[]});expect(task.roleId).toBeUndefined();expect(data.tasks).toEqual([]);
+});
+it('applies the work-item limit to a title-only story before adding it',()=>{
+ const data=teamData();data.tasks=Array.from({length:3000},(_,i)=>({...projectData().tasks[0],id:'existing'+i}));
+ expect(()=>buildStoryWorkItems('f1',{title:'Later',start:'2026-11-02',teams:[]},data)).toThrow('3000 work items');expect(data.tasks).toHaveLength(3000);
 });

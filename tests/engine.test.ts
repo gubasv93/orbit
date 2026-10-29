@@ -68,3 +68,16 @@ describe('preserved scheduling behavior', () => {
     expect(fromDay(result.featureInfo.f1.end!)).toBe('2026-10-28');
   });
 });
+
+it('leaves unestimated items unscheduled and the parent forecast incomplete without allocating fake effort',()=>{
+ const data=projectData();Object.assign(data.tasks[0],{effort:0,platform:'',assignee:''});
+ const result=createScheduler(data).calculate();expect(result.schedule.t1).toMatchObject({needsEstimate:true,end:null,alloc:{}});expect(result.working.size).toBe(0);expect(result.featureInfo.f1).toMatchObject({needsEstimate:true,blocked:true,end:null});expect(result.errors).toEqual([]);
+ data.features[0].manualEnd='2026-11-01';expect(createScheduler(data).calculate().featureInfo.f1).toMatchObject({needsEstimate:true,manual:true,windowConflict:true});
+});
+it('blocks automatic dependents until the missing estimate is supplied and preserves completed history',()=>{
+ const data=projectData();data.tasks[0].effort=0;data.tasks.push({...data.tasks[0],id:'later',effort:1,dependsOn:['t1']});
+ let result=createScheduler(data).calculate();expect(result.schedule.later).toMatchObject({blocked:true,end:null,alloc:{}});
+ data.tasks[0].effort=.5;result=createScheduler(data).calculate();expect(result.schedule.t1.endFraction).toBe(.5);expect(result.schedule.later.start).toBeGreaterThan(result.schedule.t1.end!);
+ data.tasks[0].effort=0;data.tasks[0].status='done';data.tasks[0].completedDate=data.tasks[0].start;
+ result=createScheduler(data).calculate();expect(result.schedule.t1.done).toBe(true);expect(result.schedule.t1.needsEstimate).toBeUndefined();
+});

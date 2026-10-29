@@ -81,7 +81,7 @@ test.describe.serial('user stories estimated by team', () => {
     await page.getByRole('button', { name: 'Add user story to Accounts', exact: true }).click();
     await page.getByLabel('User story name').fill('Add a specific rule');
     await page.getByLabel('Earliest start', { exact: true }).fill('2026-11-02');
-    const add = page.getByRole('button', { name: 'Add user story', exact: true }); await expect(add).toBeDisabled();
+    const add = page.getByRole('button', { name: 'Add user story', exact: true }); await expect(add).toBeEnabled();
     await selectTeam(page, 'Backend', '3', 'u1'); await selectTeam(page, 'Frontend', '2', 'uFront'); await selectTeam(page, 'QA', '2', 'uQA');
     await page.getByLabel('QA Engineer estimate (days)').fill('0'); await expect(add).toBeDisabled();
     await page.getByRole('checkbox', { name: 'Include QA Engineer', exact: true }).uncheck();
@@ -133,4 +133,25 @@ test.describe.serial('user stories estimated by team', () => {
     await expect(page.locator('[data-feature-effort=f1]')).toHaveText('9d effort');
     await page.close();
   });
+  test('creates a sub-item with only its name from the epic plus button and estimates it later',async()=>{
+    await replace();const page=await context.newPage();await page.goto('/app');await page.locator('.gantt-canvas').waitFor();
+    await page.locator('[data-action=collapse][data-id=f1]').click();await saved(page);await setRoadmapFilter(page,'platforms',['Frontend']);
+    await page.getByRole('button',{name:'Add user story to Accounts',exact:true}).click();await page.getByLabel('User story name').fill('Explore a rule');await page.getByLabel('User story name').press('Enter');await saved(page);
+    let state=await snapshot(),task=state.workspace.projects[0].data.tasks.find((t:{title:string})=>t.title==='Explore a rule');expect(task).toMatchObject({platform:'',assignee:'',effort:0,status:'planned',dependsOn:[]});expect(task.roleId).toBeUndefined();
+    await expect(page.getByRole('button',{name:'Filter by platform',exact:true})).toContainText('All platforms');await expect(page.locator(`[data-row-task="${task.id}"]`)).toContainText('Not estimated');await expect(page.locator(`.task-bar[data-task="${task.id}"]`)).toHaveCount(0);await expect(page.locator('[data-feature-effort=f1]')).toHaveText('6d known effort');
+    await page.reload();await page.locator('.gantt-canvas').waitFor();await saved(page);await page.locator(`[data-row-task="${task.id}"] .work-name`).click();await expect(page.getByLabel('Pure effort (days)',{exact:true})).toHaveValue('');await expect(page.getByLabel('Role',{exact:true})).toHaveValue('');
+    await page.getByLabel('Team member',{exact:true}).selectOption('u1');await saved(page);await expect(page.getByLabel('Role',{exact:true})).toHaveValue('r1');await page.getByLabel('Pure effort (days)',{exact:true}).fill('.5');await page.getByLabel('Pure effort (days)',{exact:true}).press('Tab');await saved(page);
+    await page.keyboard.press('Escape');await expect(page.locator(`.task-bar[data-task="${task.id}"]`)).toBeVisible();await expect(page.locator('[data-feature-effort=f1]')).toHaveText('6.5d effort');
+    await page.locator(`[data-row-task="${task.id}"] .work-name`).click();await page.getByLabel('Pure effort (days)',{exact:true}).fill('');await page.getByLabel('Pure effort (days)',{exact:true}).press('Tab');await saved(page);await page.keyboard.press('Escape');await expect(page.locator(`.task-bar[data-task="${task.id}"]`)).toHaveCount(0);
+    await page.setViewportSize({width:375,height:812});await page.getByRole('button',{name:'Today',exact:true}).click();await page.screenshot({path:'test-results/name-only-sub-item-mobile.png',fullPage:true});await page.reload();await page.locator('.gantt-canvas').waitFor();await saved(page);state=await snapshot();task=state.workspace.projects[0].data.tasks.find((t:{title:string})=>t.title==='Explore a rule');expect(task).toMatchObject({effort:0,assignee:'u1',platform:'Backend',roleId:'r1'});expect(task.remaining).toBeUndefined();await page.close();
+  });
+  test('supports name-only first stories and Add task in a project with no people or roles',async()=>{
+    const current=await snapshot(),value=fullWorkspace();value.projects[0].data.people=[];value.projects[0].data.roles=[];value.projects[0].data.tasks=[];value.projects[0].data.meetings=[];value.projects[0].data.leave=[];value.projects[0].data.iterations[0].overrides={};
+    expect((await context.request.put('/api/workspace',{headers:{Origin:origin},data:{revision:current.revision,workspace:value}})).status()).toBe(200);
+    const page=await context.newPage();await page.goto('/app');await page.locator('.gantt-corner').getByRole('button',{name:'Add feature',exact:true}).click();await page.getByLabel('Feature name').fill('Quick epic');await page.getByLabel('First user story (optional)').fill('Capture an idea');await page.getByRole('button',{name:'Create feature',exact:true}).click();await saved(page);
+    let data=(await snapshot()).workspace.projects[0].data,feature=data.features.find((f:{title:string})=>f.title==='Quick epic');expect(data.tasks.filter((t:{featureId:string})=>t.featureId===feature.id)).toHaveLength(1);await expect(page.locator(`[data-feature-effort="${feature.id}"]`)).toHaveText('Not estimated');
+    await page.locator(`.work-name[data-action=drawer-feature][data-id="${feature.id}"]`).click();await page.locator('.drawer [data-action=open-task]').click();await page.getByLabel('Task name',{exact:true}).fill('Follow-up idea');await page.getByLabel('Task name',{exact:true}).press('Enter');await saved(page);await expect(page.getByRole('heading',{name:'Follow-up idea',exact:true})).toBeVisible();await page.keyboard.press('Escape');
+    await page.reload();await page.locator('.gantt-canvas').waitFor();await saved(page);data=(await snapshot()).workspace.projects[0].data;expect(data.tasks.map((t:{effort:number;platform:string;assignee:string})=>[t.effort,t.platform,t.assignee])).toEqual([[0,'',''],[0,'','']]);await expect(page.locator('.task-bar[data-task]')).toHaveCount(0);await page.screenshot({path:'test-results/name-only-sub-items-empty-team.png',fullPage:true});await page.close();
+  });
+
 });

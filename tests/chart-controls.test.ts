@@ -84,3 +84,9 @@ it('stops at supported calendar bounds and supports wide screens without a dead 
  expect(asDay(low.rangeStart)).toBe(firstTimelineDay);expect(asDay(high.rangeStart)+high.days-1).toBe(lastTimelineDay);
  expect(slideTimeline(low.rangeStart,low.days,38,0,900)).toBeNull();expect(slideTimeline(high.rangeStart,high.days,38,high.days*38-900,900)).toBeNull();
 });
+
+it('assigns a title-only sub-item by filling its real platform and role atomically',()=>{
+ const data=projectData(),task=data.tasks[0];Object.assign(task,{platform:'',assignee:'',effort:0});delete task.roleId;
+ expect(matchingAssignees(data,task).map(p=>p.id)).toEqual(['u1']);const before=structuredClone(task);expect(assignTask(data,task.id,'missing')).toBe(false);expect(task).toEqual(before);
+ expect(assignTask(data,task.id,'u1')).toBe(true);expect(task).toMatchObject({assignee:'u1',platform:'Backend',roleId:'r1',effort:0});
+});

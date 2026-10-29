@@ -77,6 +77,7 @@ function calculate(){meetingDayCache.clear();const schedule={},working=new Map()
   seen=new Set(seen);seen.add(t.id);
   if(t.status==='hold'){return (schedule[t.id]={start:asDay(t.start),end:null,hold:true,blocked:false,alloc:{}})}
   let initial=asDay(t.start||getFeature(t.featureId)?.start||today());let depBlocked=false;
+  if(t.status!=='done'&&Number(t.effort)===0)return (schedule[t.id]={start:initial,end:null,blocked:true,needsEstimate:true,reason:'Add an estimate to schedule this item',alloc:{}});
   let dependencyStart=null;
   for(const depId of(data.settings.autoShiftDependencies===true&&t.status!=='done'?t.dependsOn||[]:[])){
    const dep=getTask(depId);if(!dep)continue;
@@ -124,7 +125,7 @@ function calculate(){meetingDayCache.clear();const schedule={},working=new Map()
    const windowConflict=manual&&entries.some(entry=>entry.start<displayStart||entry.end===null||entry.end+(entry.endFraction??1)>displayEnd+(f.manualEndFraction??1));
    const shortfall=entries.some(entry=>entry.shortfall>0);
    const endFraction=manual?(f.manualEndFraction??1):displayEnd===null?1:Math.max(...entries.filter(entry=>entry.end===displayEnd).map(entry=>entry.endFraction??1),.5);
-   featureInfo[f.id]={start:displayStart,end:displayEnd,endFraction,blocked,allDone,atRisk:blocked||shortfall||windowConflict||(displayEnd!==null&&displayEnd>asDay(f.baseline)),delta:displayEnd!==null?displayEnd-asDay(f.baseline):null,...(manual?{manual:true,forecastStart:start,forecastEnd:end,windowConflict}: {})}
+   featureInfo[f.id]={start:displayStart,end:displayEnd,endFraction,blocked,allDone,atRisk:blocked||shortfall||windowConflict||(displayEnd!==null&&displayEnd>asDay(f.baseline)),delta:displayEnd!==null?displayEnd-asDay(f.baseline):null,...(entries.some(entry=>entry.needsEstimate)?{needsEstimate:true}:{}),...(manual?{manual:true,forecastStart:start,forecastEnd:end,windowConflict}: {})}
  });
  const dependencyConflicts={};
  if(data.settings.showDependencyWarnings!==false)for(const task of data.tasks){

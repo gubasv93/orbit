@@ -21,3 +21,9 @@ it('enforces the provider byte limit for multibyte passwords', () => {
   expect(signupSchema.safeParse({email:'test@example.com',password:valid,confirm:valid}).success).toBe(true);
   expect(signupSchema.safeParse({email:'test@example.com',password:invalid,confirm:invalid}).success).toBe(false);
 });
+
+it('round-trips title-only sub-items while still rejecting negative effort and unspecified assigned workstreams',()=>{
+ const w=fullWorkspace(),task=w.projects[0].data.tasks[0];Object.assign(task,{effort:0,platform:'',assignee:''});delete task.roleId;
+ expect(workspaceSchema.parse(JSON.parse(JSON.stringify(w))).projects[0].data.tasks[0]).toEqual(task);
+ task.effort=-.5;expect(workspaceSchema.safeParse(w).success).toBe(false);task.effort=0;task.remaining=1;expect(workspaceSchema.safeParse(w).success).toBe(false);delete task.remaining;task.assignee='u1';expect(workspaceSchema.safeParse(w).success).toBe(false);
+});
