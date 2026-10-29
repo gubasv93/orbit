@@ -6,7 +6,7 @@ import { asDay, fromDay } from '../src/planner/dates.js';
 import { projectData } from './fixtures';
 
 describe('preserved scheduling behavior', () => {
-  it('matches the supplied prototype on its complete sample roadmap', () => {
+  it('preserves prototype work-item allocations and forecasts for epics with no paused or blocked work', () => {
     const html = readFileSync(new URL('../docs/reference/orbit_roadmap_prototype.html', import.meta.url), 'utf8');
     const source = html.match(/<script>([\s\S]*?)<\/script>/)![1];
     const dates = source.slice(source.indexOf('const asDay='), source.indexOf('const clamp='));
@@ -17,7 +17,9 @@ describe('preserved scheduling behavior', () => {
     data.settings.autoShiftDependencies=true;
     const {dependencyConflicts: _warnings,...calculated}=createScheduler(data).calculate();
     const actual = JSON.parse(JSON.stringify(calculated, (_key, value) => _key==='endFraction'?undefined:value instanceof Map ? [...value] : value));
-    expect(actual).toEqual(result);
+    const {featureInfo:actualFeatures,...actualWork}=actual,{featureInfo:prototypeFeatures,...prototypeWork}=result;
+    expect(actualWork).toEqual(prototypeWork);
+    for(const [id,info] of Object.entries(prototypeFeatures) as [string,{blocked:boolean}][])if(!info.blocked)expect(actualFeatures[id]).toMatchObject(info);
   });
   it('distinguishes work effort from calendar duration and skips weekends', () => {
     const data = projectData(); data.tasks[0].effort = 6;
@@ -73,6 +75,20 @@ it('leaves unestimated items unscheduled and the parent forecast incomplete with
  const data=projectData();Object.assign(data.tasks[0],{effort:0,platform:'',assignee:''});
  const result=createScheduler(data).calculate();expect(result.schedule.t1).toMatchObject({needsEstimate:true,end:null,alloc:{}});expect(result.working.size).toBe(0);expect(result.featureInfo.f1).toMatchObject({needsEstimate:true,blocked:true,end:null});expect(result.errors).toEqual([]);
  data.features[0].manualEnd='2026-11-01';expect(createScheduler(data).calculate().featureInfo.f1).toMatchObject({needsEstimate:true,manual:true,windowConflict:true});
+});
+
+it('keeps scheduled epic work visible when a sibling is paused without unblocking its genuine dependents',()=>{
+ const data=projectData();data.tasks.push({...data.tasks[0],id:'paused',status:'hold',start:'2026-10-01'},{...data.tasks[0],id:'dependent',dependsOn:['paused']});
+ const result=createScheduler(data).calculate();expect(result.schedule.dependent).toMatchObject({blocked:true,end:null});expect(result.schedule.paused).toMatchObject({hold:true,end:null,alloc:{}});
+ expect(result.featureInfo.f1).toMatchObject({start:result.schedule.t1.start,end:result.schedule.t1.end,pausedCount:1,activeCount:1,allPaused:false,forecastIncomplete:true});
+ expect(result.working.get('u1:2026-10-26')).toBe(1);expect(data.tasks[0].status).toBe('planned');
+ data.tasks[1].status='progress';const resumed=createScheduler(data).calculate();expect(resumed.featureInfo.f1.pausedCount).toBe(0);expect(resumed.schedule.dependent.blocked).toBe(false);
+});
+
+it('distinguishes all-paused epics, preserves manual targets and shows only known work when estimates are missing',()=>{
+ const data=projectData();data.tasks[0].status='hold';let result=createScheduler(data).calculate();expect(result.featureInfo.f1).toMatchObject({end:null,allPaused:true,activeCount:0,pausedCount:1});
+ data.features[0].manualEnd='2026-11-05';result=createScheduler(data).calculate();expect(result.featureInfo.f1.end).toBe(asDay('2026-11-05'));
+ delete data.features[0].manualEnd;data.tasks[0].status='planned';data.tasks.push({...data.tasks[0],id:'unknown',effort:0});result=createScheduler(data).calculate();expect(result.featureInfo.f1).toMatchObject({end:result.schedule.t1.end,needsEstimate:true,forecastIncomplete:true,activeCount:1,allPaused:false});
 });
 it('blocks automatic dependents until the missing estimate is supplied and preserves completed history',()=>{
  const data=projectData();data.tasks[0].effort=0;data.tasks.push({...data.tasks[0],id:'later',effort:1,dependsOn:['t1']});

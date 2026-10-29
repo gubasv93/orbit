@@ -1,5 +1,5 @@
 import { it, expect } from 'vitest';
-import { buildStoryWorkItems, workstreamNames } from '../src/planner/stories';
+import { buildStoryWorkItems, workstreamNames, planStoryRoles, storyRoleIds, storyWorkItems } from '../src/planner/stories';
 import { featureEffort } from '../src/planner/features';
 import { createScheduler } from '../src/planner/engine.js';
 import { fromDay } from '../src/planner/dates.js';
@@ -53,9 +53,9 @@ it('supports custom workstreams, unassigned work, fractional estimates, and expl
   expect(workstreamNames(data)).toEqual(['Backend', 'DevOps', 'Frontend', 'QA']);
 });
 
-it('rejects missing, zero, negative, non-finite, and excessive estimates instead of changing their values', () => {
+it('rejects invalid fractional, negative, non-finite, and excessive estimates instead of changing their values', () => {
   const data = teamData();
-  for (const effort of [0, .1, .25, .75, -.5, NaN, Infinity, 3651, undefined]) {
+  for (const effort of [.1, .25, .75, -.5, NaN, Infinity, 3651]) {
     const value = draft(); Object.assign(value.teams[0], { effort });
     expect(() => buildStoryWorkItems('f1', value, data)).toThrow();
   }
@@ -86,4 +86,43 @@ it('captures a title-only story with no assignment or fabricated estimate, inclu
 it('applies the work-item limit to a title-only story before adding it',()=>{
  const data=teamData();data.tasks=Array.from({length:3000},(_,i)=>({...projectData().tasks[0],id:'existing'+i}));
  expect(()=>buildStoryWorkItems('f1',{title:'Later',start:'2026-11-02',teams:[]},data)).toThrow('3000 work items');expect(data.tasks).toHaveLength(3000);
+});
+
+it('creates selected roles without assignments or invented estimates and keeps different same-name stories separate',()=>{
+ const data=teamData(),value={title:'Rules',start:'2026-11-02',teams:[{roleId:'r1'},{roleId:'rQA',effort:1.5}]};
+ const first=buildStoryWorkItems('f1',value,data),second=buildStoryWorkItems('f1',value,data);
+ expect(first.map(t=>[t.roleId,t.platform,t.assignee,t.effort])).toEqual([['r1','Backend','',0],['rQA','QA','',1.5]]);
+ expect(first[0].storyId).toBeTruthy();expect(first[1].storyId).toBe(first[0].storyId);expect(second[0].storyId).not.toBe(first[0].storyId);
+ data.tasks=[...first,...second];expect(storyWorkItems(first[0],data)).toEqual(first);
+ const result=createScheduler(data).calculate();expect(result.schedule[first[0].id]).toMatchObject({needsEstimate:true,alloc:{}});
+});
+
+it('adds roles to the selected story atomically, rejects existing roles, and leaves its original work unchanged',()=>{
+ const data=teamData();data.tasks=buildStoryWorkItems('f1',{...draft(),teams:[{roleId:'r1',assignee:'u1',effort:3}]},data);
+ const original=structuredClone(data),source=data.tasks[0],addition=planStoryRoles(source.id,{title:source.title,start:source.start,teams:[{roleId:'rFrontend'},{roleId:'rQA',effort:2}]},data);
+ expect(data).toEqual(original);expect(addition.updatedSource).toEqual(source);expect(addition.items.map(t=>[t.roleId,t.effort,t.assignee,t.storyId])).toEqual([['rFrontend',0,'',source.storyId],['rQA',2,'',source.storyId]]);
+ data.tasks.push(...addition.items);expect([...storyRoleIds(source,data)]).toEqual(['r1','rFrontend','rQA']);
+ const before=structuredClone(data);for(const teams of [[],[{roleId:'rQA'}],[{roleId:'rOps'}],[{roleId:'rFrontend',assignee:'u1'}]])expect(()=>planStoryRoles(source.id,{title:source.title,start:source.start,teams},data)).toThrow();expect(data).toEqual(before);
+});
+
+it('extends legacy role work without merging same-name legacy tasks and supports an explicit dependency chain',()=>{
+ const data=teamData(),source={...projectData().tasks[0],roleId:'r1'};data.tasks=[source,{...source,id:'unrelated'}];
+ const addition=planStoryRoles(source.id,{title:source.title,start:source.start,teams:[{roleId:'rFrontend'},{roleId:'rQA'}],sequential:true},data);
+ expect(addition.updatedSource.storyId).toBeTruthy();expect(addition.items.every(t=>t.storyId===addition.updatedSource.storyId)).toBe(true);
+ expect(addition.items.map(t=>t.dependsOn)).toEqual([[source.id],[addition.items[0].id]]);expect(data.tasks[1].storyId).toBeUndefined();
+});
+
+it('reuses a name-only placeholder for its first role and remaps explicit chains without leaving an empty extra task',()=>{
+ const data=teamData();data.tasks=buildStoryWorkItems('f1',{title:'New story',start:'2026-11-02',teams:[]},data);const source=data.tasks[0];
+ const addition=planStoryRoles(source.id,{title:source.title,start:source.start,teams:[{roleId:'r1',effort:.5},{roleId:'rQA'}],sequential:true},data);
+ expect(addition.updatedSource).toMatchObject({id:source.id,roleId:'r1',platform:'Backend',effort:.5,assignee:'',dependsOn:[]});
+ expect(addition.items).toHaveLength(1);expect(addition.items[0]).toMatchObject({roleId:'rQA',effort:0,dependsOn:[source.id],storyId:source.storyId});
+ const before=structuredClone(data);data.tasks[0].manualEnd='2026-11-03';expect(()=>planStoryRoles(source.id,{title:source.title,start:'2026-11-04',teams:[{roleId:'r1'}]},data)).toThrow('manual date');expect(data.tasks[0]).toEqual({...before.tasks[0],manualEnd:'2026-11-03'});
+});
+
+it('counts placeholder reuse correctly at the project limit and rejects oversized role additions before mutation',()=>{
+ const data=teamData();data.tasks=Array.from({length:2999},(_,i)=>({...projectData().tasks[0],id:'existing'+i}));
+ const placeholder={...projectData().tasks[0],id:'placeholder',effort:0,platform:'',assignee:''};data.tasks.push(placeholder);
+ expect(planStoryRoles(placeholder.id,{title:'Roles',start:placeholder.start,teams:[{roleId:'rQA'}]},data).items).toEqual([]);
+ const before=structuredClone(data);expect(()=>planStoryRoles(placeholder.id,{title:'Roles',start:placeholder.start,teams:[{roleId:'rQA'},{roleId:'r1'}]},data)).toThrow('3000 work items');expect(data).toEqual(before);
 });

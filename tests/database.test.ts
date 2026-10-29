@@ -42,7 +42,7 @@ describe('PostgreSQL ownership, RLS, and atomic persistence', () => {
   });
   it('round-trips role assignments and manual windows in the existing task/feature documents', async () => {
     await user(a);const before=await load(),workspace=fullWorkspace();
-    workspace.projects[0].data.tasks[0].roleId='r1';workspace.projects[0].data.tasks[0].manualEnd='2026-11-02';
+    workspace.projects[0].data.tasks[0].roleId='r1';workspace.projects[0].data.tasks[0].storyId='persisted-story';workspace.projects[0].data.tasks[0].manualEnd='2026-11-02';
     workspace.projects[0].data.features[0].manualEnd='2026-11-03';
     await save(workspace,before.revision);expect((await load()).workspace).toEqual(workspace);
   });

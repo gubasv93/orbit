@@ -8,7 +8,7 @@ export interface Schedule {
   schedule: Record<string, ScheduledTask>;
   conflicts: Record<string, string[]>;
   working: Map<string, number>;
-  featureInfo: Record<string, { start: number; end: number | null; endFraction?: number; blocked: boolean; needsEstimate?: boolean; allDone: boolean; atRisk: boolean; delta: number | null; manual?: boolean; forecastStart?: number; forecastEnd?: number | null; windowConflict?: boolean }>;
+  featureInfo: Record<string, { start: number; end: number | null; endFraction?: number; blocked: boolean; needsEstimate?: boolean; allDone: boolean; pausedCount?: number; activeCount?: number; allPaused?: boolean; forecastIncomplete?: boolean; atRisk: boolean; delta: number | null; manual?: boolean; forecastStart?: number; forecastEnd?: number | null; windowConflict?: boolean }>;
   errors: string[];
   dependencyConflicts: Record<string, string[]>;
 }

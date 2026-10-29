@@ -90,7 +90,7 @@ export function getItemDetails(data: ProjectData, computed: Schedule, kind: Kind
   }
   const finish = end === null ? null : end + endFraction;
   const calendarDays = start === null || finish === null ? null : round(Math.max(0, finish - start));
-  const state: ItemDetails['state'] = completed ? 'completed' : task?.status === 'hold' ? 'paused' : !tasks.length ? 'empty' : pendingCount ? 'unestimated' : s.blocked ? 'blocked' : 'scheduled';
+  const state: ItemDetails['state'] = completed ? 'completed' : task?.status === 'hold' || feature && computed.featureInfo[id].allPaused ? 'paused' : !tasks.length ? 'empty' : feature && computed.featureInfo[id].activeCount ? 'scheduled' : pendingCount ? 'unestimated' : s.blocked ? 'blocked' : 'scheduled';
   const notes: string[] = [], issues: ItemIssue[] = [], conflicts: ItemConflict[] = [];
   const unknown = tasks.filter(t => t.effort === 0 && t.status !== 'done');
   for (const t of tasks) {
@@ -101,6 +101,7 @@ export function getItemDetails(data: ProjectData, computed: Schedule, kind: Kind
   }
   if (task && !completed && task.remaining !== undefined && task.remaining < task.effort) notes.push(`Estimate includes ${round(task.effort - task.remaining)} work days already completed; ${round(task.remaining)} work days remain.`);
   if (feature) notes.push('Estimate uses person-days across work items. Parallel work can finish in fewer calendar days.');
+  if (feature && computed.featureInfo[id].forecastIncomplete && end !== null) notes.push('These dates cover scheduled work only. Paused, unestimated or blocked items do not have a reliable finish date.');
   if (estimateManual) notes.push(`The estimate is manual. Work-item estimates sum to ${round(knownEstimate)} person-days.`);
   if (unestimatedCount) notes.push(`${unestimatedCount} work item${unestimatedCount === 1 ? ' has' : 's have'} no estimate. Known estimates total ${round(knownEstimate)} ${feature ? 'person-days' : 'work days'}.`);
 

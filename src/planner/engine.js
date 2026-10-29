@@ -118,14 +118,16 @@ function calculate(){meetingDayCache.clear();const schedule={},working=new Map()
  let featureInfo={};data.features.forEach(f=>{
    let arr=data.tasks.filter(t=>t.featureId===f.id);
    let entries=arr.map(t=>schedule[t.id]).filter(Boolean);
-   let blocked=entries.some(s=>s.blocked||s.hold),starts=entries.map(s=>s.start).filter(x=>x!==null),ends=entries.map(s=>s.end).filter(x=>x!==null);
-   let start=starts.length?Math.min(...starts):asDay(f.start),end=blocked?null:ends.length?Math.max(...ends):null;
+   const dated=entries.filter(s=>s.end!==null&&!s.hold&&!s.blocked),pausedCount=arr.filter(t=>t.status==='hold').length,activeCount=dated.filter(s=>!s.done).length;
+   const unfinished=arr.filter(t=>t.status!=='done'),allPaused=unfinished.length>0&&unfinished.every(t=>t.status==='hold');
+   let blocked=entries.some(s=>s.blocked||s.hold),starts=(dated.length?dated:entries).map(s=>s.start).filter(x=>x!==null),ends=dated.map(s=>s.end);
+   let start=starts.length?Math.min(...starts):asDay(f.start),end=ends.length?Math.max(...ends):null;
    let allDone=arr.length>0&&arr.every(t=>t.status==='done');
    const manual=Boolean(f.manualEnd),displayStart=manual?asDay(f.start):start,displayEnd=manual?asDay(f.manualEnd):end;
    const windowConflict=manual&&entries.some(entry=>entry.start<displayStart||entry.end===null||entry.end+(entry.endFraction??1)>displayEnd+(f.manualEndFraction??1));
    const shortfall=entries.some(entry=>entry.shortfall>0);
    const endFraction=manual?(f.manualEndFraction??1):displayEnd===null?1:Math.max(...entries.filter(entry=>entry.end===displayEnd).map(entry=>entry.endFraction??1),.5);
-   featureInfo[f.id]={start:displayStart,end:displayEnd,endFraction,blocked,allDone,atRisk:blocked||shortfall||windowConflict||(displayEnd!==null&&displayEnd>asDay(f.baseline)),delta:displayEnd!==null?displayEnd-asDay(f.baseline):null,...(entries.some(entry=>entry.needsEstimate)?{needsEstimate:true}:{}),...(manual?{manual:true,forecastStart:start,forecastEnd:end,windowConflict}: {})}
+   featureInfo[f.id]={start:displayStart,end:displayEnd,endFraction,blocked,allDone,pausedCount,activeCount,allPaused,forecastIncomplete:blocked,atRisk:blocked||shortfall||windowConflict||(displayEnd!==null&&displayEnd>asDay(f.baseline)),delta:displayEnd!==null?displayEnd-asDay(f.baseline):null,...(entries.some(entry=>entry.needsEstimate)?{needsEstimate:true}:{}),...(manual?{manual:true,forecastStart:start,forecastEnd:end,windowConflict}: {})}
  });
  const dependencyConflicts={};
  if(data.settings.showDependencyWarnings!==false)for(const task of data.tasks){
