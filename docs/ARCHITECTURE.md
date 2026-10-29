@@ -9,6 +9,8 @@
 - `src/lib/schema.ts`: shared validation, date/effort bounds, capacity totals, relationships, and dependency-cycle checks.
 - `src/lib/autosave.ts`: serialized writes, coalescing, failure retention, retry, and explicit conflict resolution.
 - `supabase/migrations`: version-controlled additive PostgreSQL schema and ownership functions.
+- `src/components/planning-poker.tsx` and `src/app/poker`: project-scoped room creation, guest play and story estimation. Room state is projected by a permission-checked database RPC and refreshed from the shared server. Hidden cards never leave the database except to their voter until reveal.
+- `src/lib/poker-publication.ts`: validated story/epic mutations reusing standard role-specific work items. `orbit_poker_publish` commits the normal workspace revision and an idempotent publication receipt together. See [Planning Poker](PLANNING_POKER.md) for security, concurrency and recovery details.
 
 ## Security and persistence
 

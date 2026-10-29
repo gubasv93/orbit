@@ -52,16 +52,34 @@ export function Planner() {
         planner = mountPlanner(target, workspace, {
           onChange(next: Workspace) { snapshot.current = next; autosave.update(next); },
           onLogout: logout, onExport() { if (snapshot.current) download(snapshot.current); },
+          async onPoker(projectId: string) {
+            await autosave.flush();
+            if (autosave.state !== 'saved') { setSaveError('Save or resolve your workspace changes before opening Planning Poker.'); return; }
+            window.location.assign(`/poker/new?project=${encodeURIComponent(projectId)}`);
+          },
           onImport() { importInput.current?.click(); }, email: loaded!.email,
+          focus: Object.fromEntries(new URLSearchParams(window.location.search)),
         });
       };
       restore.current = workspace => { snapshot.current = workspace; autosave.update(workspace); mount(workspace); };
       mount(loaded.workspace);
     });
     const leave = (event: BeforeUnloadEvent) => { if (autosave.state !== 'saved') { event.preventDefault(); event.returnValue = ''; } };
-    const hidden = () => { if (document.visibilityState === 'hidden') void autosave.flush(); };
-    window.addEventListener('beforeunload', leave); document.addEventListener('visibilitychange', hidden);
-    return () => { disposed = true; planner?.destroy(); autosave.destroy(); restore.current = null; window.removeEventListener('beforeunload', leave); document.removeEventListener('visibilitychange', hidden); };
+    let checking = false;
+    const checkRevision = async () => {
+      if (disposed || checking || document.visibilityState === 'hidden' || autosave.state === 'saving' || autosave.state === 'conflict') return;
+      checking = true;
+      try {
+        const response = await fetch('/api/workspace?revisionOnly=1', { cache: 'no-store' });
+        if (response.ok && !disposed) { const result = await response.json(); if (Number.isInteger(result.revision)) autosave.observeRevision(result.revision); }
+      } catch { /* Regular saves retain their existing retry behavior. */ }
+      finally { checking = false; }
+    };
+    const hidden = () => { if (document.visibilityState === 'hidden') void autosave.flush(); else void checkRevision(); };
+    const focused = () => { void checkRevision(); };
+    const revisionTimer = setInterval(focused, 15000);
+    window.addEventListener('beforeunload', leave); window.addEventListener('focus', focused); document.addEventListener('visibilitychange', hidden);
+    return () => { disposed = true; clearInterval(revisionTimer); planner?.destroy(); autosave.destroy(); restore.current = null; window.removeEventListener('beforeunload', leave); window.removeEventListener('focus', focused); document.removeEventListener('visibilitychange', hidden); };
   }, [loaded]);
   async function importBackup(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]; event.target.value = ''; if (!file) return;

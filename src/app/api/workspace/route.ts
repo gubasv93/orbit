@@ -11,12 +11,12 @@ async function session() {
   const { data: { user }, error } = await client.auth.getUser();
   return error || !user ? null : { client, user };
 }
-export async function GET() {
+export async function GET(request: NextRequest) {
   const auth = await session();
   if (!auth) return problem('Please log in.', 401);
   const { data, error } = await auth.client.rpc('orbit_get_workspace');
   if (error) { console.error('workspace_read_failed', { code: error.code }); return problem('Unable to load your workspace. Please retry.', 503); }
-  return NextResponse.json({ ...data, email: auth.user.email }, { headers: { 'Cache-Control': 'private, no-store' } });
+  return NextResponse.json(request.nextUrl.searchParams.get('revisionOnly') === '1' ? { revision: data.revision } : { ...data, email: auth.user.email }, { headers: { 'Cache-Control': 'private, no-store' } });
 }
 export async function PUT(request: NextRequest) {
   if (!sameOrigin(request)) return problem('Request origin is not allowed.', 403);

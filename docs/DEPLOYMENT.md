@@ -16,6 +16,8 @@ This reads account/project metadata only and suppresses credentials and response
 
 ## Database
 
+Planning Poker adds migration `20261029000200_planning_poker.sql`. Its production application requires the explicit approval requested in the product task. Prepare a read-only compatibility/checksum report with `node --use-env-proxy scripts/apply-poker-migration.mjs`. After approval, the same command with `--apply` applies only that additive migration and its checksum marker in a transaction and reloads the PostgREST schema cache. Do not publish the new UI before its RPCs exist. Application rollback can return to deployment `dpl_3Yk665UnxdXJ7AXBdv5kzLJ8YBQ2`; leave additive poker data intact. See [Planning Poker](PLANNING_POKER.md).
+
 Inspect the selected hosted project before applying anything. The migration creates only new `orbit_*` objects and a private `orbit_private` schema. It does not replace existing applications, delete hosted user records, or change email-delivery settings.
 
 ```bash

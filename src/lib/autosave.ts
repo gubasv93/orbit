@@ -26,6 +26,12 @@ export class Autosave {
     this.timer = setTimeout(() => { this.timer = null; void this.flush(); }, this.delay);
   }
   snapshot() { return this.latest; }
+  currentRevision() { return this.revision; }
+  observeRevision(revision: number) {
+    if (revision <= this.revision || this.state === 'saving' || this.stopped) return;
+    if (this.timer) { clearTimeout(this.timer); this.timer = null; }
+    this.set('conflict', 'Another tab updated this workspace. Export any unsaved work, then reload the latest version.');
+  }
   private set(state: SaveState, message?: string) { this.state = state; if (!this.stopped) this.notify(state, message); }
   async flush(): Promise<void> {
     if (this.timer) { clearTimeout(this.timer); this.timer = null; }
