@@ -9,12 +9,26 @@ import { createServer, request as httpRequest } from 'node:http';
 const temp = mkdtempSync(join(tmpdir(), 'orbit-integration-'));
 const suffix = randomBytes(4).toString('hex'), network = `orbit-test-${suffix}`;
 const names = { db: `orbit-test-db-${suffix}`, auth: `orbit-test-auth-${suffix}`, rest: `orbit-test-rest-${suffix}` };
+const images = { db: 'postgres:16-alpine', auth: 'ghcr.io/supabase/gotrue:v2.197.0', rest: 'ghcr.io/supabase/postgrest:v16.5' };
 const secret = randomBytes(32).toString('hex'), password = randomBytes(24).toString('hex');
 let next, gateway, closing = false;
 function docker(args, input) {
   const result = spawnSync('docker', args, { encoding: 'utf8', input, maxBuffer: 4_000_000 });
   if (result.status !== 0) throw new Error(`Docker command failed (${args[0]} ${args[1] || ''}): ${result.stderr.slice(0,400)}`);
   return result.stdout.trim();
+}
+async function ensureImage(image) {
+  if (spawnSync('docker', ['image','inspect',image], { stdio: 'ignore' }).status === 0) return;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const result = spawnSync('docker', ['pull',image], { encoding: 'utf8', maxBuffer: 4_000_000 });
+    if (result.status === 0) return;
+    const message = result.stderr || '';
+    if (!/toomanyrequests|too many requests|\b429\b/i.test(message) || attempt === 4) {
+      throw new Error(`Container image pull failed (${image}): ${message.slice(-1000)}`);
+    }
+    console.log(`Container registry rate limit; retrying ${image} (${attempt + 2}/5).`);
+    await new Promise(resolve => setTimeout(resolve, 1000 * 2 ** attempt));
+  }
 }
 function envfile(name, values) { const path = join(temp, name); writeFileSync(path, Object.entries(values).map(([key,value]) => `${key}=${value}`).join('\n')+'\n', { mode: 0o600 }); return path; }
 async function wait(url) {
@@ -29,9 +43,10 @@ async function cleanup() {
 }
 for (const signal of ['SIGINT','SIGTERM']) process.on(signal,()=>{void cleanup().then(()=>process.exit(0));});
 try {
+  for (const image of Object.values(images)) await ensureImage(image);
   docker(['network','create',network]);
   const pgEnv = envfile('postgres.env',{POSTGRES_PASSWORD:password});
-  docker(['run','-d','--name',names.db,'--network',network,'--env-file',pgEnv,'--label','orbit.integration=true','postgres:16-alpine']);
+  docker(['run','-d','--name',names.db,'--network',network,'--env-file',pgEnv,'--label','orbit.integration=true',images.db]);
   let ready = false;
   // The image's initialization server accepts Unix-socket connections briefly
   // before shutting down. TCP becomes ready only on the final database server.
@@ -57,14 +72,14 @@ try {
     GOTRUE_EXTERNAL_GOOGLE_SECRET:'local-integration-placeholder',GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI:'http://localhost:54321/auth/v1/callback',
     GOTRUE_RATE_LIMIT_EMAIL_SENT:'1000',GOTRUE_LOG_LEVEL:'warn'
   });
-  docker(['run','-d','--name',names.auth,'--network',network,'--env-file',authEnv,'--label','orbit.integration=true','-p','127.0.0.1:54326:9999','ghcr.io/supabase/gotrue:v2.197.0']);
+  docker(['run','-d','--name',names.auth,'--network',network,'--env-file',authEnv,'--label','orbit.integration=true','-p','127.0.0.1:54326:9999',images.auth]);
   await wait('http://localhost:54326/health');
   const migrations = new URL('../supabase/migrations/', import.meta.url);
   for (const file of readdirSync(migrations).filter(name => /^\d{14}_[a-z0-9_]+\.sql$/.test(name)).sort()) {
     docker(['exec','-i',names.db,'psql','-U','postgres','-v','ON_ERROR_STOP=1'], readFileSync(new URL(file,migrations),'utf8'));
   }
   const restEnv=envfile('rest.env',{PGRST_DB_URI:`postgres://authenticator:${password}@${names.db}:5432/postgres`,PGRST_DB_SCHEMAS:'public',PGRST_DB_ANON_ROLE:'anon',PGRST_JWT_SECRET:secret,PGRST_SERVER_PORT:'3000'});
-  docker(['run','-d','--name',names.rest,'--network',network,'--env-file',restEnv,'--label','orbit.integration=true','-p','127.0.0.1:54327:3000','ghcr.io/supabase/postgrest:v16.5']);
+  docker(['run','-d','--name',names.rest,'--network',network,'--env-file',restEnv,'--label','orbit.integration=true','-p','127.0.0.1:54327:3000',images.rest]);
   await wait('http://localhost:54327/');
   gateway=createServer((incoming,outgoing)=>{
     const auth=incoming.url?.startsWith('/auth/v1/'), rest=incoming.url?.startsWith('/rest/v1/');
