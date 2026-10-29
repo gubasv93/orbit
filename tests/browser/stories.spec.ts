@@ -95,8 +95,8 @@ test.describe.serial('user stories estimated by team', () => {
     const tasks = data.tasks.filter((item: { title: string }) => item.title === 'Add a specific rule'); expect(tasks).toHaveLength(3);
     const backend = tasks.find((item: { platform: string }) => item.platform === 'Backend'), frontend = tasks.find((item: { platform: string }) => item.platform === 'Frontend');
     const order = data.tasks.map((item: { id: string }) => item.id);
-    await page.locator(`.work-name[data-action=drawer-task][data-id="${frontend.id}"]`).click();
-    await page.getByRole('checkbox', { name: 'Depend on Add a specific rule · Backend', exact: true }).check(); await saved(page);
+    await page.locator(`[data-action=link-from][data-id="${backend.id}"]`).click();
+    await page.locator(`[data-action=link-to][data-id="${frontend.id}"]`).click(); await saved(page);
     await page.keyboard.press('Escape'); await page.reload(); await saved(page);
     data = (await snapshot()).workspace.projects[0].data;
     expect(data.tasks.find((item: { id: string }) => item.id === frontend.id).dependsOn).toEqual([backend.id]);

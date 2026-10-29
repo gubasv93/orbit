@@ -59,4 +59,35 @@ test.describe.serial('readable item breakdowns and calendar-based estimates',()=
   }
   await page.reload();await ready(page);expect((await snapshot()).workspace.projects[0].data.tasks[0].effort).toBe(1.5);await page.close();
  });
+ test('lists every conflicting task and relevant meeting in task and epic drawers with working links and mobile layout',async()=>{
+  test.setTimeout(90000);
+  const value=workspace(),data=value.projects[0].data;Object.assign(data.tasks[0],{effort:2,manualEnd:'2026-10-29',manualEndFraction:1});
+  data.features.push({...data.features[0],id:'other',title:'Other epic'});
+  for(let i=1;i<=6;i++)data.tasks.push({...data.tasks[0],id:'competing'+i,title:'Competing work '+i,featureId:i>3?'other':'f1',effort:.5,manualEnd:undefined});
+  data.meetings=[daily(),{...daily(60),id:'planning',title:'Weekly planning',recurrence:'weekly',weekday:4,startTime:'10:00'},
+   {...daily(),id:'paused',title:'Paused meeting',enabled:false},{...daily(),id:'others',title:'Other attendees',allTeam:false,attendees:[]}];
+  await replace(value);const page=await context.newPage();await page.goto('/app');await ready(page);await page.locator('.work-name[data-action=drawer-task][data-id=t1]').click();
+  const drawer=page.locator('.drawer'),conflicts=drawer.locator('[data-drawer-conflicts]'),meetings=drawer.locator('[data-drawer-meetings]');
+  await expect(conflicts.locator('li')).toHaveCount(6);for(let i=1;i<=6;i++)await expect(conflicts).toContainText('Competing work '+i);
+  await expect(meetings.locator('li')).toHaveCount(2);await expect(meetings).toContainText('Daily standup');await expect(meetings).toContainText('Weekly planning');await expect(meetings).not.toContainText('Paused meeting');await expect(meetings).not.toContainText('Other attendees');
+  await expect(meetings.locator('[data-drawer-meeting=daily]')).toHaveAttribute('data-meeting-minutes','120');await expect(meetings.locator('[data-drawer-meeting=planning]')).toHaveAttribute('data-meeting-minutes','60');await expect(meetings.locator('.meeting-time-summary')).toContainText('3h');
+  for(const text of ['Resize the bar to recalculate','The bar length follows','Elapsed span:'])await expect(drawer).not.toContainText(text);await expect(drawer.locator('[data-drawer-dependencies]')).toHaveCount(0);
+  await conflicts.getByRole('button',{name:'Open task Competing work 6',exact:true}).click();await expect(drawer.locator('[data-update-task=title]')).toHaveValue('Competing work 6');await page.keyboard.press('Escape');
+  await page.locator('.work-name[data-action=drawer-feature][data-id=f1]').click();await expect(conflicts.locator('li')).toHaveCount(7);await expect(conflicts).toContainText('Competing work 6');await expect(meetings.locator('li')).toHaveCount(2);await expect(meetings.locator('[data-drawer-meeting=daily]')).toHaveAttribute('data-meeting-minutes','120');
+  await meetings.getByRole('button',{name:'Edit meeting Weekly planning',exact:true}).click();await page.getByLabel('Duration (minutes)').fill('30');await page.getByRole('button',{name:'Save changes',exact:true}).click();await ready(page);await expect(meetings.locator('[data-drawer-meeting=planning]')).toHaveAttribute('data-meeting-minutes','30');await expect(meetings.locator('.meeting-time-summary')).toContainText('2.5h');
+  for(const width of [375,320]){await page.setViewportSize({width,height:812});await meetings.scrollIntoViewIfNeeded();expect(await drawer.evaluate(node=>node.scrollWidth<=node.clientWidth)).toBe(true);await page.screenshot({path:`test-results/drawer-meetings-${width}.png`,fullPage:true});}
+  await page.keyboard.press('Escape');await page.reload();await ready(page);expect((await snapshot()).workspace.projects[0].data.meetings.find((m:{id:string})=>m.id==='planning').duration).toBe(30);await page.close();
+ });
+
+ test('shows only existing incoming, outgoing and epic dependencies and removes each link durably without moving manual dates',async()=>{
+  const value=workspace(),data=value.projects[0].data;data.features.push({...data.features[0],id:'other',title:'Other epic'});
+  data.tasks.push({...data.tasks[0],id:'review',title:'Review',dependsOn:['t1']},{...data.tasks[0],id:'release',title:'Release',featureId:'other',dependsOn:['review']});
+  await replace(value);const page=await context.newPage();await page.goto('/app');await ready(page);const before=(await snapshot()).workspace.projects[0].data.tasks;
+  await page.locator('.work-name[data-action=drawer-task][data-id=review]').click();const dependencies=page.locator('.drawer [data-drawer-dependencies]');await expect(dependencies.locator('li')).toHaveCount(2);await expect(dependencies).toContainText('Depends on');await expect(dependencies).toContainText('Blocks');await expect(page.locator('.drawer [data-dependency]')).toHaveCount(0);
+  await dependencies.getByRole('button',{name:'Remove dependency: API → Review',exact:true}).click();await ready(page);await expect(dependencies.locator('li')).toHaveCount(1);expect((await snapshot()).workspace.projects[0].data.tasks.find((t:{id:string})=>t.id==='review').dependsOn).toEqual([]);
+  await page.keyboard.press('Escape');await page.locator('.work-name[data-action=drawer-task][data-id=t1]').click();await expect(dependencies).toHaveCount(0);await page.keyboard.press('Escape');
+  await page.locator('.work-name[data-action=drawer-feature][data-id=f1]').click();await expect(dependencies.locator('li')).toHaveCount(1);await expect(dependencies).toContainText('Blocks');await dependencies.getByRole('button',{name:'Remove dependency: Review → Release',exact:true}).click();await ready(page);await expect(dependencies).toHaveCount(0);
+  const tasks=(await snapshot()).workspace.projects[0].data.tasks;expect(tasks).toEqual(before.map((t:{dependsOn:string[]})=>({...t,dependsOn:[]})));
+  await page.keyboard.press('Escape');await page.reload();await ready(page);await page.locator('.work-name[data-action=drawer-task][data-id=release]').click();await expect(dependencies).toHaveCount(0);await expect(page.locator('.dependency-edge')).toHaveCount(0);await page.close();
+ });
 });

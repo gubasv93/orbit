@@ -16,6 +16,9 @@ it('reports exact meeting minutes and half-day spans without per-day rounding or
   manual(data,'2026-10-26','2026-10-27',.5);
   const result=details(data);
   expect(result.calendarDays).toBe(1.5);expect(result.meetingMinutes).toBe(180);expect(result.meetingHours).toBe(3);
+  expect(result.meetings.map(m=>({id:m.id,minutes:m.minutes,scheduled:m.scheduledMinutes,dates:m.dates.length}))).toEqual([
+    {id:'daily',minutes:90,scheduled:120,dates:2},{id:'overlap',minutes:90,scheduled:120,dates:2},
+  ]);
   expect(result.estimate).toBe(3);expect(result.estimateUnit).toBe('work days');expect(result.conflicts.some(c=>c.kind==='shortfall')).toBe(true);
 });
 
@@ -42,6 +45,7 @@ it('deduplicates a person’s meeting and leave time across parallel child work 
   const result=details(data,'feature','f1');
   expect(result.estimate).toBe(9);expect(result.estimateUnit).toBe('person-days');expect(result.calendarDays).toBe(8);
   expect(result.meetingMinutes).toBe(330);expect(result.meetingUnit).toBe('person-minutes');
+  expect(result.meetings).toHaveLength(1);expect(result.meetings[0]).toMatchObject({minutes:330,attendeeOccurrences:11,attendeeIds:['u1','u2']});expect(result.meetings[0].dates).toHaveLength(6);
   expect(result.timeAway.find(row=>row.kind==='weekends')).toMatchObject({days:2,unit:'calendar days'});
   expect(result.timeAway.find(row=>row.kind==='dayoff')).toMatchObject({days:1,unit:'person-days'});
   expect(result.conflicts.filter(c=>c.kind==='capacity').map(c=>c.task.id).sort()).toEqual(['t1','t2']);
@@ -72,6 +76,7 @@ it('keeps manual targets explicit, clips epic time accounting to that window and
   data.features[0].manualEnd='2026-10-27';
   const result=details(data,'feature','f1');
   expect(result.dateMode).toBe('manual');expect(result.calendarDays).toBe(2);expect(result.meetingMinutes).toBe(60);expect(result.forecastComplete).toBe(false);
+  expect(result.meetings[0]).toMatchObject({minutes:60,dates:['2026-10-26','2026-10-27']});
   expect(result.conflicts.find(c=>c.kind==='window')).toMatchObject({task:{id:'t1'},dates:['2026-10-30']});
   data.tasks[0].status='done';data.tasks[0].completedDate='2026-10-30';
   expect(details(data,'feature','f1').conflicts.some(c=>c.kind==='window')).toBe(true);
@@ -89,6 +94,7 @@ it('does not invent past recurring meetings for completed items or their complet
   const data=projectData();daily(data);data.tasks[0].status='done';data.tasks[0].completedDate='2026-11-02';
   for(const result of [details(data),details(data,'feature','f1')]){
     expect(result.state).toBe('completed');expect(result.dateMode).toBe('recorded');expect(result.calendarDays).toBe(8);expect(result.meetingMinutes).toBeNull();expect(result.timeAway.find(row=>row.kind==='weekends')?.days).toBe(2);expect(result.timeAway.find(row=>row.kind==='vacation')?.days).toBeNull();expect(result.notes.some(note=>note.includes('not tracked'))).toBe(true);
+    expect(result.meetings).toEqual([]);
   }
 });
 
@@ -126,4 +132,30 @@ it('explains completed and remaining work when estimate exceeds the current rema
 it('keeps paused tasks unreliable even when they retain a manual target window',()=>{
   const data=projectData();manual(data,'2026-10-26','2026-10-30');data.tasks[0].status='hold';
   const result=details(data);expect(result.state).toBe('paused');expect(result.dateMode).toBe('manual');expect(result.calendarDays).toBe(5);expect(result.forecastComplete).toBe(false);expect(result.meetingMinutes).toBeNull();
+});
+
+it('lists only meetings attended within working dates using each recurrence and excludes leave, holidays and inactive events',()=>{
+  const data=projectData();daily(data);manual(data,'2026-10-26','2026-11-06');data.settings.observeHolidays=true;
+  const base=data.meetings[0];data.meetings.push(
+    {...base,id:'planning',title:'Planning',recurrence:'weekly',weekday:4,startTime:'10:00',duration:60},
+    {...base,id:'demo',title:'Demo',recurrence:'interval',weekday:5,interval:2,startDate:'2026-10-30',startTime:'14:00',duration:60},
+    {...base,id:'monthly',title:'Monthly',recurrence:'monthly',weekday:5,nth:1,startTime:'11:00',duration:45},
+    {...base,id:'paused',enabled:false},{...base,id:'others',allTeam:false,attendees:[]},
+    {...base,id:'expired',endDate:'2026-10-25'},{...base,id:'future',startDate:'2026-11-09'},
+  );
+  data.holidays=[{date:'2026-10-28',name:'Holiday'}];data.leave=[{id:'off',person:'u1',type:'dayoff',from:'2026-11-02',to:'2026-11-02',note:''}];
+  const before=structuredClone(data),result=details(data);
+  expect(result.meetings.map(m=>({id:m.id,minutes:m.minutes,count:m.dates.length}))).toEqual([
+    {id:'daily',minutes:240,count:8},{id:'planning',minutes:120,count:2},{id:'demo',minutes:60,count:1},{id:'monthly',minutes:45,count:1},
+  ]);
+  expect(result.meetingMinutes).toBe(465);expect(result.meetings.reduce((sum,m)=>sum+m.minutes,0)).toBe(result.meetingMinutes);expect(data).toEqual(before);
+});
+
+it('shares identical overlapping meetings and caps each attendee to a half-day window without losing list entries',()=>{
+  const data=projectData();daily(data,480);data.meetings.push({...data.meetings[0],id:'same-time',title:'Another meeting'});manual(data,'2026-10-26','2026-10-26',.5);
+  const result=details(data);expect(result.meetingMinutes).toBe(240);
+  expect(result.meetings.map(m=>({minutes:m.minutes,scheduled:m.scheduledMinutes,attendees:m.attendeeOccurrences}))).toEqual([
+    {minutes:120,scheduled:480,attendees:1},{minutes:120,scheduled:480,attendees:1},
+  ]);
+  data.tasks[0].assignee='';expect(details(data).meetings).toEqual([]);
 });

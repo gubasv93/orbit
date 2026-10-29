@@ -22,6 +22,10 @@ export interface ItemIssue {
 export interface TimeAwayDetail {
   kind: AwayKind; label: string; days: number | null; unit: 'calendar days' | 'person-days';
 }
+export interface ItemMeeting {
+  id: string; title: string; minutes: number; scheduledMinutes: number;
+  dates: string[]; attendeeIds: string[]; attendeeOccurrences: number;
+}
 export interface ItemDetails {
   kind: Kind; id: string; title: string;
   state: 'scheduled' | 'unestimated' | 'paused' | 'blocked' | 'completed' | 'empty';
@@ -31,6 +35,7 @@ export interface ItemDetails {
   dateMode: 'automatic' | 'manual' | 'recorded'; forecastComplete: boolean;
   meetingMinutes: number | null; meetingHours: number | null;
   meetingUnit: 'minutes' | 'person-minutes';
+  meetings: ItemMeeting[];
   timeAway: TimeAwayDetail[]; conflicts: ItemConflict[]; issues: ItemIssue[]; notes: string[];
 }
 const round = (n: number) => Math.round(n * 1e6) / 1e6;
@@ -190,6 +195,7 @@ export function getItemDetails(data: ProjectData, computed: Schedule, kind: Kind
     peopleDays.set(t.assignee, days);
   }
   let meetingMinutes: number | null = includedWindows ? 0 : null;
+  const meetingRows = new Map<string, ItemMeeting>();
   const personal = {vacation: 0, dayoff: 0, sick: 0};
   for (const [person, days] of peopleDays) {
     const leave = data.leave.filter(l => l.person === person);
@@ -198,7 +204,33 @@ export function getItemDetails(data: ProjectData, computed: Schedule, kind: Kind
       const absences = leave.filter(l => asDay(l.from) <= day && asDay(l.to) >= day);
       const type = absences.some(l => l.type === 'sick') ? 'sick' : absences.some(l => l.type === 'dayoff') ? 'dayoff' : absences.length ? 'vacation' : null;
       if (type) personal[type] += span;
-      else meetingMinutes = (meetingMinutes || 0) + Math.min(span * hours * 60, engine.meetingMinutes(person, fromDay(day)));
+      else {
+        const date = fromDay(day), budget = Math.min(span * hours * 60, engine.meetingMinutes(person, date));
+        meetingMinutes = (meetingMinutes || 0) + budget;
+        if (!positive(budget)) continue;
+        const intervals = data.meetings.filter(m => (m.allTeam || m.attendees.includes(person)) && engine.meetingOccurs(m, date)).map(m => {
+          const [hour, minute] = m.startTime.split(':').map(Number), start = hour * 60 + minute;
+          return {meeting: m, start, end: start + m.duration};
+        });
+        const points = [...new Set(intervals.flatMap(m => [m.start, m.end]))].sort((a, b) => a - b);
+        const shares = new Map<string, number>();let union = 0;
+        // Share overlapping intervals; every reserved minute appears once in
+        // the list, including partially overlapping and identical meetings.
+        for (let i = 1; i < points.length; i++) {
+          const covering = intervals.filter(m => m.start <= points[i - 1] && m.end >= points[i]);
+          if (!covering.length) continue;
+          const length = points[i] - points[i - 1];union += length;
+          for (const m of covering) shares.set(m.meeting.id, (shares.get(m.meeting.id) || 0) + length / covering.length);
+        }
+        for (const {meeting: m} of intervals) {
+          const row = meetingRows.get(m.id) || {id: m.id, title: m.title, minutes: 0, scheduledMinutes: 0, dates: [], attendeeIds: [], attendeeOccurrences: 0};
+          row.minutes += (shares.get(m.id) || 0) * budget / union;
+          row.scheduledMinutes += m.duration;row.attendeeOccurrences++;
+          if (!row.dates.includes(date)) row.dates.push(date);
+          if (!row.attendeeIds.includes(person)) row.attendeeIds.push(person);
+          meetingRows.set(m.id, row);
+        }
+      }
     }
   }
   if (meetingMinutes !== null) meetingMinutes = round(meetingMinutes);
@@ -228,5 +260,6 @@ export function getItemDetails(data: ProjectData, computed: Schedule, kind: Kind
     unestimatedCount, start: start === null ? null : fromDay(start), end: end === null ? null : fromDay(end), endFraction, calendarDays,
     dateMode: manualEnd ? 'manual' : completed ? 'recorded' : 'automatic', forecastComplete,
     meetingMinutes, meetingHours: meetingMinutes === null ? null : round(meetingMinutes / 60), meetingUnit: feature ? 'person-minutes' : 'minutes',
+    meetings: data.meetings.flatMap(m => {const row = meetingRows.get(m.id);return row ? [{...row, minutes: round(row.minutes), dates: row.dates.sort()}] : [];}),
     timeAway, conflicts: conflicts.map(c => ({...c, dates: [...c.dates].sort()})), issues, notes};
 }
