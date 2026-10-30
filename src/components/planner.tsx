@@ -4,6 +4,7 @@ import { Autosave, SaveError, type SaveState } from '@/lib/autosave';
 import { workspaceSchema, type Workspace } from '@/lib/schema';
 import { ThemeToggle } from './appearance';
 import { LoadingState } from './loading-state';
+import { FeedbackLink } from './feedback-link';
 
 function download(workspace: Workspace) {
   const blob = new Blob([JSON.stringify({ format: 'orbit-workspace-backup', backupVersion: 1, createdAt: new Date().toISOString(), workspace }, null, 2)], { type: 'application/json' });
@@ -97,5 +98,5 @@ export function Planner() {
   if (loadError) return <main className="load-panel"><h1>Unable to load your workspace</h1><p role="alert">{loadError}</p><button className="btn" onClick={() => setLoadAttempt(v => v+1)}>Retry</button><a className="btn" href="/login">Log in</a></main>;
   if (!loaded) return <main><LoadingState title="Loading your workspace" description="Bringing your projects, people and plans into view."/></main>;
   const failed = saveState === 'error' || saveState === 'conflict';
-  return <div className="workspace-shell"><div className={`save-bar ${failed ? 'failed' : ''}`}><span role="status" aria-live="polite">{({ saved: 'Saved to cloud', pending: 'Unsaved changes', saving: 'Saving…', error: 'Not saved', conflict: 'Newer changes exist' })[saveState]}</span>{saveState === 'error' && <button onClick={() => void controller.current?.retry()}>Retry saving</button>}{saveState === 'conflict' && <button onClick={() => { if (confirm('Export your unsaved work before reloading. Reload now?')) window.location.reload(); }}>Reload latest</button>}<ThemeToggle/></div>{saveError && <div className="save-error" role="alert">{saveError}</div>}<input ref={importInput} type="file" accept=".json,application/json" onChange={importBackup} aria-label="Import workspace backup" hidden/><div className="planner-root" ref={root}/></div>;
+  return <div className="workspace-shell"><div className={`save-bar ${failed ? 'failed' : ''}`}><span role="status" aria-live="polite">{({ saved: 'Saved to cloud', pending: 'Unsaved changes', saving: 'Saving…', error: 'Not saved', conflict: 'Newer changes exist' })[saveState]}</span>{saveState === 'error' && <button onClick={() => void controller.current?.retry()}>Retry saving</button>}{saveState === 'conflict' && <button onClick={() => { if (confirm('Export your unsaved work before reloading. Reload now?')) window.location.reload(); }}>Reload latest</button>}<FeedbackLink/><ThemeToggle/></div>{saveError && <div className="save-error" role="alert">{saveError}</div>}<input ref={importInput} type="file" accept=".json,application/json" onChange={importBackup} aria-label="Import workspace backup" hidden/><div className="planner-root" ref={root}/></div>;
 }

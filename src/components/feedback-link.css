@@ -1,0 +1,7 @@
+.feedback-link { display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:34px; padding:8px 11px; border:1px solid var(--ui-border-strong); border-radius:20px; background:var(--ui-surface); color:var(--ui-text); font-size:11px; font-weight:550; line-height:1.4; text-decoration:none; white-space:nowrap; }
+.feedback-link svg { flex:none; }
+.feedback-link:hover { background:var(--ui-surface-soft); border-color:var(--ui-muted); }
+.public-footer-links .feedback-link:hover { text-decoration:none; }
+.workspace-shell .save-bar .feedback-link { margin-left:auto; min-height:28px; padding:5px 9px; font-size:10px; }
+.workspace-shell .save-bar:has(.feedback-link) .appearance-toggle { margin-left:0; }
+.poker-nav-bottom .feedback-link { display:flex; width:100%; margin-bottom:12px; }
