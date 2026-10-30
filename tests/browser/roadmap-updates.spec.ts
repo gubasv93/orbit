@@ -344,7 +344,7 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   await reset(w);const page=await context.newPage();await page.goto('/app');await saved(page);
   const parent=page.locator('.feature-bar[data-feature=f1]'),task=page.locator('.task-bar[data-task=t1]');
   const before=(await snapshot()).workspace.projects[0].data,parentMix=(await parent.locator('.capacity-band').getAttribute('style'))!,taskMix=(await task.locator('.capacity-band').getAttribute('style'))!;
-  expect(parentMix).not.toMatch(/transparent|NaN|Infinity/);expect(parentMix).toContain('100.00000%');expect(taskMix).toContain('#7f8fa9 0.00000% 66.66667%');expect(taskMix).toContain('#b8a581 66.66667% 100.00000%');
+  expect(parentMix).not.toMatch(/transparent|NaN|Infinity/);expect(parentMix).toContain('100.00000%');expect(taskMix).toContain('#7c9fe5 0.00000% 66.66667%');expect(taskMix).toContain('#e3c584 66.66667% 100.00000%');
   await expect(parent).toHaveAttribute('data-item-summary',/9 calendar days/);await expect(task).toHaveAttribute('data-item-summary',/1d effort.*3 calendar days/);await expect(page.getByLabel('Timeline colors')).not.toContainText('Unused');
   for(const scale of ['week','month','quarter','year','day']){await page.getByLabel('Timeline scale').selectOption(scale);await expect(parent.locator('.capacity-band')).toHaveAttribute('style',parentMix);await expect(task.locator('.capacity-band')).toHaveAttribute('style',taskMix);}
   expect((await snapshot()).workspace.projects[0].data).toEqual(before);

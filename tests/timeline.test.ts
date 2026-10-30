@@ -12,7 +12,7 @@ it('fills an epic with accounted-time proportions when its child work has gaps',
   const b=featureTimeBreakdown(parent.start,parent.end!,data.tasks.map(t=>taskTimeBreakdown(t,result.schedule[t.id],data,engine)),parent.endFraction)!;
   const before=structuredClone(b),saved=structuredClone(data);
   expect(b.days).toBe(5);expect(b.totals.development).toBe(2);expect(b.required).toBe(2);
-  expect(capacityGradient(b)).toBe('linear-gradient(90deg,#7f8fa9 0.00000% 100.00000%)');
+  expect(capacityGradient(b)).toBe('linear-gradient(90deg,#7c9fe5 0.00000% 100.00000%)');
   expect(b).toEqual(before);expect(data).toEqual(saved);
 });
 it('normalizes mixed colors across a longer manual window without inflating time totals',()=>{
@@ -20,7 +20,7 @@ it('normalizes mixed colors across a longer manual window without inflating time
   data.meetings=[{id:'daily',title:'Daily',recurrence:'workdays',weekday:1,interval:1,nth:1,startDate:'2026-10-26',endDate:'',startTime:'09:00',duration:30,allTeam:true,attendees:[],enabled:true}];
   const engine=createScheduler(data),info=engine.calculate().schedule.t1,b=taskTimeBreakdown(data.tasks[0],info,data,engine)!,before=structuredClone(b);
   expect(b.days).toBe(6);expect(b.totals).toMatchObject({development:.5,meetings:.5,weekends:2});expect(b.actualMeetingMinutes).toBe(120);
-  expect(capacityGradient(b)).toBe('linear-gradient(90deg,#7f8fa9 0.00000% 16.66667%,#b8a581 16.66667% 33.33333%,#aeb5bf 33.33333% 100.00000%)');
+  expect(capacityGradient(b)).toBe('linear-gradient(90deg,#7c9fe5 0.00000% 16.66667%,#e3c584 16.66667% 33.33333%,#c7ced9 33.33333% 100.00000%)');
   expect(b).toEqual(before);expect(data.tasks[0]).toMatchObject({effort:.5,start:'2026-10-30',manualEnd:'2026-11-04'});
 });
 it('returns no mix for an epic window outside its children instead of a blank or invented development band',()=>{
@@ -35,11 +35,11 @@ it('explains six development days over eight calendar days regardless of retired
   const engine=createScheduler(data),scheduled=engine.calculate().schedule.t1,b=taskTimeBreakdown(data.tasks[0],scheduled,data,engine)!;
   expect(b.days).toBe(8); expect(b.totals).toEqual({development:6,meetings:0,weekends:2,holidays:0,timeoff:0,sick:0});
   expect(Object.values(b.totals).reduce((a,b)=>a+b,0)).toBeCloseTo(8);
-  expect(capacityGradient(b)).toContain('#7f8fa9'); expect(capacityGradient(b)).toContain('#aeb5bf');
+  expect(capacityGradient(b)).toContain('#7c9fe5'); expect(capacityGradient(b)).toContain('#c7ced9');
   const gradient=capacityGradient(b),colors=gradient.match(/#[a-f0-9]{6}/g)!;
   expect(colors).toHaveLength(2);expect(new Set(colors).size).toBe(colors.length);
-  expect(gradient).toContain('#7f8fa9 0.00000% 75.00000%');
-  expect(gradient).toContain('#aeb5bf 75.00000% 100.00000%');
+  expect(gradient).toContain('#7c9fe5 0.00000% 75.00000%');
+  expect(gradient).toContain('#c7ced9 75.00000% 100.00000%');
 });
 it('accounts for rounded meetings and a half-day finish without an unused category', () => {
   const data=fullWorkspace().projects[0].data,engine=createScheduler(data),result=engine.calculate();

@@ -5,9 +5,9 @@ import { fromDay, asDay, dow } from './dates.js';
 import {halfDay} from './precision.js';
 
 export const timeCategories = [
-  ['development', 'Development', '#7f8fa9'], ['meetings', 'Recurring meetings', '#b8a581'],
-  ['weekends', 'Weekends', '#aeb5bf'], ['holidays', 'Public holidays', '#7e9d91'],
-  ['timeoff', 'Days off', '#9c97b4'], ['sick', 'Sick leave', '#b58e93'],
+  ['development', 'Development', '#7c9fe5'], ['meetings', 'Recurring meetings', '#e3c584'],
+  ['weekends', 'Weekends', '#c7ced9'], ['holidays', 'Public holidays', '#86c4ac'],
+  ['timeoff', 'Days off', '#b6a0dc'], ['sick', 'Sick leave', '#dfa6a5'],
 ] as const;
 type Category = typeof timeCategories[number][0];
 type Parts = Record<Category, number>;

@@ -217,7 +217,7 @@
 .planner-root .milestone-pin.risk { background: var(--ui-danger-soft); color: var(--ui-danger); }
 .planner-root .feature-bar { background: var(--ui-surface-soft); color: var(--ui-muted); border-color: var(--ui-border-strong); }
 .planner-root :is(.feature-bar:before,.feature-bar:after) { background: var(--ui-muted); }
-.planner-root .task-bar.done { background: #7e9d91; }
+.planner-root .task-bar.done { background: #86c4ac; }
 .planner-root .task-bar.hold,.planner-root .task-bar.blocked { background: var(--ui-surface-soft); color: var(--ui-muted); border-color: var(--ui-border-strong); }
 .planner-root .timeline-page :is(.task-bar,.feature-bar):has(.capacity-band) { background: var(--ui-surface-soft); }
 .planner-root .timeline-page .feature-bar.no-time-mix { background: repeating-linear-gradient(135deg,var(--ui-surface-soft) 0px,var(--ui-surface-soft) 5px,var(--ui-border) 5px,var(--ui-border) 6px); border-color: var(--ui-border-strong); color: var(--ui-muted); }
