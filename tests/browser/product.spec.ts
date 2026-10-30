@@ -8,7 +8,9 @@ let owner: BrowserContext, second: BrowserContext;
 async function openSettings(page:Page){const show=page.getByRole('button',{name:'Show sidebar',exact:true});if(await show.isVisible())await show.click();await page.getByRole('button',{name:'General settings',exact:true}).click();}
 async function saved(page: Page) { await expect(page.locator('.save-bar [role="status"]')).toHaveText('Saved to cloud', { timeout: 15000 }); }
 async function signup(page: Page, address: string) {
-  await page.goto('/signup'); await page.getByLabel('Email address').fill(address);
+  await page.goto('/signup');
+  await page.getByRole('region', { name: 'Cookies and browser storage', exact: true }).getByRole('button', { name: 'Got it', exact: true }).click();
+  await page.getByLabel('Email address').fill(address);
   await page.getByLabel('Password', { exact: true }).fill(password); await page.getByLabel('Confirm password').fill(password);
   await page.getByRole('button', { name: 'Create account' }).click();
   await expect(page).toHaveURL(/\/app$/, { timeout: 15000 });
@@ -44,7 +46,8 @@ test.describe.serial('real authentication, onboarding, planning, and durable own
     expect(before.workspace.projects[0].data.tasks.map((t: { platform: string }) => t.platform)).toContain('DevOps');
     await page.reload(); await expect(page.getByText('Secure accounts', { exact: true }).first()).toBeVisible(); await saved(page);
     const after = await (await owner.request.get('/api/workspace')).json(); expect(after.workspace).toEqual(before.workspace);
-    expect(await page.evaluate(() => Object.keys(localStorage).some(key => /auth|orbit/.test(key)))).toBe(false);
+    expect(await page.evaluate(() => Object.keys(localStorage).filter(key => key !== 'orbit-cookie-notice').some(key => /auth|orbit/.test(key)))).toBe(false);
+    expect(await page.evaluate(() => localStorage.getItem('orbit-cookie-notice'))).toBe('essential-v1');
     await page.screenshot({ path: 'test-results/roadmap.png', fullPage: true }); expect(errors).toEqual([]);
     await page.close();
   });
