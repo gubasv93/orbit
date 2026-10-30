@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { emailSchema, signupSchema } from '@/lib/schema';
+import './profile.css';
 export function AuthForm({ mode, initialNotice }: { mode: 'login' | 'signup'; initialNotice?: string }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pending, setPending] = useState<'email' | 'google' | null>(null), [confirmation, setConfirmation] = useState(false);
@@ -18,7 +19,7 @@ export function AuthForm({ mode, initialNotice }: { mode: 'login' | 'signup'; in
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); if (pending) return;
     const form = new FormData(event.currentTarget);
-    const values = { email: String(form.get('email') || '').trim().toLowerCase(), password: String(form.get('password') || ''), confirm: String(form.get('confirm') || '') };
+    const values = { firstName: String(form.get('firstName') || '').trim(), lastName: String(form.get('lastName') || '').trim(), email: String(form.get('email') || '').trim().toLowerCase(), password: String(form.get('password') || ''), confirm: String(form.get('confirm') || '') };
     const parsed = mode === 'signup' ? signupSchema.safeParse(values) : emailSchema.safeParse(values.email);
     if (!parsed.success) {
       setErrors(Object.fromEntries(parsed.error.issues.map(i => [String(i.path[0] || 'email'), i.message]))); return;
@@ -41,6 +42,7 @@ export function AuthForm({ mode, initialNotice }: { mode: 'login' | 'signup'; in
       {pending === 'google' ? 'Connecting to Google…' : 'Continue with Google'}
     </button><div className="auth-divider"><span>or continue with email</span></div>
     <form className="auth-form" method="post" action={`/api/auth/${mode}`} onSubmit={submit}><noscript>Enable JavaScript to use Orbit.</noscript>
+    {mode === 'signup' && <div className="auth-name-fields"><div><label htmlFor="firstName">First name</label><input id="firstName" name="firstName" required maxLength={100} autoComplete="given-name" aria-invalid={Boolean(errors.firstName)} aria-describedby={errors.firstName ? 'firstName-error' : undefined}/>{errors.firstName && <p id="firstName-error" className="field-error" role="alert">{errors.firstName}</p>}</div><div><label htmlFor="lastName">Last name</label><input id="lastName" name="lastName" required maxLength={100} autoComplete="family-name" aria-invalid={Boolean(errors.lastName)} aria-describedby={errors.lastName ? 'lastName-error' : undefined}/>{errors.lastName && <p id="lastName-error" className="field-error" role="alert">{errors.lastName}</p>}</div></div>}
     <label htmlFor="email">Email address</label><input id="email" name="email" type="email" required maxLength={254} autoComplete="email" placeholder="you@company.com" aria-invalid={Boolean(errors.email)} aria-describedby={errors.email ? 'email-error' : undefined}/>{errors.email && <p id="email-error" className="field-error" role="alert">{errors.email}</p>}
     <label htmlFor="password">Password</label><input id="password" name="password" type="password" required minLength={mode === 'signup' ? 8 : undefined} maxLength={72} autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} aria-invalid={Boolean(errors.password)} aria-describedby={mode === 'signup' ? 'password-hint password-error' : undefined}/>
     {mode === 'signup' && <><p id="password-hint" className="auth-hint">At least 8 characters, including a letter and a number. Maximum 72 bytes; some characters use more than one byte.</p><p id="password-error" className="field-error" role={errors.password ? 'alert' : undefined}>{errors.password}</p><label htmlFor="confirm">Confirm password</label><input id="confirm" name="confirm" type="password" required maxLength={72} autoComplete="new-password" aria-invalid={Boolean(errors.confirm)} aria-describedby="confirm-error"/><p id="confirm-error" className="field-error" role={errors.confirm ? 'alert' : undefined}>{errors.confirm}</p></>}

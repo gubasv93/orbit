@@ -13,10 +13,15 @@ function workspace(){const data=projectData();data.people[0].capacity={feature:5
  return {version:1,activeId:'project',preferences:{scale:'day',sidebarHidden:true},projects:[{id:'project',name:'Release checks',onboardingStep:0,data}]};}
 async function snapshot(){return(await context.request.get('/api/workspace')).json();}
 async function reset(value=workspace()){const current=await snapshot();expect((await context.request.put('/api/workspace',{headers:{Origin:origin},data:{revision:current.revision,workspace:value}})).status()).toBe(200);}
-async function openSettings(page:Page){const show=page.getByRole('button',{name:'Show sidebar',exact:true});if(await show.isVisible())await show.click();await page.getByRole('button',{name:'General settings',exact:true}).click();}
+async function openSettings(page:Page){
+ const show=page.getByRole('button',{name:'Show sidebar',exact:true});if(await show.isVisible())await show.click();
+ await page.getByRole('button',{name:'General settings',exact:true}).click();
+ const advanced=page.locator('details').filter({has:page.getByText('Advanced options',{exact:true})});
+ if(!await advanced.evaluate(element=>(element as HTMLDetailsElement).open))await advanced.locator('summary').click();
+}
 async function saved(page:Page){await expect(page.locator('.gantt-canvas')).toBeVisible();await expect(page.locator('.save-bar [role=status]')).toHaveText('Saved to cloud');}
 test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
- test.beforeAll(async({browser})=>{context=await browser.newContext();const page=await context.newPage(),password='Orbit9'+randomUUID();await page.goto('/signup');await page.getByRole('region',{name:'Cookies and browser storage',exact:true}).getByRole('button',{name:'Got it',exact:true}).click();await page.getByLabel('Email address').fill(`orbit-map-${randomUUID()}@example.com`);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByLabel('Confirm password').fill(password);await page.getByRole('button',{name:'Create account'}).click();await expect(page).toHaveURL(/\/app$/);await page.close();});
+ test.beforeAll(async({browser})=>{context=await browser.newContext();const page=await context.newPage(),password='Orbit9'+randomUUID();await page.goto('/signup');await page.getByLabel('First name',{exact:true}).fill('Test');await page.getByLabel('Last name',{exact:true}).fill('User');await page.getByRole('region',{name:'Cookies and browser storage',exact:true}).getByRole('button',{name:'Got it',exact:true}).click();await page.getByLabel('Email address').fill(`orbit-map-${randomUUID()}@example.com`);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByLabel('Confirm password').fill(password);await page.getByRole('button',{name:'Create account'}).click();await expect(page).toHaveURL(/\/app$/);await page.close();});
  test.afterAll(async()=>{await context?.close();});
  test('selects distinct compact roles sharing a platform and persists role-matched assignments',async()=>{
   await reset();const page=await context.newPage();await page.goto('/app');await page.locator('.gantt-corner').getByRole('button',{name:'Add feature'}).click();await page.getByLabel('Feature name').fill('Role-based epic');
@@ -368,13 +373,13 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   await expect(page.locator('.topbar [data-action=open-feature],.topbar [data-action=manage-meetings],.topbar [data-action=open-settings]')).toHaveCount(0);
   await expect(page.locator('.save-bar [role=status]')).toHaveText('Saved to cloud');
   await openSettings(page);await saved(page);
-  await expect(page.locator('.side-user .workspace-email')).toHaveText((await snapshot()).email);await expect(page.locator('.sidebar [data-action=manage-meetings]')).toHaveCount(1);
+  await expect(page.locator('.workspace-profile')).toContainText('Profile');await expect(page.locator('.workspace-profile')).toContainText((await snapshot()).profile.displayName);await expect(page.locator('.sidebar [data-action=manage-meetings]')).toHaveCount(1);
   const original=(await snapshot()).workspace.projects[0].data;
   for(const label of ['Name','Role'])await expect(page.getByRole('checkbox',{name:label,exact:true})).toBeChecked();
   for(const label of ['Estimate','Calendar effort','Assignee full name'])await page.getByRole('checkbox',{name:label,exact:true}).check();
   await page.getByRole('button',{name:'Save settings',exact:true}).click();await saved(page);
   for(const [key,value]of [['title','API'],['role','Backend Developer'],['devEffort','1.5d est.'],['calendarEffort','19d calendar'],['assignee','Alex Dev']]){await expect(field(key)).toHaveText(value);await expect(field(key)).toBeVisible();}
-  await expect(page.locator('.side-user .workspace-email')).toBeInViewport();const stored=(await snapshot()).workspace.projects[0].data;expect(stored.tasks).toEqual(original.tasks);expect(stored.features).toEqual(original.features);
+  await expect(page.locator('.workspace-profile')).toBeInViewport();const stored=(await snapshot()).workspace.projects[0].data;expect(stored.tasks).toEqual(original.tasks);expect(stored.features).toEqual(original.features);
   expect(stored.settings.barFields).toEqual(['title','role','devEffort','calendarEffort','assignee']);
   await expect(page.locator('.feature-bar[data-feature=f1] [data-bar-field=title]')).toHaveText(data.features[0].title);
   await page.screenshot({path:'test-results/custom-bar-fields-desktop.png',fullPage:true});

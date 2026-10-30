@@ -323,3 +323,69 @@
     transition: background-color .16s ease,border-color .16s ease,color .16s ease,box-shadow .16s ease;
   }
 }
+
+/* General settings keeps one aligned rhythm and reveals specialist options on demand. */
+.planner-root .general-settings-form { display:grid; gap:14px; }
+.planner-root .general-settings-form .settings-section { padding:20px; margin:0; border:1px solid var(--ui-border); border-radius:14px; background:var(--ui-surface); }
+.planner-root .settings-section-heading { margin-bottom:16px; }
+.planner-root .settings-section-heading h3 { margin:0; color:var(--ui-text); font-size:13px; line-height:1.5; font-weight:650; }
+.planner-root .settings-section-heading p { margin:5px 0 0; font-size:11px; line-height:1.7; color:var(--ui-muted); }
+.planner-root .general-settings-form .field-grid { gap:14px; }
+.planner-root .general-settings-form .field { min-width:0; margin:0; }
+.planner-root .general-settings-form .field>label { display:block; margin:0 0 7px; line-height:1.5; }
+.planner-root .general-settings-form .field input:not([type=checkbox]):not([type=radio]),
+.planner-root .general-settings-form .field select { width:100%; min-width:0; min-height:39px; }
+.planner-root .general-settings-form .field-grid+.field { margin-top:14px; }
+.planner-root .settings-theme-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.planner-root .settings-theme-option { display:flex; align-items:center; justify-content:center; gap:9px; min-height:42px; padding:11px 14px; border:1px solid var(--ui-border-strong); border-radius:10px; color:var(--ui-muted); background:var(--ui-surface); font-size:12px; font-weight:600; }
+.planner-root .settings-theme-option svg { flex:none; }
+.planner-root .settings-theme-option:hover { color:var(--ui-text); background:var(--ui-surface-soft); }
+.planner-root .settings-theme-option.is-selected { color:var(--ui-accent); border-color:var(--ui-focus); background:var(--ui-accent-soft); }
+.planner-root .settings-switch { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:13px 0; cursor:pointer; }
+.planner-root .settings-switch>span { min-width:0; }
+.planner-root .settings-switch strong { display:block; font-size:12px; font-weight:600; color:var(--ui-text); line-height:1.6; }
+.planner-root .settings-switch small { display:block; margin-top:3px; font-size:11px; color:var(--ui-muted); line-height:1.7; }
+.planner-root .settings-switch>input[type=checkbox] { flex:none; width:18px; height:18px; min-width:18px; margin:0; padding:0; accent-color:var(--ui-accent); }
+.planner-root .general-settings-form .dependency-setting-summary { margin:0; color:var(--ui-muted); font-size:11px; line-height:1.7; }
+.planner-root .dependency-advanced { margin-top:16px; padding-top:14px; border-top:1px solid var(--ui-border); }
+.planner-root .dependency-advanced>summary { cursor:pointer; color:var(--ui-text); font-size:11px; font-weight:600; padding:3px 0; }
+.planner-root .dependency-advanced>summary:focus-visible { outline:3px solid var(--ui-focus); outline-offset:4px; border-radius:3px; }
+.planner-root .dependency-advanced .dependency-controls { min-width:0; margin:14px 0 12px; padding:0; border:0; }
+.planner-root .dependency-advanced .panel-sub { margin:8px 0 0; font-size:10px; line-height:1.7; }
+.planner-root .general-settings-form .bar-field-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:11px 16px; margin:0; }
+.planner-root .general-settings-form .checkline { margin:0; min-height:24px; color:var(--ui-text); font-size:11px; line-height:1.6; }
+.planner-root .general-settings-form .settings-note { margin:14px 0 0; color:var(--ui-muted); font-size:10px; line-height:1.7; }
+.planner-root .general-settings-form .meeting-settings-entry { border:0; border-radius:0; background:transparent; padding:13px 0; margin:0; gap:14px; }
+.planner-root .general-settings-form .meeting-settings-entry+.meeting-settings-entry { border-top:1px solid var(--ui-border); }
+.planner-root .general-settings-form .meeting-settings-entry strong { display:flex; align-items:center; gap:7px; }
+.planner-root .general-settings-form .meeting-settings-entry svg { flex:none; }
+.planner-root .general-settings-form .meeting-settings-entry .btn { margin:0; white-space:nowrap; min-height:34px; }
+.planner-root .settings-backup-row { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:13px 0; }
+.planner-root .settings-backup-row+.settings-backup-row { border-top:1px solid var(--ui-border); }
+.planner-root .settings-backup-row>div:first-child { min-width:0; }
+.planner-root .settings-backup-row strong { display:block; color:var(--ui-text); font-size:11px; font-weight:600; }
+.planner-root .settings-backup-row small { display:block; margin-top:5px; color:var(--ui-muted); font-size:10px; line-height:1.6; }
+.planner-root .settings-backup-row .backup-actions { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; margin:0; }
+.planner-root .settings-backup-row .btn { white-space:nowrap; min-height:32px; }
+.planner-root .settings-reset-row { display:flex; align-items:center; justify-content:space-between; gap:14px; padding-top:16px; margin-top:2px; border-top:1px solid var(--ui-border); }
+.planner-root .settings-reset-row>span { color:var(--ui-muted); font-size:10px; line-height:1.7; }
+.planner-root .general-settings-form>.dialog-foot { margin:0; padding:4px 0 0; border:0; }
+.planner-root .general-settings-form>.dialog-foot>.btn { min-height:40px; }
+
+/* Calendar markers belong to the scrolling calendar, below its sticky feature column. */
+.planner-root .calendar-head { isolation:isolate; z-index:0; }
+.planner-root .gantt-canvas .calendar-head .today-tag { z-index:2; top:auto; bottom:4px; }
+.planner-root .gantt-corner { z-index:18; }
+.planner-root .shade.holiday { pointer-events:auto; }
+.planner-root .empty-account-footer { width:min(280px,calc(100% - 36px)); margin:0 auto 24px; }
+.planner-root .empty-account-footer .workspace-sidebar-footer { display:flex; flex-direction:column; gap:10px; }
+
+@media(max-width:600px) {
+ .planner-root .general-settings-form { gap:11px; }
+ .planner-root .general-settings-form .settings-section { padding:16px; }
+ .planner-root .general-settings-form .bar-field-options { gap:10px; }
+ .planner-root .settings-backup-row { align-items:stretch; flex-direction:column; gap:11px; }
+ .planner-root .settings-backup-row .backup-actions { justify-content:flex-start; }
+ .planner-root .general-settings-form .meeting-settings-entry { align-items:flex-start; flex-wrap:wrap; }
+ .planner-root .settings-reset-row { align-items:flex-start; flex-direction:column; gap:10px; }
+}

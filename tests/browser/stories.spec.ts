@@ -30,7 +30,7 @@ async function selectTeam(page: Page, platform: string, effort: string, assignee
 test.describe.serial('user stories estimated by team', () => {
   test.beforeAll(async ({ browser }) => {
     context = await browser.newContext(); const page = await context.newPage(), password = 'Orbit9' + randomUUID();
-    await page.goto('/signup'); await page.getByLabel('Email address').fill(`orbit-stories-${randomUUID()}@example.com`);
+    await page.goto('/signup');await page.getByLabel('First name',{exact:true}).fill('Test');await page.getByLabel('Last name',{exact:true}).fill('User'); await page.getByLabel('Email address').fill(`orbit-stories-${randomUUID()}@example.com`);
     await page.getByLabel('Password', { exact: true }).fill(password); await page.getByLabel('Confirm password').fill(password);
     await page.getByRole('button', { name: 'Create account' }).click(); await expect(page).toHaveURL(/\/app$/);
     await page.close();

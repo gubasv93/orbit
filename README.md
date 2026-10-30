@@ -10,7 +10,7 @@ The source repository `gubasv93/orbit` is public with owner approval.
 
 ## Current delivery scope
 
-- Email/password registration, login, secure server-managed sessions, and logout.
+- Email/password registration with first and last name, login, secure server-managed sessions, and logout. Profile supports name and password changes.
 - Google registration/login via Supabase OAuth with server-side PKCE. Enable the Google provider with your own web OAuth client using the [setup guide](docs/DEPLOYMENT.md#google-registration-and-login).
 - Passwords require at least 8 characters, a letter and a number, and at most 72 UTF-8 bytes, matching Supabase's native limit (owner approved).
 - Public registration approved by the owner; email confirmation is temporarily disabled so registration works without SMTP. Email addresses are unverified during this period.

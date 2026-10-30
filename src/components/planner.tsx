@@ -2,9 +2,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Autosave, SaveError, type SaveState } from '@/lib/autosave';
 import { workspaceSchema, type Workspace } from '@/lib/schema';
-import { ThemeToggle } from './appearance';
+import { useAppearance } from './appearance';
 import { LoadingState } from './loading-state';
-import { FeedbackLink } from './feedback-link';
+import type { AccountProfile } from '@/lib/profile';
+import './workspace-shell.css';
 
 function download(workspace: Workspace) {
   const blob = new Blob([JSON.stringify({ format: 'orbit-workspace-backup', backupVersion: 1, createdAt: new Date().toISOString(), workspace }, null, 2)], { type: 'application/json' });
@@ -13,10 +14,11 @@ function download(workspace: Workspace) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 export function Planner() {
+  const {changeTheme} = useAppearance();
   const root = useRef<HTMLDivElement>(null), controller = useRef<Autosave | null>(null);
   const importInput = useRef<HTMLInputElement>(null);
   const snapshot = useRef<Workspace | null>(null), restore = useRef<((workspace: Workspace) => void) | null>(null);
-  const [loaded, setLoaded] = useState<{ workspace: Workspace; revision: number; email: string } | null>(null);
+  const [loaded, setLoaded] = useState<{ workspace: Workspace; revision: number; email: string; profile?: AccountProfile } | null>(null);
   const [loadError, setLoadError] = useState(''), [saveState, setSaveState] = useState<SaveState>('saved');
   const [saveError, setSaveError] = useState(''), [loadAttempt, setLoadAttempt] = useState(0);
   useEffect(() => {
@@ -39,6 +41,11 @@ export function Planner() {
       return result.revision;
     }, (state, message) => { setSaveState(state); setSaveError(message || ''); });
     controller.current = autosave;
+    async function navigate(path: string) {
+      await autosave.flush();
+      if (autosave.state !== 'saved') { setSaveError('Save or resolve your workspace changes before leaving this page.'); return; }
+      window.location.assign(path);
+    }
     async function logout() {
       await autosave.flush();
       if (autosave.state !== 'saved' && !window.confirm('Some changes are not saved. Export a backup before logging out. Log out anyway?')) return;
@@ -60,7 +67,8 @@ export function Planner() {
             if (autosave.state !== 'saved') { setSaveError('Save or resolve your workspace changes before opening Planning Poker.'); return; }
             window.location.assign(`/poker/new?project=${encodeURIComponent(projectId)}`);
           },
-          onImport() { importInput.current?.click(); }, email: loaded!.email,
+          onImport() { importInput.current?.click(); }, email: loaded!.email, profile: loaded!.profile,
+          onAppearance: changeTheme, onProfile() { return navigate('/profile'); }, onHelp() { return navigate('/how-it-works'); },
           focus: Object.fromEntries(new URLSearchParams(window.location.search)),
         });
       };
@@ -98,5 +106,5 @@ export function Planner() {
   if (loadError) return <main className="load-panel"><h1>Unable to load your workspace</h1><p role="alert">{loadError}</p><button className="btn" onClick={() => setLoadAttempt(v => v+1)}>Retry</button><a className="btn" href="/login">Log in</a></main>;
   if (!loaded) return <main><LoadingState title="Loading your workspace" description="Bringing your projects, people and plans into view."/></main>;
   const failed = saveState === 'error' || saveState === 'conflict';
-  return <div className="workspace-shell"><div className={`save-bar ${failed ? 'failed' : ''}`}><span role="status" aria-live="polite">{({ saved: 'Saved to cloud', pending: 'Unsaved changes', saving: 'Saving…', error: 'Not saved', conflict: 'Newer changes exist' })[saveState]}</span>{saveState === 'error' && <button onClick={() => void controller.current?.retry()}>Retry saving</button>}{saveState === 'conflict' && <button onClick={() => { if (confirm('Export your unsaved work before reloading. Reload now?')) window.location.reload(); }}>Reload latest</button>}<FeedbackLink/><ThemeToggle/></div>{saveError && <div className="save-error" role="alert">{saveError}</div>}<input ref={importInput} type="file" accept=".json,application/json" onChange={importBackup} aria-label="Import workspace backup" hidden/><div className="planner-root" ref={root}/></div>;
+  return <div className="workspace-shell"><div className={`save-bar ${failed ? 'failed' : ''} ${saveState==='saved'?'is-saved':''}`}><span className={saveState==='saved'?'saved-announcement':''} role="status" aria-live="polite">{({ saved: 'Saved to cloud', pending: 'Unsaved changes', saving: 'Saving…', error: 'Not saved', conflict: 'Newer changes exist' })[saveState]}</span>{saveState === 'error' && <button onClick={() => void controller.current?.retry()}>Retry saving</button>}{saveState === 'conflict' && <button onClick={() => { if (confirm('Export your unsaved work before reloading. Reload now?')) window.location.reload(); }}>Reload latest</button>}</div>{saveError && <div className="save-error" role="alert">{saveError}</div>}<input ref={importInput} type="file" accept=".json,application/json" onChange={importBackup} aria-label="Import workspace backup" hidden/><div className="planner-root" ref={root}/></div>;
 }

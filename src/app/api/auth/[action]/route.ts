@@ -27,12 +27,14 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ac
   if (rateError) return problem('Authentication is temporarily unavailable. Please retry later.', 503);
   if (!allowed) return problem('Too many attempts. Please wait a minute and try again.', 429);
   if (action === 'signup') {
+    if (!('firstName' in parsed.data) || !('lastName' in parsed.data)) return problem('Enter your first and last name.');
     const allowedEmails = (process.env.SIGNUP_ALLOWED_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
     if (process.env.SIGNUP_MODE !== 'public' && !allowedEmails.includes(email)) {
       return problem('Registration is currently limited to approved emails. Please contact the owner.', 403);
     }
     const origin = process.env.APP_URL || request.nextUrl.origin;
-    const { data, error } = await client.auth.signUp({ email, password, options: { emailRedirectTo: `${origin}/auth/callback` } });
+    const { firstName, lastName } = parsed.data;
+    const { data, error } = await client.auth.signUp({ email, password, options: { emailRedirectTo: `${origin}/auth/callback`, data: { first_name: firstName, last_name: lastName, full_name: `${firstName} ${lastName}` } } });
     if (error) {
       console.warn('auth_signup_failed', { code: error.code || 'provider_error' });
       if (error.code === 'over_email_send_rate_limit') {

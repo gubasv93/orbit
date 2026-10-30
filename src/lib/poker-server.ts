@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { supabase, isConfigured } from './supabase';
 import { problem } from './http';
 import { z } from 'zod';
+import { accountProfile } from './profile';
 
 export const pokerToken = z.string().regex(/^[a-f0-9]{64}$/);
 export const pokerIssue = z.string().regex(/^[A-Za-z0-9_-]{1,100}$/).default('free');
@@ -13,7 +14,7 @@ export async function pokerClient() {
   if (!isConfigured()) throw new Error('Poker is not configured.');
   const client = await supabase();
   const { data: { user } } = await client.auth.getUser();
-  return { client, user, ownerName: user ? String(user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Facilitator').slice(0,60) : undefined };
+  return { client, user, ownerName: user ? accountProfile(user).displayName : undefined };
 }
 export function pokerFailure(error: {code?: string; message?: string}) {
   const status = ({PT401:401,PT404:404,PT409:409,PT429:429,'42501':403,'22023':400,'22P02':400} as Record<string,number>)[error.code || ''] || 503;

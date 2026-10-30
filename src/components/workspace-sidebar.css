@@ -1,0 +1,28 @@
+/* Shared presentation for the planner and Planning Poker navigation. */
+.workspace-sidebar.workspace-sidebar { width:220px; flex-basis:220px; flex-shrink:0; padding:18px 14px 14px; gap:18px; background:var(--ui-surface); color:var(--ui-text); border-right:1px solid var(--ui-border); overflow-y:auto; overscroll-behavior:contain; }
+.poker-layout .workspace-sidebar { height:100dvh; }
+.workspace-sidebar :is(.brand,.poker-brand) { display:flex; align-items:center; gap:10px; padding:0 8px; margin:0; font-size:20px; font-weight:750; letter-spacing:-.7px; color:var(--ui-text); text-decoration:none; min-height:38px; }
+.workspace-sidebar :is(.brand-mark,.poker-brand>span) { display:grid; place-items:center; width:32px; height:32px; flex:none; background:var(--ui-primary); color:var(--ui-on-primary); border-radius:10px; box-shadow:none; }
+.workspace-sidebar :is(.brand small,.poker-brand small) { display:block; font-size:8px; font-weight:650; line-height:1.5; letter-spacing:1px; color:var(--ui-muted); margin-top:2px; }
+.workspace-sidebar .poker-nav-heading { margin:0; }
+.workspace-sidebar :is(.nav-caption,.poker-nav-caption) { padding:0; margin:4px 10px 10px; color:var(--ui-muted); font-size:9px; font-weight:650; letter-spacing:1.25px; text-transform:uppercase; }
+.workspace-sidebar :is(.project-trigger,.workspace-project-switch) { display:flex; align-items:center; gap:9px; min-width:0; width:100%; min-height:43px; padding:10px; margin:0 0 6px; border:1px solid var(--ui-border); border-radius:10px; background:var(--ui-surface-soft); color:var(--ui-text); text-decoration:none; text-align:left; font-size:12px; font-weight:650; }
+.workspace-sidebar :is(.project-trigger,.workspace-project-switch)>span { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.workspace-sidebar :is(.project-new,.workspace-new-project) { display:flex; align-items:center; gap:7px; width:100%; margin:0 0 10px; padding:8px 10px; border:1px dashed var(--ui-border-strong); border-radius:8px; background:transparent; color:var(--ui-muted); font-size:11px; text-decoration:none; }
+.workspace-sidebar .workspace-main-nav { display:flex; flex-direction:column; gap:3px; }
+.workspace-sidebar :is(.nav-item,.poker-nav-item) { display:flex; align-items:center; gap:10px; width:100%; min-height:38px; padding:10px; margin:0; border:0; border-radius:9px; background:transparent; color:var(--ui-muted); font-size:11px; font-weight:600; text-align:left; text-decoration:none; line-height:1.45; box-shadow:none; }
+.workspace-sidebar :is(.nav-item,.poker-nav-item) svg { flex:none; width:16px; height:16px; }
+.workspace-sidebar :is(.nav-item,.poker-nav-item):hover { background:var(--ui-surface-soft); color:var(--ui-text); }
+.workspace-sidebar :is(.nav-item,.poker-nav-item).active { background:var(--ui-accent-soft); color:var(--ui-accent); box-shadow:none; }
+.workspace-sidebar .workspace-sidebar-footer { display:flex; flex-direction:column; gap:10px; margin-top:auto; padding:14px 0 0; border-top:1px solid var(--ui-border); flex:none; font-size:11px; }
+.workspace-sidebar-footer .workspace-help { display:flex; align-items:center; justify-content:flex-start; gap:8px; border:0; padding:6px 9px; background:transparent; color:var(--ui-muted); text-align:left; text-decoration:none; font-size:11px; }
+.workspace-sidebar-footer .workspace-help:hover { color:var(--ui-text); }
+.workspace-sidebar-footer .workspace-sidebar-feedback { display:flex; justify-content:center; width:100%; min-height:34px; margin:0; border:1px solid var(--ui-border-strong); border-radius:20px; padding:8px 10px; background:var(--ui-surface); color:var(--ui-text); font-size:11px; font-weight:550; gap:7px; text-decoration:none; white-space:nowrap; }
+.workspace-sidebar-footer .workspace-sidebar-feedback:hover { background:var(--ui-surface-soft); }
+.workspace-sidebar-footer .workspace-profile { display:flex; align-items:center; gap:10px; width:100%; min-height:56px; padding:10px 8px; margin:0; border:1px solid var(--ui-border); border-radius:11px; background:var(--ui-surface); color:var(--ui-text); text-align:left; text-decoration:none; }
+.workspace-sidebar-footer .workspace-profile:hover { border-color:var(--ui-border-strong); background:var(--ui-surface-soft); }
+.workspace-profile-avatar { display:grid; place-items:center; flex:none; width:31px; height:31px; border-radius:50%; background:var(--ui-accent-soft); color:var(--ui-accent); font-size:10px; font-weight:650; }
+.workspace-profile>div { min-width:0; }
+.workspace-profile strong { display:block; font-size:11px; font-weight:650; }
+.workspace-profile small { display:block; max-width:142px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--ui-muted); font-size:9px; margin-top:4px; }
+.workspace-sidebar .side-spacer { min-height:0; }

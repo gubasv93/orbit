@@ -94,7 +94,11 @@ export type ProjectData = z.infer<typeof projectDataSchema>;
 export const emptyWorkspace = (): Workspace => ({ version: 1, activeId: null, projects: [], preferences: {} });
 
 export const emailSchema = z.string().trim().toLowerCase().max(254).pipe(z.email());
+const accountName = (label: string) => z.string().trim().min(1, `Enter your ${label.toLowerCase()}`).max(100, `${label} cannot exceed 100 characters`)
+  .refine(value => !/[\u0000-\u001f\u007f]/.test(value), `${label} cannot contain control characters`);
+export const firstNameSchema = accountName('First name');
+export const lastNameSchema = accountName('Last name');
 export const loginPasswordSchema = z.string().min(1).max(72, 'Password cannot exceed 72 bytes').refine(value => new TextEncoder().encode(value).length <= 72, 'Password cannot exceed 72 bytes; some characters use more than one byte');
 export const passwordSchema = loginPasswordSchema.refine(value => [...value].length >= 8, 'Use at least 8 characters').regex(/[A-Za-z]/, 'Include a letter').regex(/[0-9]/, 'Include a number');
-export const signupSchema = z.object({ email: emailSchema, password: passwordSchema, confirm: z.string() })
+export const signupSchema = z.object({ firstName: firstNameSchema, lastName: lastNameSchema, email: emailSchema, password: passwordSchema, confirm: z.string() })
   .refine(v => v.password === v.confirm, { message: 'Passwords do not match', path: ['confirm'] });

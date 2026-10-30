@@ -35,7 +35,7 @@ export async function POST(request:NextRequest,context:{params:Promise<{token:st
   }
   const replay=await receipt();
   if(replay.error)return failure(replay.error);if(replay.data)return NextResponse.json(replay.data,{headers});
-  const room=await client.rpc('orbit_poker',{p_action:'state',p_token:token,p_session:'',p_input:{issue:'free'}});
+  const room=await client.rpc('orbit_poker',{p_action:'state',p_token:token,p_session:'',p_input:{issue:'free',observeOnly:true}});
   if(room.error)return failure(room.error);
   if(!room.data?.self?.owner)return problem('Only the room facilitator can publish Orbit work.',403);
   if(room.data.room?.closed)return problem('This room is closed.',409);

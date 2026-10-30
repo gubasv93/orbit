@@ -16,7 +16,7 @@ async function ready(page:Page){await expect(page.locator('.gantt-canvas')).toBe
 async function openTask(page:Page,id:string){await page.locator(`.work-name[data-action=drawer-task][data-id="${id}"]`).click();}
 
 test.describe.serial('paused children and expandable story roles',()=>{
- test.beforeAll(async({browser})=>{context=await browser.newContext();const page=await context.newPage(),password='Orbit9'+randomUUID();await page.goto('/signup');await page.getByLabel('Email address').fill(`orbit-story-roles-${randomUUID()}@example.com`);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByLabel('Confirm password').fill(password);await page.getByRole('button',{name:'Create account',exact:true}).click();await expect(page).toHaveURL(/\/app$/);await page.close();});
+ test.beforeAll(async({browser})=>{context=await browser.newContext();const page=await context.newPage(),password='Orbit9'+randomUUID();await page.goto('/signup');await page.getByLabel('First name',{exact:true}).fill('Test');await page.getByLabel('Last name',{exact:true}).fill('User');await page.getByLabel('Email address').fill(`orbit-story-roles-${randomUUID()}@example.com`);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByLabel('Confirm password').fill(password);await page.getByRole('button',{name:'Create account',exact:true}).click();await expect(page).toHaveURL(/\/app$/);await page.close();});
  test.afterAll(async()=>{await context?.close();});
 
  test('keeps the epic and other tasks scheduled when a child is paused, displays the paused count, and clears it on resume',async()=>{

@@ -15,7 +15,7 @@ async function replace(workspace:ReturnType<typeof fullWorkspace>){
 test.describe.serial('project setup and epic effort regressions',()=>{
   test.beforeAll(async({browser})=>{
     context=await browser.newContext();const page=await context.newPage(),password='Orbit9'+randomUUID();
-    await page.goto('/signup');await page.getByLabel('Email address').fill(`orbit-fixes-${randomUUID()}@example.com`);
+    await page.goto('/signup');await page.getByLabel('First name',{exact:true}).fill('Test');await page.getByLabel('Last name',{exact:true}).fill('User');await page.getByLabel('Email address').fill(`orbit-fixes-${randomUUID()}@example.com`);
     await page.getByLabel('Password',{exact:true}).fill(password);await page.getByLabel('Confirm password').fill(password);
     await page.getByRole('button',{name:'Create account'}).click();await expect(page).toHaveURL(/\/app$/);
     await expect(page.getByRole('heading',{name:"Let's create your first project."})).toBeVisible();await page.close();

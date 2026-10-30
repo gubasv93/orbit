@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_PUBLISHABLE_KEY) {
-    return request.nextUrl.pathname.startsWith('/app')
+    return (request.nextUrl.pathname.startsWith('/app') || request.nextUrl.pathname.startsWith('/profile'))
       ? NextResponse.redirect(new URL('/login?setup=required', request.url)) : response;
   }
   const client = createServerClient(process.env.SUPABASE_URL, process.env.SUPABASE_PUBLISHABLE_KEY, {
@@ -20,7 +20,7 @@ export async function proxy(request: NextRequest) {
   });
   const { data: { user } } = await client.auth.getUser();
   response.headers.set('Cache-Control', 'private, no-store');
-  if (!user && request.nextUrl.pathname.startsWith('/app')) {
+  if (!user && (request.nextUrl.pathname.startsWith('/app') || request.nextUrl.pathname.startsWith('/profile'))) {
     const redirect = NextResponse.redirect(new URL('/login', request.url));
     response.cookies.getAll().forEach(cookie => redirect.cookies.set(cookie));
     redirect.headers.set('Cache-Control', 'private, no-store');
@@ -28,4 +28,4 @@ export async function proxy(request: NextRequest) {
   }
   return response;
 }
-export const config = { matcher: ['/app/:path*', '/api/workspace/:path*'] };
+export const config = { matcher: ['/app/:path*', '/profile/:path*', '/api/workspace/:path*'] };

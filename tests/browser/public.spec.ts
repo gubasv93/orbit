@@ -3,6 +3,7 @@ test('landing and auth are responsive, accessible, and contain no mock recovery'
   const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
   await page.goto('/'); await expect(page.getByRole('heading', { name: 'Roadmaps that adapt to reality.' })).toBeVisible();
   await page.getByRole('link', { name: 'Get started' }).click(); await expect(page).toHaveURL(/\/signup$/);
+  await page.getByLabel('First name', { exact: true }).fill('Test'); await page.getByLabel('Last name', { exact: true }).fill('User');
   await page.getByLabel('Email address').fill('person@example.com');
   await page.getByLabel('Password', { exact: true }).fill('onlyletters'); await page.getByLabel('Confirm password').fill('different');
   await page.getByRole('button', { name: 'Create account' }).click(); await expect(page.getByRole('alert')).toContainText(['Include a number', 'Passwords do not match']);

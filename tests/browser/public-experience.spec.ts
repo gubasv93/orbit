@@ -140,7 +140,7 @@ test('workspace loading is announced until the real initial request completes', 
     const password = 'Orbit9' + randomUUID();
     const signup = await context.request.post('/api/auth/signup', {
       headers: { Origin: origin, 'X-Forwarded-For': fixtureAddress },
-      data: { email: `orbit-loading-${randomUUID()}@example.com`, password, confirm: password },
+      data: { firstName: 'Test', lastName: 'User', email: `orbit-loading-${randomUUID()}@example.com`, password, confirm: password },
     });
     expect(signup.status(), await signup.text()).toBe(200);
     await page.route('**/api/workspace', async route => {

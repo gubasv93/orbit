@@ -6,6 +6,8 @@ type Theme = 'light' | 'dark';
 const storageKey = 'orbit-appearance';
 const AppearanceContext = createContext<{theme: Theme; changeTheme(theme: Theme): void}>({theme: 'light', changeTheme() {}});
 
+export function useAppearance() { return useContext(AppearanceContext); }
+
 export function AppearanceProvider({children}: {children: ReactNode}) {
   const [theme, setTheme] = useState<Theme>('light');
   useEffect(() => {

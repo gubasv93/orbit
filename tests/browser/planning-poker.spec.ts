@@ -22,7 +22,7 @@ async function signup(context:BrowserContext){
  // The disposable Next server has no proxy. Give these independent test clients documentation-only IPv6 addresses,
  // so creating fixtures does not consume another browser suite's shared localhost signup bucket.
  const fixtureAddress='2001:db8:'+randomUUID().replaceAll('-','').match(/.{1,4}/g)!.slice(0,6).join(':');
- const password='Orbit9'+randomUUID();const response=await context.request.post('/api/auth/signup',{headers:{Origin:origin,'X-Forwarded-For':fixtureAddress},data:{email:`orbit-poker-${randomUUID()}@example.com`,password,confirm:password}});expect(response.status(),await response.text()).toBe(200);
+ const password='Orbit9'+randomUUID();const response=await context.request.post('/api/auth/signup',{headers:{Origin:origin,'X-Forwarded-For':fixtureAddress},data:{firstName:'Test',lastName:'User',email:`orbit-poker-${randomUUID()}@example.com`,password,confirm:password}});expect(response.status(),await response.text()).toBe(200);
 }
 async function snapshot(){const response=await owner.request.get('/api/workspace');expect(response.status()).toBe(200);return response.json();}
 async function state(context:BrowserContext,issue='free',room=token){const response=await context.request.get(`/api/poker/${room}?issue=${encodeURIComponent(issue)}`);expect(response.status(),await response.text()).toBe(200);return response.json();}

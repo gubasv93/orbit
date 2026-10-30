@@ -37,6 +37,20 @@ async function switchTheme(page:Page,value:Theme) {
     .toHaveAttribute('aria-pressed',String(value==='dark'));
 }
 
+async function workspaceTheme(page:Page,value:Theme,projectId:string) {
+  // Keep the roadmap/Poker tab open while using its General settings in another
+  // tab. This also verifies cross-tab theme sync without ending a live room.
+  const settings=await page.context().newPage();
+  try {
+    await settings.goto('/app?'+new URLSearchParams({project:projectId,panel:'settings'}));
+    await expect(settings.getByRole('heading',{name:'General settings',exact:true})).toBeVisible();
+    const button=settings.getByRole('button',{name:value==='dark'?'Dark theme':'Light theme',exact:true});
+    await button.focus();await settings.keyboard.press('Enter');
+    await expect(button).toHaveAttribute('aria-pressed','true');
+    await theme(settings,value);await theme(page,value);
+  } finally {await settings.close();}
+}
+
 test('appearance defaults to light and an explicit keyboard choice persists through public navigation and reload',async({page})=>{
   const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
   await page.emulateMedia({colorScheme:'dark'});await page.setViewportSize({width:1440,height:900});
@@ -76,7 +90,7 @@ test('the same appearance works across real roadmap details and a Poker room wit
     const password='Orbit9'+randomUUID();
     const signup=await context.request.post('/api/auth/signup',{
       headers:{Origin:origin,'X-Forwarded-For':fixtureAddress},
-      data:{email:`orbit-appearance-${randomUUID()}@example.com`,password,confirm:password},
+      data:{firstName:'Test',lastName:'User',email:`orbit-appearance-${randomUUID()}@example.com`,password,confirm:password},
     });
     expect(signup.status(),await signup.text()).toBe(200);
     const initial=await (await context.request.get('/api/workspace')).json();
@@ -89,7 +103,7 @@ test('the same appearance works across real roadmap details and a Poker room wit
     await expect(page.locator('.save-bar [role=status]')).toHaveText('Saved to cloud');
     await theme(page,'light');await readableSurface(page.locator('.gantt-corner'),'light');
     await page.screenshot({path:'test-results/appearance-roadmap-light-1440.png',fullPage:true});
-    await switchTheme(page,'dark');
+    await workspaceTheme(page,'dark',before.workspace.activeId);
     await readableSurface(page.locator('.gantt-corner'),'dark');
     await page.locator('.work-name[data-action=drawer-task][data-id=t1]').click();
     await readableSurface(page.locator('.drawer'),'dark');
@@ -105,7 +119,7 @@ test('the same appearance works across real roadmap details and a Poker room wit
     await page.keyboard.press('Escape');
     for(const width of [1280,375,320]) {
       await page.setViewportSize({width,height:900});await noOverflow(page);
-      await expect(page.getByRole('button',{name:'Switch to light theme',exact:true})).toBeInViewport();
+      await expect(page.locator('.save-bar .appearance-toggle')).toHaveCount(0);
       await page.screenshot({path:`test-results/appearance-roadmap-dark-${width}.png`,fullPage:true});
     }
     await page.setViewportSize({width:1280,height:900});
@@ -129,7 +143,7 @@ test('the same appearance works across real roadmap details and a Poker room wit
     await readableSurface(page.getByLabel('Backend Developer estimate (days)',{exact:true}),'dark');
     await page.screenshot({path:'test-results/appearance-poker-editor-dark-1280.png',fullPage:true});
     await page.getByRole('button',{name:'Close story form',exact:true}).click();
-    await switchTheme(page,'light');
+    await workspaceTheme(page,'light',before.workspace.activeId);
     await readableSurface(page.locator('.poker-issues'),'light');
     await readableSurface(page.getByLabel('Search epics or stories',{exact:true}),'light');
     for(const width of [1280,375,320]) {

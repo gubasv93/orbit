@@ -20,7 +20,7 @@ const metric=(page:Page,name:string)=>popupFor(page).locator(`[data-detail-metri
 test.describe.serial('readable item breakdowns and calendar-based estimates',()=>{
  test.beforeAll(async({browser})=>{
   context=await browser.newContext();const page=await context.newPage(),password='Orbit9'+randomUUID();
-  await page.goto('/signup');await page.getByLabel('Email address').fill(`orbit-item-details-${randomUUID()}@example.com`);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByLabel('Confirm password').fill(password);await page.getByRole('button',{name:'Create account',exact:true}).click();await expect(page).toHaveURL(/\/app$/);await page.close();
+  await page.goto('/signup');await page.getByLabel('First name',{exact:true}).fill('Test');await page.getByLabel('Last name',{exact:true}).fill('User');await page.getByLabel('Email address').fill(`orbit-item-details-${randomUUID()}@example.com`);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByLabel('Confirm password').fill(password);await page.getByRole('button',{name:'Create account',exact:true}).click();await expect(page).toHaveURL(/\/app$/);await page.close();
  });
  test.afterAll(async()=>{await context?.close();});
 

@@ -287,3 +287,14 @@
   .poker-issues { border-color: var(--ui-border); border-radius: 18px; box-shadow: var(--ui-shadow); }
   .poker-dialog { border-radius: 18px; }
 }
+
+/* Presence messages stay readable without covering the voting table. */
+.poker-idle-warning { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin:14px 24px 0; padding:12px 15px; border:1px solid color-mix(in srgb,var(--ui-warning) 25%,var(--ui-border)); border-radius:12px; color:var(--ui-warning); background:var(--ui-warning-soft); font-size:12px; line-height:1.5; }
+.poker-idle-warning .btn { flex:none; }
+.poker-session-ended { display:grid; place-items:start center; flex:1; min-width:0; padding:clamp(24px,5vw,64px) 20px; }
+.poker-session-ended>.card { width:min(100%,480px); padding:clamp(20px,4vw,32px); border:1px solid var(--ui-border); border-radius:20px; background:var(--ui-surface); color:var(--ui-text); }
+.poker-session-ended h2 { margin:12px 0; font-size:24px; letter-spacing:-.6px; overflow-wrap:anywhere; }
+.poker-session-ended p { font-size:13px; line-height:1.65; color:var(--ui-muted); margin:12px 0 22px; }
+.poker-session-ended .btn { margin:0 8px 8px 0; }
+.poker-nav .workspace-profile>span:last-child { min-width:0; }
+@media(max-width:650px) { .poker-idle-warning { margin:12px 14px 0; } }

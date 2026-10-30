@@ -8,7 +8,7 @@ let owner: BrowserContext, second: BrowserContext;
 async function openSettings(page:Page){const show=page.getByRole('button',{name:'Show sidebar',exact:true});if(await show.isVisible())await show.click();await page.getByRole('button',{name:'General settings',exact:true}).click();}
 async function saved(page: Page) { await expect(page.locator('.save-bar [role="status"]')).toHaveText('Saved to cloud', { timeout: 15000 }); }
 async function signup(page: Page, address: string) {
-  await page.goto('/signup');
+  await page.goto('/signup');await page.getByLabel('First name',{exact:true}).fill('Test');await page.getByLabel('Last name',{exact:true}).fill('User');
   await page.getByRole('region', { name: 'Cookies and browser storage', exact: true }).getByRole('button', { name: 'Got it', exact: true }).click();
   await page.getByLabel('Email address').fill(address);
   await page.getByLabel('Password', { exact: true }).fill(password); await page.getByLabel('Confirm password').fill(password);
