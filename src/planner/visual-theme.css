@@ -371,6 +371,13 @@
 .planner-root .settings-reset-row>span { color:var(--ui-muted); font-size:10px; line-height:1.7; }
 .planner-root .general-settings-form>.dialog-foot { margin:0; padding:4px 0 0; border:0; }
 .planner-root .general-settings-form>.dialog-foot>.btn { min-height:40px; }
+.planner-root .project-delete-settings { border-color:color-mix(in srgb,var(--ui-danger) 35%,var(--ui-border)); }
+.planner-root .project-delete-summary { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:18px 0; }
+.planner-root .project-delete-summary>span { padding:10px 12px; border:1px solid var(--ui-border); border-radius:9px; color:var(--ui-muted); font-size:11px; }
+.planner-root .project-delete-summary strong { color:var(--ui-text); margin-right:4px; }
+.planner-root [data-form="delete-project"] .notice { overflow-wrap:anywhere; }
+.planner-root [data-form="delete-project"] .notice p { margin:8px 0 0; line-height:1.7; }
+.planner-root #deleteProjectHelp { display:block; color:var(--ui-muted); font-size:11px; line-height:1.7; overflow-wrap:anywhere; }
 
 /* Calendar markers belong to the scrolling calendar, below its sticky feature column. */
 .planner-root .calendar-head { isolation:isolate; z-index:0; }
