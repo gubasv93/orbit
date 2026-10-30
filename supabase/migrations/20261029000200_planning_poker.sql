@@ -73,7 +73,7 @@ $$;
 create function orbit_private.poker_round_json(p_round uuid,p_self uuid) returns jsonb language sql stable set search_path='' as $$
  select jsonb_build_object('id',r.id,'issue',r.issue,'number',r.number,'revealed',r.revealed,'accepted',r.accepted,'createdAt',r.created_at,'revealedAt',r.revealed_at,
  'votes',coalesce((select jsonb_agg(jsonb_build_object('participantId',v.participant_id)||case when r.revealed or v.participant_id=p_self then jsonb_build_object('value',v.value) else '{}'::jsonb end order by v.updated_at) from public.orbit_poker_votes v where v.round_id=r.id),'[]'::jsonb))
- || coalesce((select jsonb_build_object('taskId',t.id,'title',t.document->>'title') from public.orbit_poker_issues q join public.orbit_poker_rooms room on room.id=q.room_id join public.orbit_work_items t on t.workspace_id=room.workspace_id and t.project_id=room.project_id and t.feature_id=q.feature_id and (q.story_id is not null and t.document->>'storyId'=q.story_id or q.story_id is null and t.id=q.canonical_key) where q.room_id=r.room_id and q.canonical_key=r.issue order by (q.story_id is not null) desc,t.position limit 1),'{}'::jsonb)
+ || coalesce((select jsonb_build_object('taskId',t.id,'title',t.document->>'title') from public.orbit_poker_issues q join public.orbit_poker_rooms room on room.id=q.room_id join public.orbit_work_items t on t.workspace_id=room.workspace_id and t.project_id=room.project_id and t.feature_id=q.feature_id and (q.story_id is not null and t.document->>'storyId'=q.story_id or q.story_id is null and q.logical_key='task|'||t.id) where q.room_id=r.room_id and q.canonical_key=r.issue order by (q.story_id is not null) desc,t.position limit 1),'{}'::jsonb)
  from public.orbit_poker_rounds r where r.id=p_round;
 $$;
 revoke all on function orbit_private.poker_limit(text,integer,integer),orbit_private.poker_deck_valid(jsonb),orbit_private.poker_round_json(uuid,uuid) from public,anon,authenticated;
@@ -142,7 +142,11 @@ begin
   if not found then raise exception 'Story not found' using errcode='PT404'; end if;
   v_logical:=case when nullif(v_task.document->>'storyId','') is not null then 'story|'||v_task.feature_id||'|'||(v_task.document->>'storyId') else 'task|'||v_task.id end;
   insert into public.orbit_poker_issues(room_id,logical_key,canonical_key,feature_id,story_id)
-   values(r.id,v_logical,v_task.id,v_task.feature_id,nullif(v_task.document->>'storyId','')) on conflict(room_id,logical_key) do nothing;
+   -- A role moved to another epic starts a distinct logical story. Its former
+   -- group's canonical key and history remain unchanged even when that key is
+   -- this moved work item's ID.
+   values(r.id,v_logical,case when exists(select 1 from public.orbit_poker_issues prior where prior.room_id=r.id and prior.canonical_key=v_task.id and prior.logical_key<>v_logical) then gen_random_uuid()::text else v_task.id end,v_task.feature_id,nullif(v_task.document->>'storyId',''))
+   on conflict(room_id,logical_key) do update set feature_id=excluded.feature_id;
   select canonical_key into v_issue from public.orbit_poker_issues where room_id=r.id and logical_key=v_logical;
  end if;
  update public.orbit_poker_participants set last_seen=case when p_action='leave' then clock_timestamp()-interval '46 seconds' else clock_timestamp() end,selected_issue=v_issue where id=me.id;
@@ -219,7 +223,7 @@ begin
  if p_result ? 'acceptedVote' and p_result->>'acceptedVote' is not null then
   select * into v_round from public.orbit_poker_rounds where id=(p_result->>'roundId')::uuid and room_id=r.id and revealed;
   if not found or length(btrim(p_result->>'acceptedVote')) not between 1 and 32 then raise exception 'Reveal the selected round before accepting its vote' using errcode='22023'; end if;
-  if v_round.issue<>'free' and not exists(select 1 from public.orbit_poker_issues q join public.orbit_work_items t on t.workspace_id=r.workspace_id and t.project_id=r.project_id and t.id=p_story_key and t.feature_id=q.feature_id and (q.story_id is not null and t.document->>'storyId'=q.story_id or q.story_id is null and t.id=q.canonical_key) where q.room_id=r.id and q.canonical_key=v_round.issue) then raise exception 'The selected voting round belongs to another story' using errcode='22023'; end if;
+  if v_round.issue<>'free' and not exists(select 1 from public.orbit_poker_issues q join public.orbit_work_items t on t.workspace_id=r.workspace_id and t.project_id=r.project_id and t.id=p_story_key and t.feature_id=q.feature_id and (q.story_id is not null and t.document->>'storyId'=q.story_id or q.story_id is null and q.logical_key='task|'||t.id) where q.room_id=r.id and q.canonical_key=v_round.issue) then raise exception 'The selected voting round belongs to another story' using errcode='22023'; end if;
  end if;
  v_revision:=public.orbit_save_workspace(p_snapshot,p_expected_revision);
  -- A formerly standalone task that gains roles adopts its existing poker identity.
