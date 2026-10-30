@@ -127,7 +127,12 @@ test.describe.serial('Planning Poker shared state, privacy and real Orbit public
    const beforeNav=(await game.boundingBox())!.width;await ownerPage.getByRole('button',{name:'Hide project navigation',exact:true}).click();await expect(navigation).toBeHidden();await expect(features).toBeVisible();await expect.poll(async()=>(await game.boundingBox())!.width).toBeGreaterThan(beforeNav+100);
    await ownerPage.getByRole('button',{name:'Show project navigation',exact:true}).click();await expect(navigation).toBeVisible();expect(new URL(ownerPage.url()).searchParams.get('issue')).toBe(selectedIssue);
 
-   await search.fill('');const epic=features.locator('.poker-epic-trigger').filter({hasText:'Disable Rules'});if(await epic.getAttribute('aria-expanded')!=='true')await epic.click();
+   await search.fill('');const epic=features.locator('.poker-epic-trigger').filter({hasText:'Disable Rules'});
+   // Search temporarily expands matches. Wait for clearing it to render before
+   // explicitly expanding the backlog, rather than reading the stale search state.
+   await expect(epic).toHaveAttribute('aria-expanded','false');await epic.click();
+   await expect(epic).toHaveAttribute('aria-expanded','true');
+   await expect(features.getByRole('button',{name:'Select story Scroll story 35',exact:true})).toBeAttached();
    const list=features.locator('.poker-epic-list'),addStory=features.getByRole('button',{name:'+ Add Story',exact:true}),addEpic=features.getByRole('button',{name:'+ Create New Epic / Feature',exact:true});
    await inViewport(addStory);await inViewport(addEpic);const initialActions=await features.locator('.poker-issues-actions').boundingBox();
    expect(await list.evaluate(element=>element.scrollHeight>element.clientHeight+100)).toBe(true);await list.evaluate(element=>{element.scrollTop=element.scrollHeight;});

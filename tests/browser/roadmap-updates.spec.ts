@@ -366,7 +366,7 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   await expect(field('title')).toHaveText('API');await expect(field('title')).toBeVisible();await expect(field('role')).toBeVisible();
   await expect(page.getByLabel('Iteration',{exact:true})).toHaveCount(0);await expect(page.locator('.dependency-mode')).toHaveCount(0);
   await expect(page.locator('.topbar [data-action=open-feature],.topbar [data-action=manage-meetings],.topbar [data-action=open-settings]')).toHaveCount(0);
-  await expect(page.locator('.save-bar')).toHaveText('Saved to cloud');
+  await expect(page.locator('.save-bar [role=status]')).toHaveText('Saved to cloud');
   await openSettings(page);await saved(page);
   await expect(page.locator('.side-user .workspace-email')).toHaveText((await snapshot()).email);await expect(page.locator('.sidebar [data-action=manage-meetings]')).toHaveCount(1);
   const original=(await snapshot()).workspace.projects[0].data;
