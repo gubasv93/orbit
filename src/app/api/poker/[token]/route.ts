@@ -18,7 +18,7 @@ export async function GET(request:NextRequest,context:Context) {
   const token=pokerToken.safeParse((await context.params).token);if(!token.success)return problem('Room not found.',404);
   const issue=pokerIssue.safeParse(request.nextUrl.searchParams.get('issue')||'free');if(!issue.success)return problem('Invalid story.');
   const {client,ownerName}=await pokerClient();const session=request.cookies.get(pokerCookie(token.data))?.value||'';
-  const {data,error}=await client.rpc('orbit_poker',{p_action:'state',p_token:token.data,p_session:session,p_input:{issue:issue.data,ownerName}});
+  const {data,error}=await client.rpc('orbit_poker_room_state',{p_token:token.data,p_session:session,p_input:{issue:issue.data,ownerName}});
   return error?pokerFailure(error):pokerJson(data);
  }catch{return problem('Planning Poker is temporarily unavailable. Please retry.',503);}
 }
