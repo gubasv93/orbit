@@ -93,6 +93,12 @@ test('the same appearance works across real roadmap details and a Poker room wit
     await readableSurface(page.locator('.gantt-corner'),'dark');
     await page.locator('.work-name[data-action=drawer-task][data-id=t1]').click();
     await readableSurface(page.locator('.drawer'),'dark');
+    await page.getByRole('region',{name:'Cookies and browser storage',exact:true}).getByRole('button',{name:'Cookie details',exact:true}).click();
+    await expect(page.getByRole('dialog',{name:'Cookies, kept simple',exact:true})).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog',{name:'Cookies, kept simple',exact:true})).toBeHidden();
+    await expect(page.locator('.drawer')).toBeVisible();
+    await page.getByRole('region',{name:'Cookies and browser storage',exact:true}).getByRole('button',{name:'Got it',exact:true}).click();
     await expect(page.getByLabel('Pure effort (days)',{exact:true})).toHaveValue('3');
     await readableSurface(page.getByLabel('Pure effort (days)',{exact:true}),'dark');
     await page.screenshot({path:'test-results/appearance-drawer-dark-1440.png',fullPage:true});

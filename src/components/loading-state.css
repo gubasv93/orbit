@@ -1,0 +1,62 @@
+.orbit-loading { color:var(--ui-text); min-width:0; width:100%; }
+.orbit-loading-page { display:grid; place-items:center; min-height:100dvh; padding:40px 20px; background:var(--ui-bg); }
+.orbit-loading-panel { padding:28px 0; }
+.orbit-loading-card { width:min(100%,460px); margin-inline:auto; padding:38px 32px 28px; text-align:center; border:1px solid var(--ui-border); border-radius:28px; background:var(--ui-surface); box-shadow:var(--ui-shadow); }
+.orbit-loading-symbol { position:relative; width:70px; height:70px; margin:0 auto 24px; }
+.orbit-loading-ring { position:absolute; inset:5px; border:1px solid var(--ui-border-strong); border-radius:50%; animation:orbit-loading-turn 3s linear infinite; }
+.orbit-loading-ring:before { content:''; position:absolute; width:10px; height:10px; border-radius:50%; left:3px; top:3px; background:#7c9fe5; box-shadow:0 0 0 5px var(--ui-accent-soft); }
+.orbit-loading-center { position:absolute; inset:23px; border-radius:50%; background:var(--ui-accent); }
+.orbit-loading-moon { position:absolute; width:7px; height:7px; border-radius:50%; background:#e3c584; bottom:4px; right:11px; }
+.orbit-state-eyebrow { color:var(--ui-muted); font-size:10px; text-transform:uppercase; letter-spacing:.12em; font-weight:650; margin:0 0 12px; line-height:1.6; }
+.orbit-loading h2 { font-size:23px; line-height:1.25; letter-spacing:-.8px; font-weight:650; margin:0; }
+.orbit-loading-description { color:var(--ui-muted); max-width:310px; font-size:13px; line-height:1.75; margin:12px auto 24px; }
+.orbit-loading-preview { border:1px solid var(--ui-border); border-radius:13px; background:var(--ui-surface-soft); overflow:hidden; text-align:left; }
+.orbit-loading-preview-top { height:27px; display:flex; gap:4px; align-items:center; padding:0 12px; border-bottom:1px solid var(--ui-border); }
+.orbit-loading-preview-top i { width:4px; height:4px; border-radius:50%; background:var(--ui-border-strong); }
+.orbit-loading-preview-top span { width:58px; height:4px; margin-left:8px; border-radius:4px; background:var(--ui-border-strong); }
+.orbit-loading-preview-body { display:grid; grid-template-columns:70px minmax(0,1fr); height:111px; }
+.orbit-loading-preview-body>div:first-child { border-right:1px solid var(--ui-border); padding:16px 12px; display:flex; flex-direction:column; justify-content:space-between; }
+.orbit-loading-preview-body i { display:block; height:5px; border-radius:4px; background:var(--ui-border-strong); }
+.orbit-loading-preview-body i:nth-child(2) { width:75%; }
+.orbit-loading-track { position:relative; background:repeating-linear-gradient(90deg,transparent 0,transparent calc(25% - 1px),var(--ui-border) calc(25% - 1px),var(--ui-border) 25%); }
+.orbit-loading-track span { position:absolute; height:11px; border-radius:4px; animation:orbit-loading-breathe 2s ease-in-out infinite; background:#7c9fe5; width:48%; left:9%; top:13px; }
+.orbit-loading-track span:nth-child(2) { background:#b6a0dc; width:35%; left:30%; top:49px; animation-delay:.2s; }
+.orbit-loading-track span:nth-child(3) { background:#86c4ac; width:30%; left:54%; top:84px; animation-delay:.4s; }
+@keyframes orbit-loading-turn { to { transform:rotate(360deg); } }
+@keyframes orbit-loading-breathe { 50% { opacity:.45; } }
+
+.entry-shell.orbit-not-found-shell { display:flex; flex-direction:column; min-height:100dvh; }
+.orbit-not-found-shell>.entry-top,.orbit-not-found-shell>.entry-footer { width:100%; flex:none; margin:0 auto; }
+.orbit-not-found { width:min(1120px,100%); margin:auto; padding:68px 34px 92px; display:grid; grid-template-columns:1.1fr 1fr; gap:50px; align-items:center; flex:1; }
+.orbit-not-found-label { display:inline-flex; align-items:center; gap:9px; padding:7px 11px; border:1px solid var(--ui-border); border-radius:20px; background:var(--ui-surface); color:var(--ui-muted); font-size:11px; font-weight:600; }
+.orbit-not-found-label span { color:var(--ui-accent); }
+.orbit-not-found h1 { font-size:clamp(38px,5vw,62px); line-height:1.06; letter-spacing:-2.8px; font-weight:650; margin:23px 0 20px; max-width:560px; }
+.orbit-not-found-copy>p { font-size:15px; line-height:1.8; color:var(--ui-muted); max-width:400px; margin:0 0 28px; }
+.orbit-not-found-actions { display:flex; flex-wrap:wrap; gap:10px; }
+.orbit-not-found-art { position:relative; width:min(100%,380px); aspect-ratio:1; margin:auto; display:grid; place-items:center; isolation:isolate; }
+.orbit-not-found-orbit { position:absolute; inset:10%; border:1px solid var(--ui-border-strong); border-radius:50%; transform:rotate(-30deg) scaleY(.6); }
+.orbit-not-found-orbit:nth-child(2) { inset:0; transform:rotate(45deg) scaleY(.65); border-color:var(--ui-border); }
+.orbit-not-found-number { display:grid; place-items:center; width:67%; aspect-ratio:1; border-radius:50%; background:var(--ui-surface); box-shadow:var(--ui-shadow); border:1px solid var(--ui-border); font-size:clamp(58px,8vw,96px); font-weight:650; letter-spacing:-6px; color:var(--ui-text); z-index:1; }
+.orbit-not-found-dot { position:absolute; width:24px; height:24px; border-radius:50%; top:15%; left:18%; background:#7c9fe5; box-shadow:0 0 0 9px var(--ui-bg); }
+.orbit-not-found-dot:nth-of-type(2) { width:13px; height:13px; top:auto; bottom:17%; left:auto; right:14%; background:#e3c584; }
+.orbit-not-found-spark { position:absolute; color:var(--ui-muted); font-size:23px; right:8%; top:18%; }
+@media(max-width:760px) {
+ .orbit-not-found { padding:32px 22px 58px; grid-template-columns:1fr; gap:15px; text-align:center; }
+ .orbit-not-found-copy>p { margin-inline:auto; }
+ .orbit-not-found h1 { margin-inline:auto; letter-spacing:-1.9px; }
+ .orbit-not-found-actions { justify-content:center; }
+ .orbit-not-found-art { width:240px; grid-row:1; }
+ .orbit-not-found-number { font-size:65px; }
+}
+@media(max-width:380px) {
+ .orbit-loading-page { padding:24px 14px; }
+ .orbit-loading-card { padding:30px 20px 22px; border-radius:23px; }
+ .orbit-loading h2 { font-size:21px; }
+ .orbit-not-found { padding-inline:18px; }
+ .orbit-not-found-art { width:205px; }
+ .orbit-not-found h1 { font-size:38px; }
+ .orbit-not-found-actions .entry-button { flex:1 1 auto; }
+}
+@media(prefers-reduced-motion:reduce) {
+ .orbit-loading-ring,.orbit-loading-track span { animation:none; }
+}
