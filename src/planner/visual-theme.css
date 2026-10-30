@@ -215,8 +215,10 @@
 .planner-root .today-tag { background: var(--ui-accent); color: var(--ui-on-accent); }
 .planner-root .milestone-pin { background: var(--ui-surface-raised); color: var(--ui-accent); }
 .planner-root .milestone-pin.risk { background: var(--ui-danger-soft); color: var(--ui-danger); }
-.planner-root .feature-bar { background: var(--ui-accent-soft); color: var(--ui-accent); border-color: var(--ui-focus); }
-.planner-root :is(.feature-bar:before,.feature-bar:after) { background: var(--ui-accent); }
+.planner-root .feature-bar { background: var(--ui-surface-soft); color: var(--ui-muted); border-color: var(--ui-border-strong); }
+.planner-root :is(.feature-bar:before,.feature-bar:after) { background: var(--ui-muted); }
+.planner-root .task-bar.done { background: #7e9d91; }
+.planner-root .task-bar.hold,.planner-root .task-bar.blocked { background: var(--ui-surface-soft); color: var(--ui-muted); border-color: var(--ui-border-strong); }
 .planner-root .timeline-page :is(.task-bar,.feature-bar):has(.capacity-band) { background: var(--ui-surface-soft); }
 .planner-root .timeline-page .feature-bar.no-time-mix { background: repeating-linear-gradient(135deg,var(--ui-surface-soft) 0px,var(--ui-surface-soft) 5px,var(--ui-border) 5px,var(--ui-border) 6px); border-color: var(--ui-border-strong); color: var(--ui-muted); }
 .planner-root :is(.task-bar,.feature-bar) .bar-label > [data-bar-field] {
