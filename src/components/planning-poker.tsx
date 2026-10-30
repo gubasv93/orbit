@@ -2,7 +2,9 @@
 import {useCallback,useEffect,useRef,useState,type FormEvent,type ReactNode} from 'react';
 import {storyWorkItems} from '@/planner/stories';
 import type {ProjectData,Workspace} from '@/lib/schema';
+import {ThemeToggle} from './appearance';
 import './planning-poker.css';
+import './planning-poker-visual.css';
 
 type Project=Workspace['projects'][number];
 type Settings={autoReveal:boolean;showAverage:boolean;countdown:boolean};
@@ -41,7 +43,7 @@ function Shell({projectId,projectName,owner=true,room=false,children}:{projectId
    <div className="poker-nav-heading"><a className="poker-brand" href={projectId?ganttLink(projectId):'/'}><span>◈</span><div>orbit<small>ADAPTIVE PLANNING</small></div></a><button className="icon-action" aria-label="Hide project navigation" aria-expanded={menu} aria-controls="poker-project-navigation" onClick={closeNavigation}><CloseIcon/></button></div>
    {projectName&&<div className="poker-project-name" title={projectName}>{projectName}</div>}
    {owner&&<><p className="poker-nav-caption">Workspace</p><a href={ganttLink(projectId||'')} className="poker-nav-item">▤ <span>Roadmap</span></a><a href={ganttLink(projectId||'')+'&page=team'} className="poker-nav-item">♙ <span>Team settings</span></a><a href={ganttLink(projectId||'')+'&page=availability'} className="poker-nav-item">◷ <span>Time off &amp; holidays</span></a><a href={ganttLink(projectId||'')+'&page=milestones'} className="poker-nav-item">⚑ <span>Milestones</span></a><a href={'/poker/new?project='+encodeURIComponent(projectId||'')} className="poker-nav-item active" aria-current="page">♧ <span>Planning Poker</span></a><a href={ganttLink(projectId||'')+'&panel=settings'} className="poker-nav-item">⚙ <span>General settings</span></a><a href={ganttLink(projectId||'')+'&panel=meetings'} className="poker-nav-item">◴ <span>Recurring meetings</span></a></>}
-   <div className="poker-nav-bottom">{owner?'Your project, together.':'Shared estimation room'}<small>{owner?'Estimate with your team. Plan in Orbit.':'Only information shared with this room is visible.'}</small></div>
+   <div className="poker-nav-bottom"><ThemeToggle showLabel/><div>{owner?'Your project, together.':'Shared estimation room'}</div><small>{owner?'Estimate with your team. Plan in Orbit.':'Only information shared with this room is visible.'}</small></div>
   </aside>
   <div className="poker-main">{!menu&&<div className="poker-mobile-nav"><button className="btn sm" ref={navToggleRef} aria-label="Show project navigation" aria-expanded={menu} aria-controls="poker-project-navigation" onClick={openNavigation}><span aria-hidden="true">☰</span><span>{projectName||'Project navigation'}</span></button><span>Planning Poker</span></div>}{children}</div>
  </div>;

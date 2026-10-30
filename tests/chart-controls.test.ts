@@ -14,7 +14,7 @@ it('renders half-day work and its epic as half a calendar day, with no unused ca
  expect(info.endFraction).toBe(.5);expect(calendarSpan(info)).toBe(.5);expect(info.end).toBe(info.start);
  const breakdown=taskTimeBreakdown(data.tasks[0],info,data,engine)!;
  expect(breakdown.days).toBe(.5);expect(breakdown.totals.development).toBe(.5);
- expect(capacityGradient(breakdown)).toBe('linear-gradient(90deg,#7870db 0.00000% 100.00000%)');
+ expect(capacityGradient(breakdown)).toBe('linear-gradient(90deg,#2e5cff 0.00000% 100.00000%)');
  expect(timeCategories.map(([key])=>key)).not.toContain('available');
  const parent=result.featureInfo.f1;expect(calendarSpan(parent)).toBe(.5);
  expect(featureTimeBreakdown(parent.start,parent.end!,[breakdown],parent.endFraction)!.days).toBe(.5);
@@ -40,7 +40,7 @@ it('retains weekends and half a final workday in a 1.5-day estimate starting Fri
 it('fills deliberate manual windows with accounted-time colors without inventing work',()=>{
  const data=projectData();data.tasks[0].effort=.5;data.tasks[0].manualEnd='2026-10-28';
  const engine=createScheduler(data),info=engine.calculate().schedule.t1,b=taskTimeBreakdown(data.tasks[0],info,data,engine)!;
- expect(calendarSpan(info)).toBe(3);expect(b.totals.development).toBe(.5);expect(b.totals).not.toHaveProperty('available');expect(capacityGradient(b)).toBe('linear-gradient(90deg,#7870db 0.00000% 100.00000%)');
+ expect(calendarSpan(info)).toBe(3);expect(b.totals.development).toBe(.5);expect(b.totals).not.toHaveProperty('available');expect(capacityGradient(b)).toBe('linear-gradient(90deg,#2e5cff 0.00000% 100.00000%)');
 });
 it('loads legacy fractional estimates without silently rewriting them',()=>{
  const w=fullWorkspace();w.projects[0].data.tasks[0].effort=.25;const parsed=workspaceSchema.parse(w),data=parsed.projects[0].data;

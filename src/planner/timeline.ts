@@ -5,7 +5,7 @@ import { fromDay, asDay, dow } from './dates.js';
 import {halfDay} from './precision.js';
 
 export const timeCategories = [
-  ['development', 'Development', '#7870db'], ['meetings', 'Recurring meetings', '#e7c45f'],
+  ['development', 'Development', '#2e5cff'], ['meetings', 'Recurring meetings', '#e7c45f'],
   ['weekends', 'Weekends', '#cbd2de'], ['holidays', 'Public holidays', '#6abca8'],
   ['timeoff', 'Days off', '#91bce4'], ['sick', 'Sick leave', '#e9a09d'],
 ] as const;

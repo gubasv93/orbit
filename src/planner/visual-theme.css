@@ -1,0 +1,323 @@
+/* The planner shares Orbit's neutral surfaces and blue data accent.
+   Keep scheduling geometry in styles.css; this layer changes presentation only. */
+:root {
+  --bg: var(--ui-bg);
+  --white: var(--ui-surface);
+  --ink: var(--ui-text);
+  --muted: var(--ui-muted);
+  --line: var(--ui-border);
+  --purple: var(--ui-accent);
+  --purple-soft: var(--ui-accent-soft);
+  --sidebar: var(--ui-surface);
+  --shadow: var(--ui-shadow);
+}
+
+.workspace-shell,
+.planner-root {
+  color: var(--ui-text);
+  background: var(--ui-bg);
+}
+
+.workspace-shell .save-bar {
+  background: var(--ui-surface);
+  color: var(--ui-muted);
+  border-color: var(--ui-border);
+}
+.workspace-shell .save-bar > [role=status] { color: var(--ui-success); }
+.workspace-shell .save-bar.failed > [role=status] { color: var(--ui-danger); }
+.workspace-shell .save-bar button,
+.workspace-shell .import-label {
+  background: var(--ui-surface-soft);
+  color: var(--ui-text);
+  border-radius: 999px;
+}
+.workspace-shell .save-error {
+  background: var(--ui-danger-soft);
+  color: var(--ui-danger);
+}
+
+.planner-root :is(.sidebar,.topbar,.gantt-header,.calendar-head,.meta,.dialog,.dialog-head,.dialog-foot,.drawer,.drawer-bottom) {
+  background: var(--ui-surface);
+  color: var(--ui-text);
+  border-color: var(--ui-border);
+}
+.planner-root .sidebar { border-right: 1px solid var(--ui-border); }
+.planner-root .brand-mark {
+  color: var(--ui-on-primary);
+  background: var(--ui-primary);
+  box-shadow: none;
+}
+.planner-root :is(.brand small,.nav-caption,.side-user small,.breadcrumb,.sync,.heading-row p,.eyebrow,.setup-kicker,.setup-brand small) {
+  color: var(--ui-muted);
+}
+.planner-root .breadcrumb b { color: var(--ui-text); }
+.planner-root .nav-item { color: var(--ui-muted); font-weight: 600; }
+.planner-root .nav-item.active {
+  background: var(--ui-accent-soft);
+  color: var(--ui-accent);
+  box-shadow: inset 3px 0 0 var(--ui-accent);
+}
+.planner-root .nav-item:hover:not(.active) { background: var(--ui-surface-soft); color: var(--ui-text); }
+.planner-root :is(.nav-number,.side-foot,.platform-pill,.soft-tag,.tag,.keyboard,.top-avatar) {
+  background: var(--ui-surface-soft);
+  color: var(--ui-muted);
+  border-color: var(--ui-border);
+}
+.planner-root .side-foot h4 { color: var(--ui-text); }
+.planner-root .side-foot p { color: var(--ui-muted); }
+.planner-root .side-foot button { background: var(--ui-surface-raised); color: var(--ui-text); }
+.planner-root .side-user { border-color: var(--ui-border); }
+.planner-root .side-user .avatar { background: var(--ui-accent); color: var(--ui-on-accent); }
+.planner-root :is(.project-trigger,.project-new) {
+  background: var(--ui-surface-soft);
+  color: var(--ui-text);
+  border-color: var(--ui-border);
+}
+.planner-root .project-trigger svg { color: var(--ui-muted); }
+.planner-root :is(.project-trigger:hover,.project-new:hover) {
+  background: var(--ui-surface-raised);
+  color: var(--ui-text);
+  border-color: var(--ui-border-strong);
+}
+
+.planner-root .btn {
+  background: var(--ui-surface);
+  color: var(--ui-text);
+  border-color: var(--ui-border-strong);
+  border-radius: 999px;
+  font-weight: 650;
+  box-shadow: none;
+}
+.planner-root .btn:hover { background: var(--ui-surface-soft); }
+.planner-root .btn.primary {
+  background: var(--ui-primary);
+  color: var(--ui-on-primary);
+  border-color: var(--ui-primary);
+  box-shadow: 0 2px 4px #0000000b;
+}
+.planner-root .btn.primary:hover { filter: brightness(.92); }
+.planner-root .btn.ghost { background: transparent; border-color: transparent; color: var(--ui-muted); }
+.planner-root .btn.ghost:hover { background: var(--ui-surface-soft); color: var(--ui-text); }
+.planner-root .btn.danger { background: var(--ui-danger-soft); border-color: transparent; color: var(--ui-danger); }
+.planner-root :is(.mini-btn,.table-add-feature,.clear-filters,.item-popup-more) {
+  background: var(--ui-accent-soft);
+  border-color: transparent;
+  color: var(--ui-accent);
+  font-weight: 650;
+}
+.planner-root :is(.mini-btn:hover,.table-add-feature:hover,.clear-filters:hover,.item-popup-more:hover) {
+  background: color-mix(in srgb,var(--ui-accent) 14%,var(--ui-surface));
+}
+.planner-root :is(.icon-action,.more-button,.chevron,.row-grip,.timeline-help) { color: var(--ui-muted); }
+.planner-root :is(.icon-action:hover,.more-button:hover,.chevron:hover,.row-grip:hover,.row-grip:focus-visible) {
+  background: var(--ui-surface-soft);
+  color: var(--ui-text);
+  outline-color: var(--ui-focus);
+}
+.planner-root .sidebar-toggle {
+  background: var(--ui-surface);
+  color: var(--ui-muted);
+  border-color: var(--ui-border);
+}
+.planner-root .sidebar-toggle:hover { background: var(--ui-surface-soft); color: var(--ui-text); border-color: var(--ui-border-strong); }
+.planner-root :is(.text-link,.inspector-task-link,.filter-menu-footer > [data-action=clear-filter]) { color: var(--ui-accent); }
+.planner-root :is(button,a,input,select,textarea):focus-visible { outline-color: var(--ui-focus); }
+
+.planner-root :is(.card,.stat,.availability-card,.milestone-card,.setup-card,.team-row) {
+  background: var(--ui-surface);
+  color: var(--ui-text);
+  border-color: var(--ui-border);
+  border-radius: 18px;
+  box-shadow: 0 2px 7px #00000004;
+}
+.planner-root .timeline-page .board { border-radius: 16px; }
+.planner-root :is(.stat-label,.stat-meta,.panel-sub,.person-cell small,.availability-card .detail small,.milestone-card .detail small,.team-role-name small,.team-row .person-cell small,.resource-title small,.grid-caption,.metric-row,.bottom-tip,.info-line,.scrollhint,.breakdown-platform) {
+  color: var(--ui-muted);
+}
+.planner-root :is(.heading-row h1,.panel-title,.person-cell strong,.metric-row strong,.team-role-name strong,.work-name strong) { color: var(--ui-text); }
+.planner-root :is(.heading-row h1,.panel-title,.dialog-head h2,.drawer-header h2,.work-name strong) { font-weight: 650; }
+.planner-root :is(.stat-value,.metric-row strong,[data-feature-effort],.item-detail-metric > strong,.work-name small,.day-cell,.calendar-head,.capacity-legend) {
+  font-variant-numeric: tabular-nums;
+}
+.planner-root .stat-value { font-weight: 700; }
+.planner-root :is(.lav,.blu,.team-role-icon,.milestone-icon,.setup-step.is-active .setup-step-num) { background: var(--ui-accent-soft); color: var(--ui-accent); }
+.planner-root .mint { background: var(--ui-success-soft); color: var(--ui-success); }
+.planner-root .rose { background: var(--ui-danger-soft); color: var(--ui-danger); }
+.planner-root :is(.board-toolbar,.legend,.board-footer,.capacity-legend,.team-row,.resource-row,.table td,.table th,.drawer-header,.drawer-section,.switch-row,.dialog-foot,.copy-settings-choices,.filter-menu-heading,.filter-menu-footer,.item-popup-head,.item-popup-foot,.bulk-delete-list > li) {
+  border-color: var(--ui-border);
+}
+.planner-root :is(.legend-item,.legend-help,.board-footer,.capacity-legend,.meta-mini,.work-name small,.gantt-corner small) { color: var(--ui-muted); }
+.planner-root :is(.board-footer b,[data-feature-effort]) { color: var(--ui-text); }
+.planner-root :is(.pills,.scale-picker) { background: var(--ui-surface-soft); border-color: var(--ui-border); border-radius: 999px; }
+.planner-root .pill { color: var(--ui-muted); border-radius: 999px; font-weight: 600; }
+.planner-root .pill.active { background: var(--ui-surface); color: var(--ui-text); box-shadow: 0 1px 4px #0000000e; }
+.planner-root :is(.select-inline,.filter-trigger,.filter-select,.setup-import-controls select) {
+  color: var(--ui-text);
+  background: var(--ui-surface);
+  border-color: var(--ui-border);
+}
+.planner-root :is(.filter-trigger svg,.filter-select svg,.scale-picker) { color: var(--ui-muted); }
+.planner-root :is(.filter-select select,.scale-picker select) { color: var(--ui-text); }
+.planner-root .filter-trigger.is-filtered { background: var(--ui-accent-soft); border-color: var(--ui-focus); color: var(--ui-accent); }
+.planner-root :is(.filter-trigger[aria-expanded=true],.filter-select:focus-within) { border-color: var(--ui-focus); box-shadow: 0 0 0 2px var(--ui-accent-soft); }
+.planner-root .timeline-tools .toolbar-divider { border-color: var(--ui-border); }
+.planner-root .gantt-scroller { scrollbar-color: var(--ui-border-strong) transparent; }
+.planner-root :is(.roadmap-filter-popover,.item-details-popup,.row-drag-ghost) {
+  background: var(--ui-surface-raised);
+  border-color: var(--ui-border);
+  color: var(--ui-text);
+  border-radius: 14px;
+  box-shadow: var(--ui-shadow);
+}
+.planner-root :is(.filter-menu-heading small,.item-popup-owner,.item-popup-notes,.item-popup-foot > span,.item-detail-metric > span,.item-detail-metric > small,.item-popup-kind) { color: var(--ui-muted); }
+.planner-root :is(.filter-option:hover,.filter-option:focus-within) { background: var(--ui-surface-soft); }
+.planner-root :is(.filter-option input,.row-selection input,.checkline input,.phase-tile input) { accent-color: var(--ui-accent); }
+.planner-root .item-popup-primary .item-detail-metric {
+  background: var(--ui-surface-soft);
+  border-color: var(--ui-border);
+  border-radius: 9px;
+}
+.planner-root :is(.item-detail-metric > strong,.item-popup-primary .item-detail-metric > strong,.item-popup-section h3) { color: var(--ui-text); }
+.planner-root .item-popup-conflicts h3 > span { background: var(--ui-warning-soft); color: var(--ui-warning); }
+.planner-root .item-conflict-list li { background: var(--ui-warning-soft); border-color: transparent; color: var(--ui-text); }
+.planner-root :is(.item-conflict-list li > span,.item-conflict-list li > small) { color: var(--ui-warning); }
+.planner-root .item-popup-clear { color: var(--ui-success); }
+.planner-root :is(.inspector-item-list > li,.project-pick-row) { background: var(--ui-surface); border-color: var(--ui-border); }
+.planner-root :is(.inspector-item-list > li > span,.inspector-item-list small,.inspector-dependency-path > span,.bulk-delete-list small,.project-pick-name small) { color: var(--ui-muted); }
+.planner-root .bulk-delete-list strong { color: var(--ui-text); }
+.planner-root .project-pick-row.is-current { background: var(--ui-accent-soft); border-color: var(--ui-focus); }
+
+/* Calendar cells retain the exact widths, row heights and overlay coordinates. */
+.planner-root :is(.gantt-corner,.time-band.upper .time-segment,.time-band.lower,.feature .meta,.feature .track) { background-color: var(--ui-surface-soft); }
+.planner-root :is(.gantt-row,.gantt-corner,.month-head,.month-label,.week-head,.week-label,.time-band,.time-band .time-segment,.day-cell,.meta) { border-color: var(--ui-border); }
+.planner-root :is(.gantt-corner strong,.month-label,.time-band .time-segment,.time-band.lower .time-segment) { color: var(--ui-muted); }
+.planner-root :is(.week-label,.time-band.middle .time-segment) { color: var(--ui-subtle); }
+.planner-root .day-cell { color: var(--ui-muted); }
+.planner-root .day-cell.weekend { background-color: var(--ui-surface-soft); color: var(--ui-subtle); }
+.planner-root .day-cell.holiday { background-color: var(--ui-warning-soft); color: var(--ui-warning); }
+.planner-root .day-cell.today { background-color: var(--ui-accent-soft); color: var(--ui-accent); }
+.planner-root .day-cell.today:after { background: var(--ui-accent); }
+.planner-root :is(.day-cell:hover,.time-band .time-segment:hover) { background-color: var(--ui-accent-soft); color: var(--ui-accent); }
+.planner-root .track { background-image: linear-gradient(90deg,transparent calc(100% - 1px),var(--ui-border) calc(100% - 1px)); }
+.planner-root .gantt-canvas:is(.scale-month,.scale-quarter,.scale-year) .track { background-image: none; }
+.planner-root .timeline-page .day-cell { background-image: linear-gradient(90deg,transparent calc(50% - .5px),color-mix(in srgb,var(--ui-border) 60%,transparent) 50%,transparent calc(50% + .5px)); }
+.planner-root .gantt-row.feature { background: var(--ui-surface-soft); }
+.planner-root .gantt-row:hover :is(.meta,.track) { background-color: var(--ui-surface-soft); }
+.planner-root .shade.weekend { background: color-mix(in srgb,var(--ui-text) 3%,transparent); }
+.planner-root .task-indent:before { background: var(--ui-border-strong); }
+.planner-root .tiny-avatar { border-color: var(--ui-surface); }
+.planner-root .tiny-avatar.none { background: var(--ui-surface-soft); color: var(--ui-muted); border-color: var(--ui-border-strong); }
+.planner-root .status-circle { border-color: var(--ui-border-strong); }
+.planner-root .status-circle.progress { border-color: var(--ui-accent); }
+.planner-root .status-circle.hold { background: var(--ui-warning-soft); border-color: var(--ui-warning); color: var(--ui-warning); }
+.planner-root .inline-assignee:hover,.planner-root .inline-assignee:focus-within { background: var(--ui-accent-soft); outline-color: var(--ui-focus); }
+.planner-root .today-line { border-color: var(--ui-accent); }
+.planner-root .today-tag { background: var(--ui-accent); color: var(--ui-on-accent); }
+.planner-root .milestone-pin { background: var(--ui-surface-raised); color: var(--ui-accent); }
+.planner-root .milestone-pin.risk { background: var(--ui-danger-soft); color: var(--ui-danger); }
+.planner-root .feature-bar { background: var(--ui-accent-soft); color: var(--ui-accent); border-color: var(--ui-focus); }
+.planner-root :is(.feature-bar:before,.feature-bar:after) { background: var(--ui-accent); }
+.planner-root .timeline-page :is(.task-bar,.feature-bar):has(.capacity-band) { background: var(--ui-surface-soft); }
+.planner-root .timeline-page .feature-bar.no-time-mix { background: repeating-linear-gradient(135deg,var(--ui-surface-soft) 0px,var(--ui-surface-soft) 5px,var(--ui-border) 5px,var(--ui-border) 6px); border-color: var(--ui-border-strong); color: var(--ui-muted); }
+.planner-root :is(.task-bar,.feature-bar) .bar-label > [data-bar-field] {
+  background: var(--ui-surface-raised);
+  color: var(--ui-text);
+  box-shadow: 0 1px 3px #0000000d;
+  border-radius: 4px;
+}
+.planner-root .estimate-placeholder { background: var(--ui-surface-soft); color: var(--ui-muted); border-color: var(--ui-border-strong); }
+.planner-root .estimate-placeholder:hover { background: var(--ui-accent-soft); border-color: var(--ui-focus); color: var(--ui-accent); }
+.planner-root .dependency-edge,.planner-root .dependency-preview { stroke: var(--ui-accent); }
+.planner-root .dependency-edge:is(:hover,:focus,.selected) { stroke: var(--ui-accent); }
+.planner-root .dependency-edge.timing-warning { stroke: var(--ui-warning); }
+.planner-root .dependency-handle { background: var(--ui-surface); border-color: var(--ui-focus); color: var(--ui-accent); }
+.planner-root .linking .dependency-handle.to:hover { background: var(--ui-accent); color: var(--ui-on-accent); }
+.planner-root .map-link-notice { color: var(--ui-accent); }
+.planner-root .row-drop-before > :is(.meta,.track) { box-shadow: inset 0 3px var(--ui-accent); }
+.planner-root .row-drop-after > :is(.meta,.track) { box-shadow: inset 0 -3px var(--ui-accent); }
+.planner-root .row-drop-inside > :is(.meta,.track) { box-shadow: inset 0 0 0 2px var(--ui-accent); background-color: var(--ui-accent-soft); }
+.planner-root :is(.task-bar.dragging,.feature-bar.dragging,.task-bar.resizing,.feature-bar.resizing,.feature-bar[data-feature]:focus-visible) { outline-color: var(--ui-focus); }
+.planner-root .bar-resize-handle:after { border-color: var(--ui-text); }
+.planner-root .bar-resize-preview { background: var(--ui-primary); color: var(--ui-on-primary); box-shadow: var(--ui-shadow); }
+.planner-root .gantt-row.row-selected > .meta,.planner-root .poker-focus-row > .meta { background: var(--ui-accent-soft); }
+.planner-root .gantt-row.row-selected > .track { background-color: var(--ui-accent-soft); box-shadow: inset 0 0 0 1px var(--ui-focus); }
+.planner-root .poker-focus-row > .meta { box-shadow: inset 3px 0 var(--ui-accent); }
+.planner-root .poker-focus-row > .track { box-shadow: inset 0 0 0 2px var(--ui-focus); }
+.planner-root .bulk-selection-toolbar { background: var(--ui-accent-soft); border-color: var(--ui-border); }
+.planner-root .bulk-selection-toolbar > [role=status] { color: var(--ui-accent); }
+
+/* Compact meters use the same blue hierarchy as the reference component. */
+.planner-root :is(.capacity-track,.load-track,.progress-mini) { background: var(--ui-surface-soft); }
+.planner-root :is(.capacity-track .dev,.load-fill,.progress-mini > div) { background: var(--ui-accent); }
+.planner-root .capacity-track .bugs { background: color-mix(in srgb,var(--ui-accent) 65%,var(--ui-surface)); }
+.planner-root .capacity-track .ongoing { background: color-mix(in srgb,var(--ui-accent) 35%,var(--ui-surface)); }
+.planner-root .capacity-track .ops { background: var(--ui-subtle); }
+.planner-root .load-fill.over { background: var(--ui-danger); }
+.planner-root .load-over { border-color: var(--ui-muted); }
+.planner-root .grid-mini i { background: var(--ui-border); }
+.planner-root .grid-mini i.low { background: var(--ui-accent-soft); }
+.planner-root .grid-mini i.off { background: var(--ui-surface-soft); }
+.planner-root .grid-mini i:hover { outline-color: var(--ui-focus); }
+.planner-root .table th { background: var(--ui-surface-soft); color: var(--ui-muted); }
+.planner-root .table td { color: var(--ui-muted); }
+
+.planner-root :is(.backdrop,.drawer-backdrop) { background: #00000055; }
+.planner-root :is(.dialog,.drawer) { box-shadow: var(--ui-shadow); }
+.planner-root .dialog { border: 1px solid var(--ui-border); border-radius: 20px; }
+.planner-root :is(.dialog-head p,.drawer-section small,.field small,.switch-row small,.phase-tile small,.grouped-note p,.person-availability .chip,.meeting-settings-entry small,.meeting-main small,.meeting-people .person-role,.meeting-person-name small,.meeting-audience small,.meeting-preview small,.dependency-setting-summary) { color: var(--ui-muted); }
+.planner-root :is(.field label,.checkline,.story-teams legend,.meeting-attendees legend,.story-team-heading,.meeting-attendee-count) { color: var(--ui-muted); }
+.planner-root :is(.field input:not([type=checkbox]):not([type=radio]),.field select,.field textarea) {
+  color: var(--ui-text);
+  background: var(--ui-surface);
+  border-color: var(--ui-border-strong);
+  border-radius: 10px;
+}
+.planner-root :is(.field input,.field select,.field textarea):focus { border-color: var(--ui-focus); box-shadow: 0 0 0 3px var(--ui-accent-soft); }
+.planner-root :is(input,textarea)::placeholder { color: var(--ui-subtle); }
+.planner-root :is(.field input,.field select):disabled { background: var(--ui-surface-soft); color: var(--ui-muted); }
+.planner-root :is(.switch,.switch:after) { background: var(--ui-border-strong); }
+.planner-root .switch:after { background: var(--ui-surface); }
+.planner-root .switch.on { background: var(--ui-accent); }
+.planner-root :is(.phase-tile,.grouped-note,.meeting-item,.meeting-people,.meeting-audience,.story-team-row,.meeting-settings-entry,.dependency-mode,.person-availability .chip,.copy-setup-box,.setup-import-strip,.setup-form,.setup-member,.setup-aside,.setup-empty,.setup-aside .aside-example) {
+  border-color: var(--ui-border);
+  background: var(--ui-surface-soft);
+  color: var(--ui-text);
+}
+.planner-root :is(.phase-tile:has(input:checked),.story-team-row.selected,.meeting-person:has(input:checked)) { background: var(--ui-accent-soft); border-color: var(--ui-focus); }
+.planner-root .meeting-person:focus-within { outline-color: var(--ui-focus); }
+.planner-root .meeting-symbol { background: var(--ui-accent-soft); color: var(--ui-accent); }
+.planner-root .meeting-item.muted-item { background: var(--ui-surface-soft); }
+.planner-root :is(.meeting-preview,.story-team-summary,.drawer-stat,.notice) { background: var(--ui-accent-soft); border-color: transparent; color: var(--ui-accent); }
+.planner-root :is(.drawer-stat strong,.story-team-summary) { font-variant-numeric: tabular-nums; }
+.planner-root .story-team-row[data-story-existing] { background: var(--ui-surface-soft); color: var(--ui-muted); }
+.planner-root .story-team-row[data-story-existing] input { accent-color: var(--ui-subtle); }
+.planner-root :is(.notice.warn,.meeting-time-summary,.weekday-warn,.leave-icon) { background: var(--ui-warning-soft); color: var(--ui-warning); border-color: transparent; }
+.planner-root .inspector-meeting-time { color: var(--ui-warning); }
+.planner-root :is(.notice.good,.dialog-feedback,.status-badge.done) { background: var(--ui-success-soft); color: var(--ui-success); border-color: transparent; }
+.planner-root :is(.danger-zone,.danger-note,.leave-icon.sick,.status-badge.risk) { background: var(--ui-danger-soft); color: var(--ui-danger); border-color: transparent; }
+.planner-root :is(.field-error,.meeting-attendee-count.empty) { color: var(--ui-danger); }
+.planner-root .status-badge { background: var(--ui-accent-soft); color: var(--ui-accent); }
+.planner-root .status-badge.hold { background: var(--ui-warning-soft); color: var(--ui-warning); }
+.planner-root .status-badge.muted { background: var(--ui-surface-soft); color: var(--ui-muted); }
+.planner-root .hr { background: var(--ui-border); }
+.planner-root .toast { background: var(--ui-primary); color: var(--ui-on-primary); box-shadow: var(--ui-shadow); }
+.planner-root .toast svg { color: var(--ui-on-primary); }
+.planner-root .empty-message { color: var(--ui-muted); }
+.planner-root .empty-message h3 { color: var(--ui-text); }
+.planner-root .empty-message svg { color: var(--ui-accent); }
+
+.planner-root .setup-shell { background: var(--ui-bg); }
+.planner-root .setup-step { background: var(--ui-surface); border-color: var(--ui-border); color: var(--ui-muted); }
+.planner-root .setup-step.is-active { background: var(--ui-accent-soft); border-color: var(--ui-focus); color: var(--ui-text); }
+.planner-root .setup-step.is-past { color: var(--ui-success); border-color: var(--ui-border); background: var(--ui-surface); }
+.planner-root .setup-step-num { background: var(--ui-surface-soft); color: var(--ui-muted); }
+.planner-root .setup-step.is-past .setup-step-num { background: var(--ui-success-soft); color: var(--ui-success); }
+.planner-root :is(.setup-desc,.setup-card .setup-sub,.setup-step small,.setup-added-title,.setup-member small,.setup-aside p,.setup-footer small,.copy-settings-choices small,.setup-import-strip small,.setup-role-preview) { color: var(--ui-muted); }
+.planner-root :is(.copy-setup-heading,.setup-import-strip strong) { color: var(--ui-text); }
+.planner-root .setup-meeting-list .meeting-item { background: var(--ui-surface); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .planner-root :is(.btn,.mini-btn,.nav-item,.filter-trigger,.pill,.icon-action,.project-trigger,.project-new) {
+    transition: background-color .16s ease,border-color .16s ease,color .16s ease,box-shadow .16s ease;
+  }
+}
