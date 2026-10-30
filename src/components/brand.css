@@ -2,9 +2,10 @@
 .public-footer-links a { text-decoration:none; }
 .public-footer-links a:hover { color:var(--ui-text); text-decoration:underline; text-underline-offset:4px; }
 .landing-links { display:flex; gap:30px; align-items:center; margin-left:70px; }
-.landing-links a { color:var(--ui-muted); text-decoration:none; font-size:12px; font-weight:550; }
+.landing-links a { color:var(--ui-muted); text-decoration:none; font-size:12px; font-weight:550; white-space:nowrap; }
 .landing-links a:hover { color:var(--ui-text); }
 .entry-nav .entry-button { white-space:nowrap; }
+@media(max-width:1100px) { .landing-links { margin-left:0; gap:18px; } }
 @media(max-width:860px) { .landing-links { display:none; } }
 @media(max-width:480px) { .entry-footer { flex-direction:column; gap:14px; } .public-footer-links { justify-content:flex-start; } }
 @media(max-width:380px) { .entry-top { padding-inline:14px; gap:8px; } .entry-nav .entry-button { padding-inline:8px; font-size:11px; } }
