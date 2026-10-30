@@ -18,7 +18,12 @@ function workspace():Workspace{
  const privateProject=structuredClone(data);privateProject.features[0].title='Private payroll epic';privateProject.tasks[0].title='Private payroll task';
  return {version:1,activeId:'poker-project',preferences:{scale:'day',sidebarHidden:false},projects:[{id:'poker-project',name:'Poker integration project',onboardingStep:0,data},{id:'private-project',name:'Private payroll project',onboardingStep:0,data:privateProject}]};
 }
-async function signup(context:BrowserContext){const password='Orbit9'+randomUUID();const response=await context.request.post('/api/auth/signup',{headers:{Origin:origin},data:{email:`orbit-poker-${randomUUID()}@example.com`,password,confirm:password}});expect(response.status(),await response.text()).toBe(200);}
+async function signup(context:BrowserContext){
+ // The disposable Next server has no proxy. Give these independent test clients documentation-only IPv6 addresses,
+ // so creating fixtures does not consume another browser suite's shared localhost signup bucket.
+ const fixtureAddress='2001:db8:'+randomUUID().replaceAll('-','').match(/.{1,4}/g)!.slice(0,6).join(':');
+ const password='Orbit9'+randomUUID();const response=await context.request.post('/api/auth/signup',{headers:{Origin:origin,'X-Forwarded-For':fixtureAddress},data:{email:`orbit-poker-${randomUUID()}@example.com`,password,confirm:password}});expect(response.status(),await response.text()).toBe(200);
+}
 async function snapshot(){const response=await owner.request.get('/api/workspace');expect(response.status()).toBe(200);return response.json();}
 async function state(context:BrowserContext,issue='free',room=token){const response=await context.request.get(`/api/poker/${room}?issue=${encodeURIComponent(issue)}`);expect(response.status(),await response.text()).toBe(200);return response.json();}
 async function action(context:BrowserContext,input:Record<string,unknown>,expected=200,room=token){if(['vote','reveal','restart','accept'].includes(String(input.action))&&!input.roundId){const current=await state(context,String(input.issue||'free'),room);input={...input,roundId:current.round?.id||(await state(owner,String(input.issue||'free'),room)).round.id};}const response=await context.request.post(`/api/poker/${room}`,{headers:{Origin:origin},data:input});expect(response.status(),await response.text()).toBe(expected);return response.json();}

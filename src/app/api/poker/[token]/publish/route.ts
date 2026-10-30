@@ -25,18 +25,26 @@ export async function POST(request:NextRequest,context:{params:Promise<{token:st
   const parsed=pokerPublicationSchema.safeParse(raw);if(!parsed.success)return problem(parsed.error.issues[0]?.message||'Invalid publication.');
   const input=parsed.data;
   // Completed requests are resolved before reading a newer workspace revision. A network retry cannot duplicate work.
-  const replay=await client.rpc('orbit_poker',{p_action:'publication',p_token:token,p_session:'',p_input:{operationId:input.operationId}});
+  const receipt=()=>client.rpc('orbit_poker',{p_action:'publication',p_token:token,p_session:'',p_input:{operationId:input.operationId}});
+  async function revisionConflict(){
+    // Another request with this same operation may have committed after our first lookup.
+    // Its receipt wins over the stale revision; a different operation still gets a conflict.
+    const replay=await receipt();
+    if(replay.error)return failure(replay.error);
+    return replay.data?NextResponse.json(replay.data,{headers}):failure({code:'PT409'});
+  }
+  const replay=await receipt();
   if(replay.error)return failure(replay.error);if(replay.data)return NextResponse.json(replay.data,{headers});
   const room=await client.rpc('orbit_poker',{p_action:'state',p_token:token,p_session:'',p_input:{issue:'free'}});
   if(room.error)return failure(room.error);
   if(!room.data?.self?.owner)return problem('Only the room facilitator can publish Orbit work.',403);
   if(room.data.room?.closed)return problem('This room is closed.',409);
   const loaded=await client.rpc('orbit_get_workspace');if(loaded.error)return failure(loaded.error);
-  if(loaded.data?.revision!==input.revision)return NextResponse.json({error:'Another tab or device saved newer changes. Reload the story before publishing.',code:'revision_conflict'},{status:409,headers});
+  if(loaded.data?.revision!==input.revision)return revisionConflict();
   try{
     const plan=planPokerPublication(workspaceSchema.parse(loaded.data.workspace),room.data.room.projectId,input);
     const saved=await client.rpc('orbit_poker_publish',{p_token:token,p_expected_revision:input.revision,p_snapshot:plan.workspace,p_operation_id:input.operationId,p_story_key:plan.storyKey,p_result:plan.result});
-    if(saved.error)return failure(saved.error);
+    if(saved.error)return saved.error.code==='PT409'||saved.error.code==='40001'?revisionConflict():failure(saved.error);
     return NextResponse.json(saved.data,{headers});
   }catch(error){
     if(error instanceof PokerPublicationError)return NextResponse.json({error:error.message,code:error.code},{status:error.status,headers});
