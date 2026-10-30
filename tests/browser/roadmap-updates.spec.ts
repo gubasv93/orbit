@@ -225,7 +225,17 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   const w=workspace(),data=w.projects[0].data;data.settings.autoShiftDependencies=false;data.tasks[0].assignee='';data.tasks[0].effort=2;
   await reset(w);const page=await context.newPage();await page.goto('/app');await saved(page);
   const handle=(kind:string,id:string,edge:string)=>page.locator(`[data-resize-kind=${kind}][data-id=${id}][data-resize-edge=${edge}]`);
-  const drag=async(kind:string,id:string,edge:string,dx:number)=>{const h=handle(kind,id,edge);await h.scrollIntoViewIfNeeded();const box=(await h.boundingBox())!;await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();await page.mouse.move(box.x+box.width/2+dx,box.y+box.height/2,{steps:8});await expect(page.locator('.bar-resize-preview')).toBeVisible();await page.mouse.up();await saved(page);};
+  const resizePoint=async(kind:string,id:string,edge:string)=>{
+   const h=handle(kind,id,edge);await h.scrollIntoViewIfNeeded();
+   // Browser scrolling sees the element's box, but ignores the sticky metadata covering the past dates.
+   // Put the handle in the middle of the actual date viewport before reading pointer coordinates.
+   await h.evaluate(node=>{const scroll=document.getElementById('ganttScroller')!,bounds=scroll.getBoundingClientRect(),meta=node.closest('.gantt-row')!.querySelector('.meta')!.getBoundingClientRect(),rect=node.getBoundingClientRect();const target=(Math.max(bounds.left,meta.right)+bounds.right)/2;scroll.scrollLeft+=rect.left+rect.width/2-target;});
+   await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
+   const box=(await h.boundingBox())!,point={x:box.x+box.width/2,y:box.y+box.height/2};
+   expect(await h.evaluate((node,p)=>node.contains(document.elementFromPoint(p.x,p.y)),point)).toBe(true);
+   return point;
+  };
+  const drag=async(kind:string,id:string,edge:string,dx:number)=>{const point=await resizePoint(kind,id,edge);await page.mouse.move(point.x,point.y);await page.mouse.down();await page.mouse.move(point.x+dx,point.y,{steps:8});await expect(page.locator('.bar-resize-preview')).toBeVisible();await page.mouse.up();await saved(page);};
   const original=(await snapshot()).workspace.projects[0].data;
   await drag('task','t1','end',19);
   await expect.poll(async()=>(await snapshot()).workspace.projects[0].data.tasks[0].manualEnd).toBe('2026-10-28');
@@ -238,7 +248,7 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   for(let i=0;i<3;i++){await page.keyboard.press('ArrowRight');await saved(page);}
   await drag('task','t1','start',38);task=(await snapshot()).workspace.projects[0].data.tasks[0];expect(task).toMatchObject({start:'2026-10-27',manualEnd:'2026-10-27',effort:1,remaining:1});
   const stable=(await snapshot()).workspace.projects[0].data;
-  const h=handle('task','t1','end'),b=(await h.boundingBox())!;await page.mouse.move(b.x+3,b.y+8);await page.mouse.down();await page.mouse.move(b.x+60,b.y+8,{steps:6});await page.keyboard.press('Escape');await page.mouse.up();
+  const cancelPoint=await resizePoint('task','t1','end');await page.mouse.move(cancelPoint.x,cancelPoint.y);await page.mouse.down();await page.mouse.move(cancelPoint.x+57,cancelPoint.y,{steps:6});await expect(page.locator('.bar-resize-preview')).toBeVisible();await page.keyboard.press('Escape');await page.mouse.up();
   expect((await snapshot()).workspace.projects[0].data).toEqual(stable);await expect(page.locator('.bar-resize-preview')).toHaveCount(0);
   await drag('feature','f1','end',19);let current=(await snapshot()).workspace.projects[0].data;expect(current.tasks).toEqual(stable.tasks);expect(current.features[0].manualEndFraction).toBe(.5);
   await page.reload();await saved(page);await page.locator('.work-name[data-action=drawer-task][data-id=t1]').click();await expect(page.getByLabel('Date mode')).toHaveValue('manual');await expect(page.getByLabel('Start date')).toHaveValue('2026-10-27');
