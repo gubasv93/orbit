@@ -7,3 +7,7 @@
 @media(max-width:360px){.am-auth-card{padding:24px 19px}.am-auth-shell>header{padding-inline:17px}.am-auth-shell .am-text-link{font-size:10px}.am-form-columns{grid-template-columns:1fr}.am-summary-metrics>.am-metric{padding:13px}.am-metric>strong{font-size:24px}.am-card{padding:17px}.am-users-card{padding:0}}
 
 .am-project-table{min-width:610px}.am-project-table th:first-child{min-width:160px}.am-project-table td:last-child{min-width:118px}
+
+.am-content{grid-template-columns:minmax(0,1fr)}.am-card>.am-table-wrap{min-width:0;width:100%}
+
+.am-table-wrap{position:relative}

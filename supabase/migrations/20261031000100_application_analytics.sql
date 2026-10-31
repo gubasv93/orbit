@@ -59,10 +59,13 @@ revoke all on function orbit_private.application_timestamp(text) from public,ano
 create function orbit_private.application_account(p_row jsonb,p_deleted boolean default false) returns void
 language plpgsql set search_path='' as $$
 declare at_time timestamptz:=clock_timestamp(); created timestamptz:=orbit_private.application_timestamp(p_row->>'created_at');
+ metadata jsonb:=coalesce(p_row->'raw_user_meta_data','{}'::jsonb);
+ legacy_name text:=regexp_replace(btrim(regexp_replace(coalesce(nullif(metadata->>'full_name',''),metadata->>'name',''),'[[:cntrl:]]','','g')),'[[:space:]]+',' ','g');
+ first_name text:=coalesce(nullif(btrim(metadata->>'first_name'),''),nullif(btrim(metadata->>'given_name'),''),nullif(split_part(legacy_name,' ',1),''),'');
+ last_name text:=coalesce(nullif(btrim(metadata->>'last_name'),''),nullif(btrim(metadata->>'family_name'),''),nullif(btrim(substr(legacy_name,length(split_part(legacy_name,' ',1))+1)),''),'');
 begin
  insert into orbit_private.application_accounts(user_id,email,first_name,last_name,created_at,created_at_source,deleted_at)
- values((p_row->>'id')::uuid,left(p_row->>'email',254),left(coalesce(p_row#>>'{raw_user_meta_data,first_name}',p_row#>>'{raw_user_meta_data,given_name}'),100),
- left(coalesce(p_row#>>'{raw_user_meta_data,last_name}',p_row#>>'{raw_user_meta_data,family_name}'),100),coalesce(created,at_time),case when created is null then 'observed' else 'auth' end,case when p_deleted then at_time end)
+ values((p_row->>'id')::uuid,left(p_row->>'email',254),left(first_name,100),left(last_name,100),coalesce(created,at_time),case when created is null then 'observed' else 'auth' end,case when p_deleted then at_time end)
  on conflict(user_id) do update set email=excluded.email,first_name=excluded.first_name,last_name=excluded.last_name,
  created_at=case when excluded.created_at_source='auth' then excluded.created_at else orbit_private.application_accounts.created_at end,
  created_at_source=case when excluded.created_at_source='auth' then 'auth' else orbit_private.application_accounts.created_at_source end,
@@ -115,6 +118,7 @@ begin
    union select 'person',value->>'id' from jsonb_array_elements(project#>'{data,people}')
    union select 'role',value->>'id' from jsonb_array_elements(project#>'{data,roles}')
    union select 'platform',lower(btrim(value->>'platform')) from jsonb_array_elements(project#>'{data,roles}') where length(btrim(value->>'platform'))>0
+   union select 'platform',lower(btrim(value->>'platform')) from jsonb_array_elements(project#>'{data,tasks}') where length(btrim(value->>'platform'))>0
    union select 'meeting',value->>'id' from jsonb_array_elements(project#>'{data,meetings}')
    union select 'holiday',value->>'date' from jsonb_array_elements(project#>'{data,holidays}')
    union select 'timeOff',value->>'id' from jsonb_array_elements(project#>'{data,leave}')

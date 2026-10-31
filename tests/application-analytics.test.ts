@@ -5,7 +5,7 @@ import {fullWorkspace} from './fixtures';
 import type {Workspace} from '../src/lib/schema';
 
 type Inventory={projects:number;features:number;stories:number;workItems:number;people:number;roles:number;platforms:number;pokerGames:number;meetings:number;holidays:number;timeOff:number;milestones:number};
-type User={id:string;email:string;firstName:string;deletedAt:string|null;createdAt:string;createdAtSource:string;workspaceRevision:number|null;current:Inventory;lifetime:Record<string,number>;projects:{id:string;createdAtSource:string;deletedAt:string|null;lifetimeSeconds:number|null}[];poker:{games:number;participants:{min:number;max:number;median:number;average:number};averageDurationSeconds:number|null;durationSamples:number;rounds:number};planner:{sessions:number;activeSeconds:number;averageSessionSeconds:number|null;returningDays:number;averageDaysBetweenVisits:number|null}};
+type User={id:string;email:string;firstName:string;lastName:string;deletedAt:string|null;createdAt:string;createdAtSource:string;workspaceRevision:number|null;current:Inventory;lifetime:Record<string,number>;projects:{id:string;createdAtSource:string;deletedAt:string|null;lifetimeSeconds:number|null}[];poker:{games:number;participants:{min:number;max:number;median:number;average:number};averageDurationSeconds:number|null;durationSamples:number;rounds:number};planner:{sessions:number;activeSeconds:number;averageSessionSeconds:number|null;returningDays:number;averageDaysBetweenVisits:number|null}};
 type Analytics={trackingStartedAt:string;totals:{accounts:number;deletedAccounts:number;current:Inventory};users:User[];landing:{visitors:number;sessions:number;activeSeconds:number;returningVisitors:number}};
 let db:PGlite,owner:string,identity:string|null;let baseline:string;
 const migrations=new URL('../supabase/migrations/',import.meta.url);
@@ -41,6 +41,11 @@ describe('service-only analytics with durable operational facts',()=>{
   const row=(await analytics(baseline)).users[0];expect(row.createdAt).toBe('2026-01-01T12:00:00+00:00');expect(row.createdAtSource).toBe('auth');
   expect(row.projects[0].createdAtSource).toBe('baseline-date');expect(row.projects[0].deletedAt).toBeNull();expect(row.poker.averageDurationSeconds).toBeNull();
  });
+ it('preserves the existing full name of legacy and Google accounts before editing their email',async()=>{
+  await admin("update auth.users set raw_user_meta_data='{\"full_name\":\" Legacy  Google Name \"}' where id=$1",[owner]);
+  const row=(await analytics()).users[0];
+  expect(row.firstName).toBe('Legacy');expect(row.lastName).toBe('Google Name');
+ });
  it('counts logical stories once across roles and keeps project-owned people and role records distinct',async()=>{
   const current=await load(),workspace=structuredClone(current.workspace);workspace.projects[0].data.tasks[0].storyId='shared-story';workspace.projects[0].data.tasks[1].storyId='shared-story';await save(workspace,current.revision);
   const row=(await analytics()).users[0];expect(row.current).toMatchObject({projects:1,features:1,stories:2,workItems:3,people:1,roles:2,platforms:2,meetings:1,holidays:1,timeOff:1,milestones:1});
@@ -51,6 +56,13 @@ describe('service-only analytics with durable operational facts',()=>{
   expect(global.totals.accounts).toBeGreaterThanOrEqual(2);
   expect(global.totals.current.platforms).toBe(2);
   expect((await analytics()).users[0].current.platforms).toBe(2);
+ });
+ it('includes legacy work-item platforms even when no role is configured',async()=>{
+  const current=await load(),workspace=structuredClone(current.workspace),data=workspace.projects[0].data;
+  data.roles=[];data.people=[];data.leave=[];data.meetings=[];data.iterations.forEach(item=>item.overrides={});
+  data.tasks.forEach(task=>{task.assignee='';delete task.roleId;});
+  await save(workspace,current.revision);
+  expect((await analytics()).users[0].current).toMatchObject({roles:0,people:0,platforms:2,workItems:3});
  });
  it('does not invent project deletions or repeated creations during snapshot replacement and rejected stale writes',async()=>{
   const before=(await analytics()).users[0],current=await load();const changed=structuredClone(current.workspace);changed.projects[0].data.tasks[0].title='Updated task';await save(changed,current.revision);

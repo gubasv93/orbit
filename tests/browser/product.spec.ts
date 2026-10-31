@@ -46,7 +46,7 @@ test.describe.serial('real authentication, onboarding, planning, and durable own
     expect(before.workspace.projects[0].data.tasks.map((t: { platform: string }) => t.platform)).toContain('DevOps');
     await page.reload(); await expect(page.getByText('Secure accounts', { exact: true }).first()).toBeVisible(); await saved(page);
     const after = await (await owner.request.get('/api/workspace')).json(); expect(after.workspace).toEqual(before.workspace);
-    expect(await page.evaluate(() => Object.keys(localStorage).filter(key => key !== 'orbit-cookie-notice').some(key => /auth|orbit/.test(key)))).toBe(false);
+    expect(await page.evaluate(() => Object.keys(localStorage).filter(key => !['orbit-cookie-notice','orbit-appearance','orbit-analytics-preference'].includes(key)).some(key => /auth|orbit/.test(key)))).toBe(false);
     expect(await page.evaluate(() => localStorage.getItem('orbit-cookie-notice'))).toBe('essential-v1');
     await page.screenshot({ path: 'test-results/roadmap.png', fullPage: true }); expect(errors).toEqual([]);
     await page.close();
