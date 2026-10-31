@@ -1,0 +1,25 @@
+/* One navigation frame for authenticated workspace pages and Poker. */
+.workspace-frame.poker-layout { display:flex; min-width:0; min-height:100dvh; background:var(--ui-bg); color:var(--ui-text); }
+.workspace-frame .poker-nav { display:flex; flex-direction:column; position:sticky; top:0; height:100dvh; }
+.workspace-frame .poker-nav[hidden] { display:none; }
+.workspace-frame .poker-nav-heading { display:flex; align-items:center; justify-content:space-between; gap:6px; flex:none; }
+.workspace-frame .poker-nav-heading .icon-action { width:26px; height:26px; min-width:26px; min-height:26px; color:var(--ui-muted); }
+.workspace-frame .poker-nav-heading .icon-action:hover { background:var(--ui-surface-soft); color:var(--ui-text); }
+.workspace-frame .poker-main { display:flex; flex:1; flex-direction:column; min-width:0; }
+.workspace-frame .poker-mobile-nav { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:5px 18px; min-height:38px; flex:none; min-width:0; background:var(--ui-surface); border-bottom:1px solid var(--ui-border); color:var(--ui-muted); font-size:10px; }
+.workspace-frame .poker-mobile-nav>.btn { padding:4px 7px; min-height:27px; min-width:0; max-width:calc(100% - 90px); font-size:10px; gap:7px; }
+.workspace-frame .poker-mobile-nav>.btn>span:last-child { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.workspace-frame .poker-nav-scrim { display:none; }
+.workspace-frame .workspace-profile>span:last-child { min-width:0; }
+.workspace-frame .workspace-help.active { color:var(--ui-accent); background:var(--ui-accent-soft); border-radius:8px; }
+.workspace-frame .workspace-profile.active { border-color:var(--ui-accent); background:var(--ui-accent-soft); }
+.workspace-frame>.poker-main>.profile-main { flex:1; }
+.workspace-frame .profile-main { margin:0 auto; }
+.workspace-frame .orbit-guide-main { width:100%; }
+@media(max-width:900px) {
+  .workspace-frame .poker-nav { position:fixed; left:0; top:0; bottom:0; z-index:65; }
+  .workspace-frame.poker-nav-open .poker-nav { box-shadow:var(--ui-shadow); }
+  .workspace-frame .poker-nav-scrim { display:block; position:fixed; inset:0; z-index:64; border:0; background:var(--ui-overlay, rgb(0 0 0 / 40%)); backdrop-filter:blur(2px); }
+  .workspace-frame.poker-nav-open .poker-mobile-nav { padding-left:18px; }
+}
+@media(max-width:650px) { .workspace-frame .poker-mobile-nav { padding:5px 12px; } }

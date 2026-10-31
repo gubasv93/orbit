@@ -7,3 +7,7 @@ export const workspaceNavItems = [
   {id:'meetings',label:'Recurring meetings',icon:'clock'},
   {id:'settings',label:'General settings',icon:'sliders'},
 ] as const;
+
+export function workspacePageLink(path: '/app' | '/profile' | '/how-it-works' | '/poker/new', projectId?: string) {
+  return projectId ? `${path}?${new URLSearchParams({project: projectId})}` : path;
+}

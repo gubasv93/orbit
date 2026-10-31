@@ -1,10 +1,12 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Autosave, SaveError, type SaveState } from '@/lib/autosave';
 import { workspaceSchema, type Workspace } from '@/lib/schema';
 import { useAppearance } from './appearance';
 import { LoadingState } from './loading-state';
 import type { AccountProfile } from '@/lib/profile';
+import { workspacePageLink } from '@/lib/workspace-navigation';
 import './workspace-shell.css';
 
 function download(workspace: Workspace) {
@@ -14,6 +16,7 @@ function download(workspace: Workspace) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 export function Planner() {
+  const router = useRouter();
   const {changeTheme} = useAppearance();
   const root = useRef<HTMLDivElement>(null), controller = useRef<Autosave | null>(null);
   const importInput = useRef<HTMLInputElement>(null);
@@ -44,7 +47,7 @@ export function Planner() {
     async function navigate(path: string) {
       await autosave.flush();
       if (autosave.state !== 'saved') { setSaveError('Save or resolve your workspace changes before leaving this page.'); return; }
-      window.location.assign(path);
+      router.push(path);
     }
     async function logout() {
       await autosave.flush();
@@ -65,10 +68,12 @@ export function Planner() {
           async onPoker(projectId: string) {
             await autosave.flush();
             if (autosave.state !== 'saved') { setSaveError('Save or resolve your workspace changes before opening Planning Poker.'); return; }
-            window.location.assign(`/poker/new?project=${encodeURIComponent(projectId)}`);
+            router.push(`/poker/new?project=${encodeURIComponent(projectId)}`);
           },
           onImport() { importInput.current?.click(); }, email: loaded!.email, profile: loaded!.profile,
-          onAppearance: changeTheme, onProfile() { return navigate('/profile'); }, onHelp() { return navigate('/how-it-works'); },
+          onAppearance: changeTheme,
+          onProfile() { return navigate(workspacePageLink('/profile', snapshot.current?.activeId || undefined)); },
+          onHelp() { return navigate(workspacePageLink('/how-it-works', snapshot.current?.activeId || undefined)); },
           focus: Object.fromEntries(new URLSearchParams(window.location.search)),
         });
       };
@@ -91,7 +96,7 @@ export function Planner() {
     const revisionTimer = setInterval(focused, 15000);
     window.addEventListener('beforeunload', leave); window.addEventListener('focus', focused); document.addEventListener('visibilitychange', hidden);
     return () => { disposed = true; clearInterval(revisionTimer); planner?.destroy(); autosave.destroy(); restore.current = null; window.removeEventListener('beforeunload', leave); window.removeEventListener('focus', focused); document.removeEventListener('visibilitychange', hidden); };
-  }, [loaded]);
+  }, [loaded, router]);
   async function importBackup(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]; event.target.value = ''; if (!file) return;
     try {
@@ -106,5 +111,16 @@ export function Planner() {
   if (loadError) return <main className="load-panel"><h1>Unable to load your workspace</h1><p role="alert">{loadError}</p><button className="btn" onClick={() => setLoadAttempt(v => v+1)}>Retry</button><a className="btn" href="/login">Log in</a></main>;
   if (!loaded) return <main><LoadingState title="Loading your workspace" description="Bringing your projects, people and plans into view."/></main>;
   const failed = saveState === 'error' || saveState === 'conflict';
-  return <div className="workspace-shell"><div className={`save-bar ${failed ? 'failed' : ''} ${saveState==='saved'?'is-saved':''}`}><span className={saveState==='saved'?'saved-announcement':''} role="status" aria-live="polite">{({ saved: 'Saved to cloud', pending: 'Unsaved changes', saving: 'Saving…', error: 'Not saved', conflict: 'Newer changes exist' })[saveState]}</span>{saveState === 'error' && <button onClick={() => void controller.current?.retry()}>Retry saving</button>}{saveState === 'conflict' && <button onClick={() => { if (confirm('Export your unsaved work before reloading. Reload now?')) window.location.reload(); }}>Reload latest</button>}</div>{saveError && <div className="save-error" role="alert">{saveError}</div>}<input ref={importInput} type="file" accept=".json,application/json" onChange={importBackup} aria-label="Import workspace backup" hidden/><div className="planner-root" ref={root}/></div>;
+  return <div className="workspace-shell">
+    <div className="save-bar"><span className="saved-announcement" role="status" aria-live="polite">{({ saved: 'Saved to cloud', pending: 'Unsaved changes', saving: 'Saving…', error: 'Not saved', conflict: 'Newer changes exist' })[saveState]}</span></div>
+    {(failed || saveError) && <aside className="workspace-save-notice" aria-label="Workspace save issue" role="alert">
+      <p className="save-error">{saveError || (saveState === 'conflict' ? 'Another tab has newer changes. Export your unsaved work before reloading.' : 'Your changes could not be saved. Please retry.')}</p>
+      <div className="workspace-save-actions">
+        {saveState === 'error' && <button className="btn sm" onClick={() => void controller.current?.retry()}>Retry saving</button>}
+        {saveState === 'conflict' && <button className="btn sm" onClick={() => { if (confirm('Export your unsaved work before reloading. Reload now?')) window.location.reload(); }}>Reload latest</button>}
+        {!failed && <button className="btn sm" onClick={() => setSaveError('')}>Dismiss</button>}
+      </div>
+    </aside>}
+    <input ref={importInput} type="file" accept=".json,application/json" onChange={importBackup} aria-label="Import workspace backup" hidden/><div className="planner-root" ref={root}/>
+  </div>;
 }

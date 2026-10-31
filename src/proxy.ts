@@ -42,4 +42,4 @@ export async function proxy(request: NextRequest) {
   }
   return response;
 }
-export const config = { matcher: ['/app/:path*', '/profile/:path*', '/api/workspace/:path*','/applicationmanager/bootstrap'] };
+export const config = { matcher: ['/app/:path*', '/profile/:path*', '/how-it-works', '/poker/:path*', '/api/workspace/:path*','/applicationmanager/bootstrap'] };

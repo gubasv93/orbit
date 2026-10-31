@@ -1,12 +1,18 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Footer, PublicHeader } from '@/components/brand';
+import {WorkspaceFrame} from '@/components/workspace-frame';
+import {isConfigured, supabase} from '@/lib/supabase';
+import {workspaceContext} from '@/lib/workspace-context';
+import {workspacePageLink} from '@/lib/workspace-navigation';
+import {accountProfile} from '@/lib/profile';
 import './guide.css';
 
 export const metadata: Metadata = {
   title: 'How Orbit works — A quick guide',
   description: 'Read the roadmap, understand its colors and warnings, move work, select multiple items, and estimate together in Planning Poker.',
 };
+export const dynamic = 'force-dynamic';
 
 const sections = [
   ['timeline-colors', 'Timeline colors'], ['warnings', 'Warnings & markers'],
@@ -26,10 +32,13 @@ function SectionHeading({number, title, description}: {number: string; title: st
   return <header className="orbit-guide-section-heading"><span>{number}</span><div><h2>{title}</h2>{description && <p>{description}</p>}</div></header>;
 }
 
-export default function HowItWorks() {
-  return <div className="entry-shell orbit-guide-shell"><PublicHeader auth/>
-    <main className="orbit-guide-main">
-      <header className="orbit-guide-intro"><span className="orbit-guide-eyebrow">THE QUICK GUIDE</span><h1>How Orbit works</h1><p>The shortcuts, colors and small details that make your next plan easier to read.</p><Link className="entry-button primary" href="/app">Open your roadmap <span aria-hidden="true">→</span></Link></header>
+export default async function HowItWorks({searchParams}: {searchParams: Promise<{project?: string}>}) {
+  const client = isConfigured() ? await supabase() : null;
+  const user = client ? (await client.auth.getUser()).data.user : null;
+  const context = user && client ? await workspaceContext(client, (await searchParams).project) : {};
+  const roadmapLink = workspacePageLink('/app', context.projectId);
+  const content = <main className="orbit-guide-main">
+      <header className="orbit-guide-intro"><span className="orbit-guide-eyebrow">THE QUICK GUIDE</span><h1>How Orbit works</h1><p>The shortcuts, colors and small details that make your next plan easier to read.</p><Link className="entry-button primary" href={roadmapLink}>Open your roadmap <span aria-hidden="true">→</span></Link></header>
       <div className="orbit-guide-layout">
         <nav className="orbit-guide-contents" aria-label="On this page"><span>JUMP TO</span>{sections.map(([id, label]) => <a key={id} href={`#${id}`}>{label}</a>)}</nav>
         <div className="orbit-guide-content">
@@ -84,12 +93,13 @@ export default function HowItWorks() {
           <section id="planning-poker" className="orbit-guide-section">
             <SectionHeading number="06" title="Estimate together. Publish on purpose." description="Start a room from your project, then share its link with the team. Guests can join without an Orbit account."/>
             <div className="orbit-guide-poker-flow"><article><span>01</span><h3>Vote privately</h3><p>Pick a story and a card. Votes stay hidden until the reveal.</p></article><article><span>02</span><h3>Reveal and discuss</h3><p>The facilitator reveals the cards, or uses auto-reveal when the room is configured for it.</p></article><article><span>03</span><h3>Agree and publish</h3><p>The facilitator confirms which estimates to send to the roadmap. Voting alone does not rewrite the plan.</p></article></div>
-            <div className="orbit-guide-tips"><p><strong>Your name follows your account.</strong> Registered users use their profile name in Poker. Open <Link href="/profile">Profile</Link> to update your name or password.</p><p><strong>Rooms are for the current session.</strong> Closing the room tab leaves the session. After 15 minutes without activity, you leave automatically. A short reconnect window lets you reload without ending the room; when nobody remains, it closes.</p></div>
+            <div className="orbit-guide-tips"><p><strong>Your name follows your account.</strong> Registered users use their profile name in Poker. Open <Link href={workspacePageLink('/profile', context.projectId)}>Profile</Link> to update your name or password.</p><p><strong>Rooms are for the current session.</strong> Closing the room tab leaves the session. After 15 minutes without activity, you leave automatically. A short reconnect window lets you reload without ending the room; when nobody remains, it closes.</p></div>
           </section>
           <aside className="orbit-guide-saving orbit-guide-card"><h2>Your changes save automatically.</h2><p>If saving fails, keep this tab open and use <strong>Retry</strong>. A conflict means another tab or device saved newer changes; export your unsaved work before reloading.</p></aside>
-          <div className="orbit-guide-finish"><div><h2>Ready to put it into practice?</h2><p>Your next plan is a few small steps away.</p></div><Link className="entry-button primary" href="/app">Open your roadmap <span aria-hidden="true">→</span></Link></div>
+          <div className="orbit-guide-finish"><div><h2>Ready to put it into practice?</h2><p>Your next plan is a few small steps away.</p></div><Link className="entry-button primary" href={roadmapLink}>Open your roadmap <span aria-hidden="true">→</span></Link></div>
         </div>
       </div>
-    </main><Footer/>
-  </div>;
+    </main>;
+  return user ? <WorkspaceFrame active="help" title="How it works" profile={accountProfile(user)} {...context}>{content}</WorkspaceFrame>
+    : <div className="entry-shell orbit-guide-shell"><PublicHeader auth/>{content}<Footer/></div>;
 }

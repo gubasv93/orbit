@@ -36,7 +36,9 @@ async function feedbackAboveProfile(page: Page) {
   const feedback = footer.getByRole('link', {name: 'Share feedback', exact: true});
   const profile = footer.locator('.workspace-profile');
   await expect(feedback).toHaveAttribute('href', feedbackFormUrl);
-  await expect(profile).toHaveAttribute('href', '/profile');
+  const profileUrl = new URL((await profile.getAttribute('href'))!, origin);
+  expect(profileUrl.origin).toBe(new URL(origin).origin);
+  expect(profileUrl.pathname).toBe('/profile');
   const a = (await feedback.boundingBox())!, b = (await profile.boundingBox())!;
   expect(a.y + a.height).toBeLessThanOrEqual(b.y);
   await expect(page.getByRole('link', {name: 'Share feedback', exact: true})).toHaveCount(1);

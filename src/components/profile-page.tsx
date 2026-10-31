@@ -1,14 +1,13 @@
 'use client';
 
-import Link from 'next/link';
 import {useEffect, useState, type FormEvent} from 'react';
-import {Brand, Footer} from './brand';
+import {WorkspaceFrame} from './workspace-frame';
 import type {AccountProfile} from '@/lib/profile';
 import {firstNameSchema, lastNameSchema, passwordSchema} from '@/lib/schema';
 import './profile.css';
 
 type PasswordMode = 'current-password' | 'google-reauth';
-export function ProfilePage({initialProfile, passwordMode}: {initialProfile: AccountProfile; passwordMode: PasswordMode}) {
+export function ProfilePage({initialProfile, passwordMode, projectId, projectName}: {initialProfile: AccountProfile; passwordMode: PasswordMode; projectId?: string; projectName?: string}) {
   const [profile, setProfile] = useState(initialProfile);
   const [firstName, setFirstName] = useState(initialProfile.firstName), [lastName, setLastName] = useState(initialProfile.lastName);
   const [mode, setMode] = useState(passwordMode), [recentGoogle, setRecentGoogle] = useState(false);
@@ -70,8 +69,7 @@ export function ProfilePage({initialProfile, passwordMode}: {initialProfile: Acc
   }
   const initials = [profile.firstName, profile.lastName].filter(Boolean).map(name => Array.from(name)[0]).join('').toUpperCase() || Array.from(profile.displayName)[0]?.toUpperCase() || 'O';
 
-  return <div className="entry-shell profile-shell">
-    <header className="entry-top profile-top"><Brand/><Link className="entry-button" href="/app">Back to roadmap</Link></header>
+  return <WorkspaceFrame active="profile" title="Profile" profile={profile} projectId={projectId} projectName={projectName}>
     <main className="profile-main">
       <div className="profile-heading"><span className="profile-avatar" aria-hidden="true">{initials}</span><div><span className="profile-eyebrow">YOUR ACCOUNT</span><h1>Profile</h1><p>Your name appears in Planning Poker.</p></div></div>
       <section className="profile-card" aria-labelledby="profile-details-title"><div className="profile-section-heading"><h2 id="profile-details-title">Personal details</h2><p>Keep the name your team sees up to date.</p></div>
@@ -92,6 +90,6 @@ export function ProfilePage({initialProfile, passwordMode}: {initialProfile: Acc
           <div className="profile-actions"><button type="submit" className="profile-submit" disabled={Boolean(pending) || mode === 'google-reauth' && !recentGoogle}>{pending === 'password' ? 'Updating…' : mode === 'current-password' ? 'Change password' : 'Set password'}</button></div>
         </form>
       </section>
-    </main><Footer/>
-  </div>;
+    </main>
+  </WorkspaceFrame>;
 }
