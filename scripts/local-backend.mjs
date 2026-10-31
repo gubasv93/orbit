@@ -1,7 +1,7 @@
 // Disposable integration backend: real GoTrue + PostgREST + PostgreSQL.
 // No connection to the owner's hosted Supabase project. Never use these settings in production.
 import { spawn, spawnSync } from 'node:child_process';
-import { createHmac, randomBytes } from 'node:crypto';
+import { createHash, createHmac, randomBytes } from 'node:crypto';
 import { mkdtempSync, writeFileSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -78,6 +78,11 @@ try {
   for (const file of readdirSync(migrations).filter(name => /^\d{14}_[a-z0-9_]+\.sql$/.test(name)).sort()) {
     docker(['exec','-i',names.db,'psql','-U','postgres','-v','ON_ERROR_STOP=1'], readFileSync(new URL(file,migrations),'utf8'));
   }
+  // Known fixture secret only inside this disposable localhost database. Hosted
+  // bootstrap links are separately generated random secrets and never seeded here.
+  const managerFixtureToken='ab'.repeat(32);
+  docker(['exec','-i',names.db,'psql','-U','postgres','-v','ON_ERROR_STOP=1'],
+    `insert into orbit_private.manager_bootstrap(singleton,token_hash,expires_at) values(true,'${createHash('sha256').update(managerFixtureToken).digest('hex')}',clock_timestamp()+interval '1 day');`);
   const restEnv=envfile('rest.env',{PGRST_DB_URI:`postgres://authenticator:${password}@${names.db}:5432/postgres`,PGRST_DB_SCHEMAS:'public',PGRST_DB_ANON_ROLE:'anon',PGRST_JWT_SECRET:secret,PGRST_SERVER_PORT:'3000'});
   docker(['run','-d','--name',names.rest,'--network',network,'--env-file',restEnv,'--label','orbit.integration=true','-p','127.0.0.1:54327:3000',images.rest]);
   await wait('http://localhost:54327/');
@@ -90,9 +95,9 @@ try {
   });
   await new Promise(resolve=>gateway.listen(54321,'127.0.0.1',resolve));
   const b64=value=>Buffer.from(JSON.stringify(value)).toString('base64url');
-  const unsigned=`${b64({alg:'HS256',typ:'JWT'})}.${b64({role:'anon',iss:'supabase',iat:Math.floor(Date.now()/1000),exp:Math.floor(Date.now()/1000)+86400})}`;
-  const anon=`${unsigned}.${createHmac('sha256',secret).update(unsigned).digest('base64url')}`;
-  next=spawn(process.execPath,['node_modules/next/dist/bin/next','start','--hostname','0.0.0.0'],{detached:true,cwd:new URL('..',import.meta.url),env:{...process.env,SUPABASE_URL:'http://127.0.0.1:54321',SUPABASE_PUBLISHABLE_KEY:anon,APP_URL:'http://localhost:3000',SIGNUP_MODE:'public'},stdio:['ignore','pipe','pipe']});
+  const jwt=role=>{const unsigned=`${b64({alg:'HS256',typ:'JWT'})}.${b64({role,iss:'supabase',iat:Math.floor(Date.now()/1000),exp:Math.floor(Date.now()/1000)+86400})}`;return `${unsigned}.${createHmac('sha256',secret).update(unsigned).digest('base64url')}`;};
+  const anon=jwt('anon'),service=jwt('service_role');
+  next=spawn(process.execPath,['node_modules/next/dist/bin/next','start','--hostname','0.0.0.0'],{detached:true,cwd:new URL('..',import.meta.url),env:{...process.env,SUPABASE_URL:'http://127.0.0.1:54321',SUPABASE_PUBLISHABLE_KEY:anon,SUPABASE_SERVICE_ROLE_KEY:service,APPLICATION_MANAGER_ENCRYPTION_KEY:randomBytes(32).toString('base64'),APP_URL:'http://localhost:3000',SIGNUP_MODE:'public'},stdio:['ignore','pipe','pipe']});
   const log=join(temp,'next.log');
   const {createWriteStream}=await import('node:fs'); const stream=createWriteStream(log,{mode:0o600});next.stdout.pipe(stream);next.stderr.pipe(stream);
   next.on('exit',code=>{if(!closing){console.error('Local app exited',code);void cleanup().then(()=>process.exit(code||1));}});

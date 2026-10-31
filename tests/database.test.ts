@@ -11,7 +11,7 @@ async function save(workspace: unknown, revision: number) { return (await db.que
 
 beforeAll(async () => {
   db = new PGlite();
-  await db.exec(`create role anon; create role authenticated; create schema auth; grant usage on schema auth to anon,authenticated;
+  await db.exec(`create role anon; create role authenticated; create role service_role; create schema auth; grant usage on schema auth to anon,authenticated;
   create table auth.users(id uuid primary key); insert into auth.users values('${a}'),('${b}');
   create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;`);
   const migrations = new URL('../supabase/migrations/', import.meta.url);
