@@ -82,7 +82,7 @@ export const workspaceSchema = z.object({
   version: z.literal(1), activeId: id.nullable(),
   preferences: z.object({ page: z.enum(['timeline','capacity','team','availability','milestones']).optional(), sidebarHidden: z.boolean().optional(), scale: z.enum(['day', 'week', 'month', 'quarter', 'year']).optional() }).default({}),
   projects: z.array(z.object({ id, name: z.string().trim().min(1).max(100),
-    onboardingStep: z.number().int().min(0).max(2).default(0), data: projectDataSchema })).max(100),
+    onboardingStep: z.number().int().min(0).max(3).default(0), data: projectDataSchema })).max(100),
 }).superRefine((w, context) => {
   if (new Set(w.projects.map(p => p.id)).size !== w.projects.length ||
       (w.projects.length ? !w.projects.some(p => p.id === w.activeId) : w.activeId !== null)) {

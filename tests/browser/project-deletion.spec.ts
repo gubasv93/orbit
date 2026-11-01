@@ -54,6 +54,7 @@ test('deleting a project copied from another project requires confirmation and l
     await page.getByLabel('Copy from', {exact: true}).selectOption(sourceId);
     await page.locator('#modalForm button[type=submit]').click();
     await page.getByRole('button', {name: /Continue to meetings/}).click();
+    await page.getByRole('button', {name: /Continue to time off/}).click();
     await page.getByRole('button', {name: 'Finish setup', exact: true}).click();await saved(page);
     const before = await snapshot(context), source = before.workspace.projects.find(project => project.id === sourceId)!;
     const copied = before.workspace.projects.find(project => project.id !== sourceId)!;

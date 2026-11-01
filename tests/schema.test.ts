@@ -34,3 +34,15 @@ it('round-trips title-only sub-items while still rejecting negative effort and u
  expect(workspaceSchema.parse(JSON.parse(JSON.stringify(w))).projects[0].data.tasks[0]).toEqual(task);
  task.effort=-.5;expect(workspaceSchema.safeParse(w).success).toBe(false);task.effort=0;task.remaining=1;expect(workspaceSchema.safeParse(w).success).toBe(false);delete task.remaining;task.assignee='u1';expect(workspaceSchema.safeParse(w).success).toBe(false);
 });
+
+
+it('round-trips the third onboarding step without reopening completed projects and rejects unsupported steps', () => {
+  for (const onboardingStep of [0, 1, 2, 3]) {
+    const workspace = fullWorkspace(); workspace.projects[0].onboardingStep = onboardingStep;
+    expect(workspaceSchema.parse(JSON.parse(JSON.stringify(workspace))).projects[0].onboardingStep).toBe(onboardingStep);
+  }
+  for (const onboardingStep of [-1, 4, 1.5]) {
+    const workspace = fullWorkspace(); workspace.projects[0].onboardingStep = onboardingStep;
+    expect(workspaceSchema.safeParse(workspace).success).toBe(false);
+  }
+});

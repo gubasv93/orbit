@@ -16,6 +16,7 @@ The source repository `gubasv93/orbit` is public with owner approval.
 - Public registration approved by the owner; email confirmation is temporarily disabled so registration works without SMTP. Email addresses are unverified during this period.
 - SMTP configuration and all forgot/reset-password functionality are intentionally deferred by the owner.
 - No invitations, billing, or collaborative editing.
+- Project onboarding has three optional steps: team, recurring meetings and time off. Saved absences use the same calendar rules as Time off & holidays; unfinished setup resumes at its saved step.
 - The selected hosted Supabase project has Orbit's migration and password policy applied. Hosted persistence and account isolation were exercised with temporary test accounts.
 - Vercel project `orbit` is deployed on the owner's existing Hobby plan. Live login, onboarding, persistence, and account isolation passed with temporary confirmed test accounts. Git integration requires the owner to authorize Vercel's GitHub app. Hobby's commercial-use restrictions must be resolved before commercial launch.
 

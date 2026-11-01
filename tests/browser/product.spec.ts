@@ -20,7 +20,7 @@ async function signup(page: Page, address: string) {
 test.describe.serial('real authentication, onboarding, planning, and durable ownership', () => {
   test.beforeAll(async ({ browser }) => { owner = await browser.newContext(); second = await browser.newContext(); });
   test.afterAll(async () => { await owner?.close(); await second?.close(); });
-  test('signs up into an empty workspace and completes the two-step project setup', async () => {
+  test('signs up into an empty workspace and completes the three-step project setup', async () => {
     const page = await owner.newPage(); const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
     await signup(page, email); await expect(page.getByText('Project Atlas')).toHaveCount(0);
     const cookies = await owner.cookies(); expect(cookies.some(c => c.name.includes('auth-token') && c.httpOnly && c.sameSite === 'Lax')).toBe(true);
@@ -35,6 +35,8 @@ test.describe.serial('real authentication, onboarding, planning, and durable own
     await page.getByRole('button', { name: 'Add meeting', exact: true }).click();
     await page.getByLabel('Meeting name').fill('Daily sync'); await page.getByLabel('Duration (minutes)').fill('30');
     await page.getByRole('button', { name: 'Create meeting' }).click();
+    await page.getByRole('button', { name: /Continue to time off/ }).click();
+    await expect(page.getByRole('heading', {name: 'Add planned time off', exact: true})).toBeVisible();
     await page.getByRole('button', { name: 'Finish setup', exact: true }).click();
     await page.getByRole('button', { name: 'Add work item', exact: true }).click(); await page.getByLabel('Work item name').fill('Secure accounts');
     await page.getByRole('checkbox', { name: 'Include DevOps Engineer', exact: true }).check();
@@ -116,7 +118,7 @@ test.describe.serial('real authentication, onboarding, planning, and durable own
     const page=await owner.newPage(); await page.goto('/app');
     await page.getByRole('button',{name:'New project',exact:true}).click(); await page.getByLabel('Project name').fill('Second roadmap'); await page.getByLabel('Copy from').selectOption('project-shared-id');
     await page.locator('#modalForm button[type=submit]').click(); await page.getByRole('button',{name:'Copy team',exact:true}).click();
-    await page.getByRole('button',{name:/Continue to meetings/}).click(); await page.getByRole('button',{name:'Copy meetings',exact:true}).click(); await page.getByRole('button',{name:'Finish setup',exact:true}).click(); await saved(page);
+    await page.getByRole('button',{name:/Continue to meetings/}).click(); await page.getByRole('button',{name:'Copy meetings',exact:true}).click(); await page.getByRole('button',{name:/Continue to time off/}).click(); await page.getByRole('button',{name:'Finish setup',exact:true}).click(); await saved(page);
     const result=await (await owner.request.get('/api/workspace')).json(); const [source,destination]=result.workspace.projects;
     expect(destination.data.people).toHaveLength(1); expect(destination.data.roles).toHaveLength(2); expect(destination.data.meetings).toHaveLength(source.data.meetings.length); expect(destination.data.features).toEqual([]);
     expect(destination.data.people[0].id).not.toBe(source.data.people[0].id); expect(destination.data.meetings[0].attendees).toEqual([destination.data.people[0].id]); expect(destination.data.people[0].capacity).toEqual(source.data.people[0].capacity);
