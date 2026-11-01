@@ -105,7 +105,7 @@ test.describe.serial('project setup and epic effort regressions',()=>{
     await page.locator('[data-action=drawer-task][data-id=t1]').first().click();await page.getByLabel('Estimate (days)',{exact:true}).fill('7');await page.getByLabel('Estimate (days)',{exact:true}).press('Tab');
     await saved(page);await page.keyboard.press('Escape');await page.reload();await expect(effort).toHaveText('13.5d manual effort');
     await page.locator('.work-name[data-action=drawer-feature][data-id=f1]').click();
-    await expect(page.locator('.metric-row').filter({hasText:'Work items combined'})).toContainText('10d');
+    await expect(page.locator('.metric-row').filter({hasText:'Sub-items combined'})).toContainText('10d');
     await page.getByLabel('Effort estimate').selectOption('automatic');await saved(page);await page.keyboard.press('Escape');
     await expect(effort).toHaveText('10d effort');
     expect((await snapshot()).workspace.projects[0].data.features[0]).not.toHaveProperty('effortOverride');
