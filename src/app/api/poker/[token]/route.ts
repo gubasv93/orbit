@@ -19,7 +19,7 @@ type Context={params:Promise<{token:string}>};
 export async function GET(request:NextRequest,context:Context) {
  try {
   const token=pokerToken.safeParse((await context.params).token);if(!token.success)return problem('Room not found.',404);
-  const issue=pokerIssue.safeParse(request.nextUrl.searchParams.get('issue')||'free');if(!issue.success)return problem('Invalid story.');
+  const issue=pokerIssue.safeParse(request.nextUrl.searchParams.get('issue')||'free');if(!issue.success)return problem('Invalid sub-item.');
   const connection=connectionId.safeParse(request.nextUrl.searchParams.get('connectionId')||undefined);if(!connection.success)return problem('Invalid room connection.');
   const {client,ownerName,user}=await pokerClient();if(user){const legal=await legalApiGate(client);if(legal)return legal;}const session=request.cookies.get(pokerCookie(token.data))?.value||'';
   const {data,error}=await client.rpc('orbit_poker_room_state',{p_token:token.data,p_session:session,p_input:{issue:issue.data,ownerName,connectionId:connection.data}});

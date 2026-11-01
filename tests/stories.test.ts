@@ -74,7 +74,7 @@ it('rejects invalid assignees, duplicate or unknown teams, empty stories, and da
 
 it('refuses a batch above the project work-item limit without partially adding it', () => {
   const data = teamData(); data.tasks = Array.from({ length: 2998 }, (_, index) => ({ ...projectData().tasks[0], id: `t${index}` }));
-  expect(() => buildStoryWorkItems('f1', draft(), data)).toThrow('3000 work items');
+  expect(() => buildStoryWorkItems('f1', draft(), data)).toThrow('3000 sub-items');
   expect(data.tasks).toHaveLength(2998);
 });
 
@@ -83,9 +83,53 @@ it('captures a title-only story with no assignment or fabricated estimate, inclu
  const [task]=buildStoryWorkItems('f1',{title:'  Explore a rule  ',start:'2026-11-02',teams:[]},data);
  expect(task).toMatchObject({title:'Explore a rule',platform:'',assignee:'',effort:0,dependsOn:[]});expect(task.roleId).toBeUndefined();expect(data.tasks).toEqual([]);
 });
+
+it('keeps a standalone half-day estimate when the project has no people or roles',()=>{
+ const data=teamData();data.people=[];data.roles=[];
+ const before=structuredClone(data);
+ const [task]=buildStoryWorkItems('f1',{title:'Explore a rule',start:'2026-11-02',teams:[],effort:.5},data);
+ expect(task).toMatchObject({title:'Explore a rule',platform:'',assignee:'',effort:.5,status:'planned',dependsOn:[]});
+ expect(task.roleId).toBeUndefined();expect(data).toEqual(before);
+ data.tasks=[task];const forecast=createScheduler(data).calculate().schedule[task.id];
+ expect(fromDay(forecast.start!)).toBe('2026-11-02');expect(fromDay(forecast.end!)).toBe('2026-11-02');
+ expect(forecast).toMatchObject({endFraction:.5,blocked:false,alloc:{'2026-11-02':.5}});
+});
+
+it('schedules an unassigned estimate on the project calendar without inventing a configured role',()=>{
+ const data=teamData();data.people=[];data.settings.observeHolidays=true;
+ data.holidays=[{date:'2026-11-03',name:'Project holiday'}];
+ const [task]=buildStoryWorkItems('f1',{title:'Unassigned research',start:'2026-11-02',teams:[],effort:1.5},data);
+ expect(task).toMatchObject({platform:'',assignee:'',effort:1.5});expect(task.roleId).toBeUndefined();
+ data.tasks=[task];const forecast=createScheduler(data).calculate().schedule[task.id];
+ expect(fromDay(forecast.end!)).toBe('2026-11-04');
+ expect(forecast).toMatchObject({blocked:false,endFraction:.5,alloc:{'2026-11-02':1,'2026-11-04':.5}});
+ expect(featureEffort(data.features[0],data.tasks).total).toBe(1.5);
+});
+
+it('validates standalone estimates before adding anything and rejects mixed total and role estimates',()=>{
+ const data=teamData(),before=structuredClone(data);
+ for(const effort of [.1,.25,.75,-.5,NaN,Infinity,3650.5]){
+  expect(()=>buildStoryWorkItems('f1',{title:'Invalid estimate',start:'2026-11-02',teams:[],effort},data)).toThrow();
+  expect(data).toEqual(before);
+ }
+ for(const effort of [0,.5])expect(()=>buildStoryWorkItems('f1',{title:'Ambiguous estimate',start:'2026-11-02',teams:[{roleId:'r1',effort:1}],effort},data)).toThrow();
+ expect(buildStoryWorkItems('f1',{title:'Maximum estimate',start:'2026-11-02',teams:[],effort:3650},data)[0].effort).toBe(3650);
+ expect(data).toEqual(before);
+});
+
+it('preserves an estimated standalone sub-item when roles are added later',()=>{
+ const data=teamData();
+ const [source]=buildStoryWorkItems('f1',{title:'Research first',start:'2026-11-02',teams:[],effort:1.5},data);data.tasks=[source];
+ const before=structuredClone(data);
+ const addition=planStoryRoles(source.id,{title:source.title,start:source.start,teams:[{roleId:'r1',effort:.5}],sequential:true},data);
+ expect(addition.updatedSource).toEqual(source);
+ expect(addition.updatedSource).toMatchObject({effort:1.5,assignee:'',platform:''});
+ expect(addition.items).toHaveLength(1);expect(addition.items[0]).toMatchObject({roleId:'r1',effort:.5,storyId:source.storyId,dependsOn:[source.id]});
+ expect(data).toEqual(before);
+});
 it('applies the work-item limit to a title-only story before adding it',()=>{
  const data=teamData();data.tasks=Array.from({length:3000},(_,i)=>({...projectData().tasks[0],id:'existing'+i}));
- expect(()=>buildStoryWorkItems('f1',{title:'Later',start:'2026-11-02',teams:[]},data)).toThrow('3000 work items');expect(data.tasks).toHaveLength(3000);
+ expect(()=>buildStoryWorkItems('f1',{title:'Later',start:'2026-11-02',teams:[]},data)).toThrow('3000 sub-items');expect(data.tasks).toHaveLength(3000);
 });
 
 it('creates selected roles without assignments or invented estimates and keeps different same-name stories separate',()=>{
@@ -124,5 +168,5 @@ it('counts placeholder reuse correctly at the project limit and rejects oversize
  const data=teamData();data.tasks=Array.from({length:2999},(_,i)=>({...projectData().tasks[0],id:'existing'+i}));
  const placeholder={...projectData().tasks[0],id:'placeholder',effort:0,platform:'',assignee:''};data.tasks.push(placeholder);
  expect(planStoryRoles(placeholder.id,{title:'Roles',start:placeholder.start,teams:[{roleId:'rQA'}]},data).items).toEqual([]);
- const before=structuredClone(data);expect(()=>planStoryRoles(placeholder.id,{title:'Roles',start:placeholder.start,teams:[{roleId:'rQA'},{roleId:'r1'}]},data)).toThrow('3000 work items');expect(data).toEqual(before);
+ const before=structuredClone(data);expect(()=>planStoryRoles(placeholder.id,{title:'Roles',start:placeholder.start,teams:[{roleId:'rQA'},{roleId:'r1'}]},data)).toThrow('3000 sub-items');expect(data).toEqual(before);
 });

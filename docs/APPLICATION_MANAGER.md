@@ -32,9 +32,9 @@ The dashboard offers overall and individual-user inventory, observed creations,
 account creation/deletion dates, project deletion counts and lifetimes, Poker
 participation/duration/frequency, and aggregate landing page views.
 
-- **Features** are epics. **Stories** group role work items by project, epic and
-  `storyId`; legacy standalone work items count once. Adding roles to an existing
-  story retains its analytics identity.
+- **Work items** are parent records. **Sub-items** group role rows by project, work item and
+  `storyId`; legacy standalone sub-items count once. Adding roles to an existing
+  sub-item retains its analytics identity.
 - People and roles count project-local records. A copied person in two projects
   is two team memberships. Platforms count distinct normalized labels per user and globally; copied team
   members remain project memberships, rather than globally unique humans.

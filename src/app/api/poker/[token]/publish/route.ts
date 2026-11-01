@@ -4,17 +4,18 @@ import { limitedJson, problem, sameOrigin } from '@/lib/http';
 import { workspaceSchema } from '@/lib/schema';
 import { planPokerPublication, pokerPublicationSchema, PokerPublicationError } from '@/lib/poker-publication';
 import { legalApiGate } from '@/lib/legal-acceptance';
+import { pokerErrorMessage } from '@/lib/poker-server';
 
 export const dynamic = 'force-dynamic';
 const headers = {'Cache-Control':'private, no-store'};
 function failure(error:{code?:string;message?:string}) {
-  if(error.code==='PT409'||error.code==='40001')return NextResponse.json({error:'Another tab or device saved newer changes. Reload the story before publishing.',code:'revision_conflict'},{status:409,headers});
+  if(error.code==='PT409'||error.code==='40001')return NextResponse.json({error:'Another tab or device saved newer changes. Reload the sub-item before publishing.',code:'revision_conflict'},{status:409,headers});
   if(error.code==='PT401')return problem('Please log in as the room facilitator.',401);
   if(error.code==='42501'||error.code==='PT403')return problem('Only the room facilitator can publish Orbit work.',403);
-  if(error.code==='PT404'||error.code==='P0002')return problem('This room or story is no longer available.',404);
+  if(error.code==='PT404'||error.code==='P0002')return problem('This room or sub-item is no longer available.',404);
   if(error.code==='PT429')return problem('Too many requests. Please wait and retry.',429);
-  if(error.code==='22023'||error.code==='23514')return problem(error.message||'Invalid publication.');
-  console.error('poker_publication_failed',{code:error.code});return problem('The story could not be saved. Retry with the same request or reload.',503);
+  if(error.code==='22023'||error.code==='23514')return problem(pokerErrorMessage(error.message||'Invalid publication.'));
+  console.error('poker_publication_failed',{code:error.code});return problem('The sub-item could not be saved. Retry with the same request or reload.',503);
 }
 export async function POST(request:NextRequest,context:{params:Promise<{token:string}>}) {
   if(!sameOrigin(request))return problem('Request origin is not allowed.',403);
@@ -50,7 +51,7 @@ export async function POST(request:NextRequest,context:{params:Promise<{token:st
     return NextResponse.json(saved.data,{headers});
   }catch(error){
     if(error instanceof PokerPublicationError)return NextResponse.json({error:error.message,code:error.code},{status:error.status,headers});
-    if(error instanceof Error&&error.name==='ZodError')return problem('Check the story fields and role estimates.');
-    console.error('poker_publication_invalid',{kind:input.kind});return problem('The story could not be saved. Your existing work was kept.');
+    if(error instanceof Error&&error.name==='ZodError')return problem('Check the sub-item fields and role estimates.');
+    console.error('poker_publication_invalid',{kind:input.kind});return problem('The sub-item could not be saved. Your existing work was kept.');
   }
 }

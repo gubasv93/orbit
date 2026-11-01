@@ -8,14 +8,15 @@ const effort = z.number().min(0).max(3650);
 export const pokerPublicationSchema = z.object({
   operationId: z.uuid(), revision: z.number().int().min(0), kind: z.enum(['epic','story']),
   featureId: identifier.optional(), newEpic: z.object({title}).optional(), taskId: identifier.optional(),
-  title, description: z.string().max(10000).optional(),
+  title, description: z.string().max(10000).optional(), effort: effort.optional(),
   teams: z.array(z.object({roleId: identifier, assignee: identifier.or(z.literal('')).optional(), effort: effort.optional()})).max(1000).default([]),
   sequential: z.boolean().default(false), acceptedVote: z.string().trim().max(32).optional(),
   roundId: z.uuid().optional(), confirmProgress: z.boolean().default(false),
 }).superRefine((value, ctx) => {
   if (new Set(value.teams.map(team => team.roleId)).size !== value.teams.length) ctx.addIssue({code:'custom',message:'Select each role only once'});
-  if (value.kind==='story' && !value.featureId && !value.newEpic && !value.taskId) ctx.addIssue({code:'custom',message:'Choose an epic or create one for this story'});
-  if (value.newEpic && (value.featureId || value.taskId)) ctx.addIssue({code:'custom',message:'Choose an existing epic or a new one'});
+  if (value.effort!==undefined && value.teams.length) ctx.addIssue({code:'custom',message:'Use role estimates or a standalone estimate, rather than both'});
+  if (value.kind==='story' && !value.featureId && !value.newEpic && !value.taskId) ctx.addIssue({code:'custom',message:'Choose a work item or create one for this sub-item'});
+  if (value.newEpic && (value.featureId || value.taskId)) ctx.addIssue({code:'custom',message:'Choose an existing work item or a new one'});
 });
 export type PokerPublicationInput = z.input<typeof pokerPublicationSchema>;
 export type PokerPublicationResult = {projectId:string;featureId:string;taskIds:string[];storyId?:string;acceptedVote?:string;roundId?:string};
@@ -29,13 +30,13 @@ function inferredRole(task:Task,data:ProjectData) {
   const roles=data.roles.filter(role=>role.platform===task.platform);return roles.length===1?roles[0].id:undefined;
 }
 function assertProgressChange(before:Task,after:Task,confirmed:boolean) {
-  if(before.status==='done' && after.effort!==before.effort)throw new PokerPublicationError('Completed work estimates cannot be changed. Add a new work item for additional work.');
+  if(before.status==='done' && after.effort!==before.effort)throw new PokerPublicationError('Completed work estimates cannot be changed. Add a new sub-item for additional work.');
   if(['progress','done'].includes(before.status) && JSON.stringify(before)!==JSON.stringify(after) && !confirmed)
     throw new PokerPublicationError('Confirm changes to in-progress or completed work.','confirmation_required',409);
 }
 function setEstimate(task:Task,value:number) {
   if(value===task.effort)return;
-  if(task.status==='done')throw new PokerPublicationError('Completed work estimates cannot be changed. Add a new work item for additional work.');
+  if(task.status==='done')throw new PokerPublicationError('Completed work estimates cannot be changed. Add a new sub-item for additional work.');
   if(!Number.isInteger(value*2))throw new PokerPublicationError('Use 0.5-day estimates.');
   const completed=Math.max(0,task.effort-(task.remaining??task.effort));
   if(value<completed)throw new PokerPublicationError('The estimate cannot be less than already completed effort.');
@@ -49,26 +50,30 @@ export function planPokerPublication(source:Workspace,projectId:string,raw:unkno
   const data=project.data;
   let feature=input.featureId?data.features.find(f=>f.id===input.featureId):undefined;
   const selected=input.taskId?data.tasks.find(t=>t.id===input.taskId):undefined;
-  if(input.taskId&&!selected)throw new PokerPublicationError('This story is no longer available.','story_not_found',404);
-  if(selected){if(input.featureId&&input.featureId!==selected.featureId)throw new PokerPublicationError('The story belongs to another epic.');feature=data.features.find(f=>f.id===selected.featureId);}
+  if(input.taskId&&!selected)throw new PokerPublicationError('This sub-item is no longer available.','story_not_found',404);
+  if(selected){if(input.featureId&&input.featureId!==selected.featureId)throw new PokerPublicationError('The sub-item belongs to another work item.');feature=data.features.find(f=>f.id===selected.featureId);}
   if(input.kind==='epic'||input.newEpic){
-    if(data.features.length>=1000)throw new PokerPublicationError('A project can contain at most 1000 epics.');
+    if(data.features.length>=1000)throw new PokerPublicationError('A project can contain at most 1000 work items.');
+    if(input.kind==='epic'&&input.effort!==undefined&&!Number.isInteger(input.effort*2))throw new PokerPublicationError('Use 0.5-day estimates.');
     feature={id:`f${crypto.randomUUID()}`,title:input.kind==='epic'?input.title:input.newEpic!.title,description:input.kind==='epic'?input.description||'':'',start:date,baseline:date,collapsed:false,color:'#8c7ae6'};
     data.features.push(feature);
+    if(input.kind==='epic'&&input.effort!==undefined)feature.effortOverride=input.effort;
   }
-  if(!feature)throw new PokerPublicationError('Choose an epic from this project.');
+  if(!feature)throw new PokerPublicationError('Choose a work item from this project.');
   const result:PokerPublicationResult={projectId,featureId:feature.id,taskIds:[],...(input.acceptedVote!==undefined?{acceptedVote:input.acceptedVote}:{}),...(input.roundId?{roundId:input.roundId}:{})};
   if(input.kind==='epic')return {workspace:workspaceSchema.parse(workspace),result,storyKey:'free'};
   const existing=selected?storyWorkItems(selected,data):[];
+  if(input.effort!==undefined&&existing.length>1)throw new PokerPublicationError('Edit estimates for each role separately.');
   const storyId=selected?.storyId||`s${crypto.randomUUID()}`;
   const oldTasks=new Map(existing.map(t=>[t.id,structuredClone(t)]));
+  if(input.effort!==undefined&&existing.length===1)setEstimate(existing[0],input.effort);
   const reusable=existing.length===1&&selected?.status==='planned'&&!selected.platform&&!selected.roleId&&!selected.assignee&&selected.effort===0?selected:undefined;
   const missing:typeof input.teams=[];
   for(const team of input.teams){
     const role=data.roles.find(role=>role.id===team.roleId);if(!role)throw new PokerPublicationError('Choose a role from this project.');
     if(team.assignee && !data.people.some(person=>person.id===team.assignee&&person.roleId===role.id&&person.platform===role.platform))throw new PokerPublicationError(`${role.name}: choose a matching assignee or Unassigned.`);
     const matches=existing.filter(t=>inferredRole(t,data)===role.id);
-    if(matches.length>1)throw new PokerPublicationError(`${role.name} has several work items in this story. Edit those items individually in the roadmap.`);
+    if(matches.length>1)throw new PokerPublicationError(`${role.name} has several role rows in this sub-item. Edit those rows individually in the roadmap.`);
     const task=matches[0];
     if(!task){missing.push(team);continue;}
     // Only explicitly submitted assignment/estimate fields are changed. Dates, status, dependency and history stay intact.
@@ -79,7 +84,7 @@ export function planPokerPublication(source:Workspace,projectId:string,raw:unkno
   for(const task of existing){if(rename)task.title=input.title;if(input.description!==undefined)task.description=input.description;}
   let additions:Task[]=[];
   if(missing.length||!existing.length){
-    const built=buildStoryWorkItems(feature.id,{title:input.title,start:selected?.start||feature.start,teams:missing.map(team=>({...team,assignee:team.assignee||'',effort:team.effort??0})),sequential:input.sequential},reusable?{...data,tasks:data.tasks.filter(t=>t.id!==reusable.id)}:data,storyId);
+    const built=buildStoryWorkItems(feature.id,{title:input.title,start:selected?.start||feature.start,...(input.effort!==undefined?{effort:input.effort}:{}),teams:missing.map(team=>({...team,assignee:team.assignee||'',effort:team.effort??0})),sequential:input.sequential},reusable?{...data,tasks:data.tasks.filter(t=>t.id!==reusable.id)}:data,storyId);
     if(input.description!==undefined)for(const task of built)task.description=input.description;
     if(reusable&&missing.length){
       const first=built[0];reusable.roleId=first.roleId;reusable.platform=first.platform;reusable.assignee=first.assignee;setEstimate(reusable,first.effort);

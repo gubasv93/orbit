@@ -58,8 +58,8 @@ export const projectDataSchema = z.object({
   const people = new Map(data.people.map(p => [p.id, p])), roles = new Map(data.roles.map(r => [r.id, r]));
   for (const p of data.people) if (!roles.has(p.roleId) || roles.get(p.roleId)?.platform !== p.platform) fail('Invalid team role');
   for (const t of data.tasks) {
-    if (!features.has(t.featureId)) fail('Invalid task feature');
-    if (t.assignee && people.get(t.assignee)?.platform !== t.platform) fail('Invalid task assignee');
+    if (!features.has(t.featureId)) fail('Choose an existing work item for each sub-item');
+    if (t.assignee && people.get(t.assignee)?.platform !== t.platform) fail('Choose a matching assignee for this sub-item');
     if (t.roleId && (!roles.has(t.roleId) || roles.get(t.roleId)?.platform !== t.platform || (t.assignee && people.get(t.assignee)?.roleId !== t.roleId))) fail('Invalid work-item role or assignee');
     if (new Set(t.dependsOn).size !== t.dependsOn.length || t.dependsOn.some(d => !tasks.has(d))) fail('Invalid dependency');
   }

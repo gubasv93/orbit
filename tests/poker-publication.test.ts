@@ -5,6 +5,12 @@ import { workspaceSchema } from '../src/lib/schema';
 const operationId='11111111-1111-4111-8111-111111111111',projectId='project-shared-id';
 function draft(extra:Record<string,unknown>={}){return {operationId,revision:1,kind:'story',featureId:'f1',title:'Add a specific rule',teams:[{roleId:'r1',assignee:'u1',effort:3}],...extra};}
 function grouped(){const workspace=fullWorkspace(),data=workspace.projects[0].data;data.tasks=data.tasks.filter(task=>task.id!=='t2');Object.assign(data.tasks[0],{roleId:'r1',storyId:'existing-story',title:'Original story',effort:2,manualEnd:'2026-11-12',manualEndFraction:.5,dependsOn:['t3']});Object.assign(data.tasks[1],{roleId:'rfront',storyId:'existing-story',title:'Original story',effort:1});return workspace;}
+function withoutTeam(){
+ const workspace=fullWorkspace(),data=workspace.projects[0].data;
+ data.people=[];data.roles=[];data.meetings=[];data.leave=[];data.iterations.forEach(iteration=>{iteration.overrides={};});
+ for(const task of data.tasks){task.platform='';task.assignee='';delete task.roleId;}
+ return workspace;
+}
 
 describe('Planning Poker publication into ordinary Orbit work items',()=>{
  it('creates a real epic and three independently assigned role items atomically without modifying the input',()=>{
@@ -14,6 +20,61 @@ describe('Planning Poker publication into ordinary Orbit work items',()=>{
  });
  it('creates a name-only unestimated story and does not translate a poker card into working days',()=>{
   const source=fullWorkspace(),plan=planPokerPublication(source,projectId,draft({teams:[],acceptedVote:'8',roundId:operationId}));const item=plan.workspace.projects[0].data.tasks.at(-1)!;expect(item).toMatchObject({effort:0,assignee:'',platform:'',status:'planned',title:'Add a specific rule'});expect(plan.result.acceptedVote).toBe('8');expect(item.effort).not.toBe(8);
+ });
+ it('publishes an explicitly estimated unassigned sub-item without a team or role',()=>{
+  const source=withoutTeam();source.projects[0].data.tasks=[];const before=structuredClone(source);
+  const plan=planPokerPublication(source,projectId,draft({teams:[],effort:.5,acceptedVote:'8'}));
+  const item=plan.workspace.projects[0].data.tasks[0];
+  expect(item).toMatchObject({effort:.5,assignee:'',platform:'',status:'planned',title:'Add a specific rule'});
+  expect(item.roleId).toBeUndefined();expect(plan.result.taskIds).toEqual([item.id]);
+  expect(plan.result.acceptedVote).toBe('8');expect(source).toEqual(before);
+  expect(workspaceSchema.safeParse(plan.workspace).success).toBe(true);
+ });
+ it('edits a standalone estimate without replacing its identity, manual dates, dependencies or status',()=>{
+  const source=withoutTeam(),data=source.projects[0].data;
+  Object.assign(data.tasks[0],{title:'Unassigned research',effort:2,storyId:'standalone',manualEnd:'2026-11-12',manualEndFraction:.5,dependsOn:['t3']});
+  const before=structuredClone(source),plan=planPokerPublication(source,projectId,draft({taskId:'t1',title:'Unassigned research',teams:[],effort:1.5}));
+  expect(plan.workspace.projects[0].data.tasks).toEqual([{...before.projects[0].data.tasks[0],effort:1.5},...before.projects[0].data.tasks.slice(1)]);
+  expect(plan.result.taskIds).toEqual(['t1']);expect(source).toEqual(before);
+ });
+ it('supports a direct estimate for a single existing row while keeping its legacy role and assignment',()=>{
+  const source=fullWorkspace(),before=structuredClone(source);
+  const plan=planPokerPublication(source,projectId,draft({taskId:'t1',title:source.projects[0].data.tasks[0].title,teams:[],effort:1.5}));
+  expect(plan.workspace.projects[0].data.tasks[0]).toEqual({...before.projects[0].data.tasks[0],effort:1.5});
+  expect(plan.workspace.projects[0].data.tasks.slice(1)).toEqual(before.projects[0].data.tasks.slice(1));expect(source).toEqual(before);
+ });
+ it('requires progress confirmation for standalone re-estimation and preserves completed effort',()=>{
+  const source=withoutTeam(),task=source.projects[0].data.tasks[0];Object.assign(task,{title:'Unassigned research',status:'progress',effort:5,remaining:2});
+  const input=draft({taskId:task.id,title:task.title,teams:[],effort:6}),before=structuredClone(source);
+  expect(()=>planPokerPublication(source,projectId,input)).toThrow('Confirm changes');
+  expect(planPokerPublication(source,projectId,{...input,confirmProgress:true}).workspace.projects[0].data.tasks[0]).toMatchObject({effort:6,remaining:3,status:'progress'});
+  expect(()=>planPokerPublication(source,projectId,{...input,effort:2,confirmProgress:true})).toThrow('already completed');
+  expect(source).toEqual(before);
+  Object.assign(task,{status:'done',completedDate:'2026-11-02'});const completed=structuredClone(source);
+  expect(()=>planPokerPublication(source,projectId,{...input,confirmProgress:true})).toThrow('Completed work estimates');expect(source).toEqual(completed);
+ });
+ it('retains an unchanged historical standalone fraction but rejects newly entered fractional estimates',()=>{
+  const source=withoutTeam(),task=source.projects[0].data.tasks[0];task.effort=.25;
+  const input=draft({taskId:task.id,title:task.title,teams:[],effort:.25});
+  expect(planPokerPublication(source,projectId,input).workspace.projects[0].data.tasks[0]).toEqual(task);
+  expect(()=>planPokerPublication(source,projectId,{...input,effort:.75})).toThrow('0.5-day');
+ });
+ it('creates a work item with a manual estimate without creating a fabricated sub-item',()=>{
+  const source=withoutTeam(),before=structuredClone(source);
+  const plan=planPokerPublication(source,projectId,draft({kind:'epic',featureId:undefined,title:'Planning work',teams:[],effort:1.5}));
+  expect(plan.workspace.projects[0].data.features.at(-1)).toMatchObject({title:'Planning work',effortOverride:1.5});
+  expect(plan.workspace.projects[0].data.tasks).toEqual(before.projects[0].data.tasks);expect(plan.result.taskIds).toEqual([]);expect(source).toEqual(before);
+ });
+ it('rejects ambiguous totals, invalid standalone amounts and multi-row estimate redistribution atomically',()=>{
+  const source=withoutTeam(),before=structuredClone(source);
+  for(const effort of [.1,.25,-.5,NaN,Infinity,3650.5]){
+   expect(()=>planPokerPublication(source,projectId,draft({teams:[],effort}))).toThrow();
+   expect(()=>planPokerPublication(source,projectId,draft({kind:'epic',teams:[],effort}))).toThrow();
+   expect(source).toEqual(before);
+  }
+  for(const effort of [0,.5])expect(pokerPublicationSchema.safeParse(draft({effort})).success).toBe(false);
+  const multi=grouped(),original=structuredClone(multi);
+  expect(()=>planPokerPublication(multi,projectId,draft({taskId:'t1',teams:[],effort:3}))).toThrow();expect(multi).toEqual(original);
  });
  it('creates only explicitly requested sequential dependencies and distinguishes roles on the same platform',()=>{
   const source=fullWorkspace();source.projects[0].data.roles.push({id:'be-review',name:'Backend Reviewer',platform:'Backend'});
@@ -50,6 +111,6 @@ describe('Planning Poker publication into ordinary Orbit work items',()=>{
  });
  it('rejects bad roles, assignments, absent stories and cross-epic edits before any source mutation',()=>{
   const source=grouped(),before=structuredClone(source);
-  expect(()=>planPokerPublication(source,projectId,draft({teams:[{roleId:'unknown',effort:1}]}))).toThrow('role');expect(()=>planPokerPublication(source,projectId,draft({teams:[{roleId:'rfront',assignee:'u1',effort:1}]}))).toThrow('matching assignee');expect(()=>planPokerPublication(source,projectId,draft({taskId:'missing'}))).toThrow('no longer available');expect(()=>planPokerPublication(source,projectId,draft({taskId:'t1',featureId:'other-epic'}))).toThrow('another epic');expect(source).toEqual(before);expect(pokerPublicationSchema.safeParse(draft({teams:[{roleId:'r1'},{roleId:'r1'}]})).success).toBe(false);
+  expect(()=>planPokerPublication(source,projectId,draft({teams:[{roleId:'unknown',effort:1}]}))).toThrow('role');expect(()=>planPokerPublication(source,projectId,draft({teams:[{roleId:'rfront',assignee:'u1',effort:1}]}))).toThrow('matching assignee');expect(()=>planPokerPublication(source,projectId,draft({taskId:'missing'}))).toThrow('no longer available');expect(()=>planPokerPublication(source,projectId,draft({taskId:'t1',featureId:'other-epic'}))).toThrow('another work item');expect(source).toEqual(before);expect(pokerPublicationSchema.safeParse(draft({teams:[{roleId:'r1'},{roleId:'r1'}]})).success).toBe(false);
  });
 });

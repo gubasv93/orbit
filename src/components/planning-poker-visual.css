@@ -298,3 +298,20 @@
 .poker-session-ended .btn { margin:0 8px 8px 0; }
 .poker-nav .workspace-profile>span:last-child { min-width:0; }
 @media(max-width:650px) { .poker-idle-warning { margin:12px 14px 0; } }
+
+/* Estimation can start before the project has a team. */
+.poker-team-prompt { display:flex; align-items:center; justify-content:space-between; gap:14px; margin:0 0 18px; padding:14px; border:1px solid var(--ui-border); border-radius:12px; background:var(--ui-surface-soft); min-width:0; }
+.poker-team-prompt>div { min-width:0; }
+.poker-team-prompt strong { display:block; font-size:12px; color:var(--ui-text); }
+.poker-team-prompt p { margin:5px 0 0; font-size:11px; line-height:1.55; color:var(--ui-muted); }
+.poker-team-prompt small { display:block; margin-top:6px; color:var(--ui-muted); font-size:10px; line-height:1.5; }
+.poker-team-prompt>.btn { flex:none; white-space:nowrap; }
+.poker-standalone-estimate { margin:14px 0; }
+.poker-standalone-estimate small { display:block; margin-top:7px; color:var(--ui-muted); font-size:11px; line-height:1.55; }
+.poker-items-empty { display:flex; flex-direction:column; align-items:flex-start; gap:12px; padding:26px 18px; }
+.poker-empty-symbol { display:grid; place-items:center; width:36px; height:36px; border:1px solid var(--ui-border); border-radius:11px; background:var(--ui-surface-soft); color:var(--ui-muted); font-size:20px; }
+.poker-items-empty h3 { margin:0; font-size:15px; line-height:1.4; color:var(--ui-text); }
+.poker-items-empty p,.poker-subitems-empty { margin:0; color:var(--ui-muted); font-size:11px; line-height:1.65; }
+.poker-items-empty>.btn { max-width:100%; white-space:normal; }
+.poker-subitems-empty { padding:9px 10px; }
+@media(max-width:650px) { .poker-team-prompt { flex-direction:column; align-items:flex-start; gap:11px; } .poker-team-prompt>.btn { max-width:100%; white-space:normal; } }

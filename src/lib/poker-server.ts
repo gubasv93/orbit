@@ -16,11 +16,20 @@ export async function pokerClient() {
   const { data: { user } } = await client.auth.getUser();
   return { client, user, ownerName: user ? accountProfile(user).displayName : undefined };
 }
+export function pokerErrorMessage(message: string) {
+  const legacy: Record<string, string> = {
+    'Story not found': 'Sub-item not found',
+    'Choose a revealed round for this story': 'Choose a revealed round for this sub-item',
+    'Publication may only modify the selected project story': 'Publication may only modify the selected project sub-item',
+    'The selected voting round belongs to another story': 'The selected voting round belongs to another sub-item',
+  };
+  return legacy[message] || message;
+}
 export function pokerFailure(error: {code?: string; message?: string}) {
   const status = ({PT401:401,PT404:404,PT409:409,PT429:429,'42501':403,'22023':400,'22P02':400} as Record<string,number>)[error.code || ''] || 503;
   if (status === 503) {
     console.error('poker_operation_failed', { code: error.code || 'provider_error' });
     return problem('Planning Poker is temporarily unavailable. Please retry.',503);
   }
-  return problem(status === 400 && error.code !== '22023' ? 'Invalid poker request.' : error.message || 'Unable to complete this poker action.',status);
+  return problem(status === 400 && error.code !== '22023' ? 'Invalid poker request.' : pokerErrorMessage(error.message || 'Unable to complete this poker action.'),status);
 }

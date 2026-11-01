@@ -40,15 +40,15 @@ test.describe.serial('user stories estimated by team', () => {
 
   test('creates an epic and its first story as three estimated, assigned, independent Gantt rows', async () => {
     await replace(); const page = await context.newPage(); await page.goto('/app');
-    await page.locator('.gantt-corner').getByRole('button', { name: 'Add feature' }).click();
-    await page.getByLabel('Feature name').fill('Disable Rules');
-    await page.getByLabel('First user story (optional)').fill('Add a specific rule');
+    await page.locator('.gantt-corner').getByRole('button', { name: 'Add work item' }).click();
+    await page.getByLabel('Work item name').fill('Disable Rules');
+    await page.getByLabel('First sub-item (optional)').fill('Add a specific rule');
     await page.getByLabel('Earliest start', { exact: true }).fill('2026-11-02');
     await page.getByLabel('Baseline target date').fill('2026-12-01');
-    await expect(page.getByRole('checkbox', { name: 'Link selected teams', exact: false })).not.toBeChecked();
+    await expect(page.getByRole('checkbox', { name: 'Link selected roles', exact: false })).not.toBeChecked();
     await selectTeam(page, 'Backend', '3', 'u1'); await selectTeam(page, 'Frontend', '2', 'uFront'); await selectTeam(page, 'QA', '2', 'uQA');
     expect(await page.getByLabel('Backend Developer assignee', { exact: true }).locator('option').evaluateAll(options => options.map(option => (option as HTMLOptionElement).value))).toEqual(['', 'u1']);
-    await expect(page.locator('[data-story-summary]')).toHaveText('3 work items · 7d total effort');
+    await expect(page.locator('[data-story-summary]')).toHaveText('3 sub-items · 7d total effort');
     await page.setViewportSize({ width: 375, height: 812 });
     const dialog = page.getByRole('dialog');
     expect(await dialog.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true);
@@ -57,9 +57,9 @@ test.describe.serial('user stories estimated by team', () => {
       expect(box.x).toBeGreaterThanOrEqual(0); expect(box.x + box.width).toBeLessThanOrEqual(375);
     }
     await page.getByLabel('QA Engineer estimate (days)').scrollIntoViewIfNeeded();
-    await expect(page.getByRole('button', { name: 'Create feature', exact: true })).toBeInViewport();
+    await expect(page.getByRole('button', { name: 'Create work item', exact: true })).toBeInViewport();
     await page.screenshot({ path: 'test-results/story-teams-mobile.png', fullPage: true });
-    await page.getByRole('button', { name: 'Create feature', exact: true }).click(); await saved(page);
+    await page.getByRole('button', { name: 'Create work item', exact: true }).click(); await saved(page);
     const first = await snapshot(), feature = first.workspace.projects[0].data.features.find((item: { title: string }) => item.title === 'Disable Rules');
     const tasks = first.workspace.projects[0].data.tasks.filter((item: { featureId: string }) => item.featureId === feature.id);
     expect(tasks.map((item: { title: string; platform: string; assignee: string; effort: number; dependsOn: string[] }) => [item.title, item.platform, item.assignee, item.effort, item.dependsOn])).toEqual([
@@ -79,10 +79,10 @@ test.describe.serial('user stories estimated by team', () => {
     await replace(); const page = await context.newPage(); await page.goto('/app');
     await page.locator('[data-action=collapse][data-id=f1]').click(); await saved(page);
     await setRoadmapFilter(page,'platforms',['Frontend']);
-    await page.getByRole('button', { name: 'Add user story to Accounts', exact: true }).click();
-    await page.getByLabel('User story name').fill('Add a specific rule');
+    await page.getByRole('button', { name: 'Add sub-item to Accounts', exact: true }).click();
+    await page.getByLabel('Sub-item name').fill('Add a specific rule');
     await page.getByLabel('Earliest start', { exact: true }).fill('2026-11-02');
-    const add = page.getByRole('button', { name: 'Add user story', exact: true }); await expect(add).toBeEnabled();
+    const add = page.getByRole('button', { name: 'Add sub-item', exact: true }); await expect(add).toBeEnabled();
     await selectTeam(page, 'Backend', '3', 'u1'); await selectTeam(page, 'Frontend', '2', 'uFront'); await selectTeam(page, 'QA', '2', 'uQA');
     await page.getByLabel('QA Engineer estimate (days)').fill('0'); await expect(add).toBeDisabled();
     await page.getByRole('checkbox', { name: 'Include QA Engineer', exact: true }).uncheck();
@@ -107,51 +107,51 @@ test.describe.serial('user stories estimated by team', () => {
 
   test('supports custom teams and opt-in chains, and rejects mismatched assignees before creating an epic', async () => {
     await replace(); const page = await context.newPage(); await page.goto('/app');
-    await page.locator('.gantt-corner').getByRole('button', { name: 'Add feature' }).click();
-    await page.getByLabel('Feature name').fill('Invalid assignment');
+    await page.locator('.gantt-corner').getByRole('button', { name: 'Add work item' }).click();
+    await page.getByLabel('Work item name').fill('Invalid assignment');
     await selectTeam(page, 'Backend', '3', 'u1');
     await page.getByLabel('Backend Developer assignee', { exact: true }).evaluate(select => { const option = document.createElement('option'); option.value = 'uFront'; option.text = 'Wrong platform'; select.append(option); });
     await page.getByLabel('Backend Developer assignee', { exact: true }).selectOption('uFront');
-    await page.getByRole('button', { name: 'Create feature', exact: true }).click();
+    await page.getByRole('button', { name: 'Create work item', exact: true }).click();
     await expect(page.locator('#toast-root')).toContainText('matching team member');
     expect((await snapshot()).workspace.projects[0].data.features).toHaveLength(1);
     await page.getByRole('button', { name: 'Cancel', exact: true }).click();
-    await page.getByRole('button', { name: 'Add user story to Accounts', exact: true }).click();
-    await page.getByLabel('User story name').fill('Deploy the rule');
+    await page.getByRole('button', { name: 'Add sub-item to Accounts', exact: true }).click();
+    await page.getByLabel('Sub-item name').fill('Deploy the rule');
     await selectTeam(page, 'DevOps', '.5'); await selectTeam(page, 'QA', '1.5', 'uQA');
-    await page.getByRole('checkbox', { name: 'Link selected teams', exact: false }).check();
-    await expect(page.locator('[data-story-summary]')).toHaveText('2 work items · 2d total effort');
-    await page.getByRole('button', { name: 'Add user story', exact: true }).click(); await saved(page);
+    await page.getByRole('checkbox', { name: 'Link selected roles', exact: false }).check();
+    await expect(page.locator('[data-story-summary]')).toHaveText('2 sub-items · 2d total effort');
+    await page.getByRole('button', { name: 'Add sub-item', exact: true }).click(); await saved(page);
     const data = (await snapshot()).workspace.projects[0].data, tasks = data.tasks.filter((item: { title: string }) => item.title === 'Deploy the rule');
     expect(tasks).toHaveLength(2); expect(tasks[0]).toMatchObject({ platform: 'DevOps', assignee: '', effort: .5, dependsOn: [] });
     expect(tasks[1]).toMatchObject({ platform: 'QA', assignee: 'uQA', effort: 1.5, dependsOn: [tasks[0].id] });
     await expect(page.locator('[data-feature-effort=f1]')).toHaveText('8d effort');
     await expect(page.locator('.gantt-row:not(.feature)').filter({ hasText: 'DevOps Engineer · 0.5d effort' })).toHaveCount(1);
     await page.locator(`.work-name[data-action=drawer-task][data-id="${tasks[0].id}"]`).click();
-    await page.getByLabel('Pure effort (days)', { exact: true }).fill('.35'); await page.getByLabel('Pure effort (days)', { exact: true }).press('Tab'); await saved(page);
+    await page.getByLabel('Estimate (days)', { exact: true }).fill('.35'); await page.getByLabel('Estimate (days)', { exact: true }).press('Tab'); await saved(page);
     expect((await snapshot()).workspace.projects[0].data.tasks.find((item: { id: string }) => item.id === tasks[0].id).effort).toBe(.5);
-    await page.getByLabel('Pure effort (days)', { exact: true }).fill('1.5'); await page.getByLabel('Pure effort (days)', { exact: true }).press('Tab'); await saved(page);
+    await page.getByLabel('Estimate (days)', { exact: true }).fill('1.5'); await page.getByLabel('Estimate (days)', { exact: true }).press('Tab'); await saved(page);
     await expect(page.locator('[data-feature-effort=f1]')).toHaveText('9d effort');
     await page.close();
   });
   test('creates a sub-item with only its name from the epic plus button and estimates it later',async()=>{
     await replace();const page=await context.newPage();await page.goto('/app');await page.locator('.gantt-canvas').waitFor();
     await page.locator('[data-action=collapse][data-id=f1]').click();await saved(page);await setRoadmapFilter(page,'platforms',['Frontend']);
-    await page.getByRole('button',{name:'Add user story to Accounts',exact:true}).click();await page.getByLabel('User story name').fill('Explore a rule');await page.getByLabel('User story name').press('Enter');await saved(page);
+    await page.getByRole('button',{name:'Add sub-item to Accounts',exact:true}).click();await page.getByLabel('Sub-item name').fill('Explore a rule');await page.getByLabel('Sub-item name').press('Enter');await saved(page);
     let state=await snapshot(),task=state.workspace.projects[0].data.tasks.find((t:{title:string})=>t.title==='Explore a rule');expect(task).toMatchObject({platform:'',assignee:'',effort:0,status:'planned',dependsOn:[]});expect(task.roleId).toBeUndefined();
     await expect(page.getByRole('button',{name:'Filter by platform',exact:true})).toContainText('All platforms');await expect(page.locator(`[data-row-task="${task.id}"]`)).toContainText('Not estimated');await expect(page.locator(`.task-bar[data-task="${task.id}"]`)).toHaveCount(0);await expect(page.locator('[data-feature-effort=f1]')).toHaveText('6d known effort');
-    await page.reload();await page.locator('.gantt-canvas').waitFor();await saved(page);await page.locator(`[data-row-task="${task.id}"] .work-name`).click();await expect(page.getByLabel('Pure effort (days)',{exact:true})).toHaveValue('');await expect(page.getByLabel('Role',{exact:true})).toHaveValue('');
-    await page.getByLabel('Team member',{exact:true}).selectOption('u1');await saved(page);await expect(page.getByLabel('Role',{exact:true})).toHaveValue('r1');await page.getByLabel('Pure effort (days)',{exact:true}).fill('.5');await page.getByLabel('Pure effort (days)',{exact:true}).press('Tab');await saved(page);
+    await page.reload();await page.locator('.gantt-canvas').waitFor();await saved(page);await page.locator(`[data-row-task="${task.id}"] .work-name`).click();await expect(page.getByLabel('Estimate (days)',{exact:true})).toHaveValue('');await expect(page.getByLabel('Role',{exact:true})).toHaveValue('');
+    await page.getByLabel('Team member',{exact:true}).selectOption('u1');await saved(page);await expect(page.getByLabel('Role',{exact:true})).toHaveValue('r1');await page.getByLabel('Estimate (days)',{exact:true}).fill('.5');await page.getByLabel('Estimate (days)',{exact:true}).press('Tab');await saved(page);
     await page.keyboard.press('Escape');await expect(page.locator(`.task-bar[data-task="${task.id}"]`)).toBeVisible();await expect(page.locator('[data-feature-effort=f1]')).toHaveText('6.5d effort');
-    await page.locator(`[data-row-task="${task.id}"] .work-name`).click();await page.getByLabel('Pure effort (days)',{exact:true}).fill('');await page.getByLabel('Pure effort (days)',{exact:true}).press('Tab');await saved(page);await page.keyboard.press('Escape');await expect(page.locator(`.task-bar[data-task="${task.id}"]`)).toHaveCount(0);
+    await page.locator(`[data-row-task="${task.id}"] .work-name`).click();await page.getByLabel('Estimate (days)',{exact:true}).fill('');await page.getByLabel('Estimate (days)',{exact:true}).press('Tab');await saved(page);await page.keyboard.press('Escape');await expect(page.locator(`.task-bar[data-task="${task.id}"]`)).toHaveCount(0);
     await page.setViewportSize({width:375,height:812});await page.getByRole('button',{name:'Today',exact:true}).click();await page.screenshot({path:'test-results/name-only-sub-item-mobile.png',fullPage:true});await page.reload();await page.locator('.gantt-canvas').waitFor();await saved(page);state=await snapshot();task=state.workspace.projects[0].data.tasks.find((t:{title:string})=>t.title==='Explore a rule');expect(task).toMatchObject({effort:0,assignee:'u1',platform:'Backend',roleId:'r1'});expect(task.remaining).toBeUndefined();await page.close();
   });
-  test('supports name-only first stories and Add task in a project with no people or roles',async()=>{
+  test('supports name-only first sub-items and adding sub-items from a work item without a team',async()=>{
     const current=await snapshot(),value=fullWorkspace();value.projects[0].data.people=[];value.projects[0].data.roles=[];value.projects[0].data.tasks=[];value.projects[0].data.meetings=[];value.projects[0].data.leave=[];value.projects[0].data.iterations[0].overrides={};
     expect((await context.request.put('/api/workspace',{headers:{Origin:origin},data:{revision:current.revision,workspace:value}})).status()).toBe(200);
-    const page=await context.newPage();await page.goto('/app');await page.locator('.gantt-corner').getByRole('button',{name:'Add feature',exact:true}).click();await page.getByLabel('Feature name').fill('Quick epic');await page.getByLabel('First user story (optional)').fill('Capture an idea');await page.getByRole('button',{name:'Create feature',exact:true}).click();await saved(page);
+    const page=await context.newPage();await page.goto('/app');await page.locator('.gantt-corner').getByRole('button',{name:'Add work item',exact:true}).click();await page.getByLabel('Work item name').fill('Quick epic');await page.getByLabel('First sub-item (optional)').fill('Capture an idea');await page.getByRole('button',{name:'Create work item',exact:true}).click();await saved(page);
     let data=(await snapshot()).workspace.projects[0].data,feature=data.features.find((f:{title:string})=>f.title==='Quick epic');expect(data.tasks.filter((t:{featureId:string})=>t.featureId===feature.id)).toHaveLength(1);await expect(page.locator(`[data-feature-effort="${feature.id}"]`)).toHaveText('Not estimated');
-    await page.locator(`.work-name[data-action=drawer-feature][data-id="${feature.id}"]`).click();await page.locator('.drawer [data-action=open-task]').click();await page.getByLabel('Task name',{exact:true}).fill('Follow-up idea');await page.getByLabel('Task name',{exact:true}).press('Enter');await saved(page);await expect(page.getByRole('heading',{name:'Follow-up idea',exact:true})).toBeVisible();await page.keyboard.press('Escape');
+    await page.locator(`.work-name[data-action=drawer-feature][data-id="${feature.id}"]`).click();await page.locator('.drawer [data-action=open-story]').click();await page.getByLabel('Sub-item name',{exact:true}).fill('Follow-up idea');await page.getByLabel('Sub-item name',{exact:true}).press('Enter');await saved(page);await expect(page.locator('[data-row-task]').filter({hasText:'Follow-up idea'})).toBeVisible();
     await page.reload();await page.locator('.gantt-canvas').waitFor();await saved(page);data=(await snapshot()).workspace.projects[0].data;expect(data.tasks.map((t:{effort:number;platform:string;assignee:string})=>[t.effort,t.platform,t.assignee])).toEqual([[0,'',''],[0,'','']]);await expect(page.locator('.task-bar[data-task]')).toHaveCount(0);await page.screenshot({path:'test-results/name-only-sub-items-empty-team.png',fullPage:true});await page.close();
   });
 

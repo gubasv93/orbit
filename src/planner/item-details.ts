@@ -100,10 +100,10 @@ export function getItemDetails(data: ProjectData, computed: Schedule, kind: Kind
     else if (scheduled?.blocked && !scheduled.needsEstimate) issues.push({kind: 'blocked', task: reference(t), message: scheduled.reason || 'This work item has no reliable forecast.'});
   }
   if (task && !completed && task.remaining !== undefined && task.remaining < task.effort) notes.push(`Estimate includes ${round(task.effort - task.remaining)} work days already completed; ${round(task.remaining)} work days remain.`);
-  if (feature) notes.push('Estimate uses person-days across work items. Parallel work can finish in fewer calendar days.');
+  if (feature) notes.push('Estimate uses person-days across sub-items. Parallel work can finish in fewer calendar days.');
   if (feature && computed.featureInfo[id].forecastIncomplete && end !== null) notes.push('These dates cover scheduled work only. Paused, unestimated or blocked items do not have a reliable finish date.');
   if (estimateManual) notes.push(`The estimate is manual. Work-item estimates sum to ${round(knownEstimate)} person-days.`);
-  if (unestimatedCount) notes.push(`${unestimatedCount} work item${unestimatedCount === 1 ? ' has' : 's have'} no estimate. Known estimates total ${round(knownEstimate)} ${feature ? 'person-days' : 'work days'}.`);
+  if (unestimatedCount) notes.push(`${unestimatedCount} sub-item${unestimatedCount === 1 ? ' has' : 's have'} no estimate. Known estimates total ${round(knownEstimate)} ${feature ? 'person-days' : 'work days'}.`);
 
   // Build each overbooked person/date once. Epic rows name affected tasks, not
   // every task pair; otherwise N simultaneous children create N² popup rows.
@@ -176,7 +176,7 @@ export function getItemDetails(data: ProjectData, computed: Schedule, kind: Kind
       const after = startsAfter || endsAfter;
       if (before || after) conflicts.push({id: `window:${t.id}`, kind: 'window', task: reference(t), relatedTask: null,
         dates: [...new Set([before && target.start !== null || startsAfter ? fromDay(target.start!) : '', endsAfter ? fromDay(target.end!) : ''].filter(Boolean))],
-        message: 'This work item falls outside the feature’s manual date window.'});
+        message: 'This sub-item falls outside the work item’s manual date window.'});
     }
   }
 
@@ -248,9 +248,9 @@ export function getItemDetails(data: ProjectData, computed: Schedule, kind: Kind
   if (completed) notes.push('Meeting time and personal leave were not tracked as history. Current rules are not applied retrospectively.');
   else if (!includedWindows) notes.push('Meeting and personal-leave totals become available when work items have scheduled date windows.');
   else if (feature) {
-    notes.push('Recurring meetings and personal leave count each person/date once across overlapping work items. Meeting totals use participant time.');
-    if (tasks.some(t => !active(computed.schedule[t.id]))) notes.push('Meeting and personal-leave totals cover scheduled, unfinished work items only.');
-    if (feature.manualEnd) notes.push('Time breakdown is limited to this feature’s manual date window.');
+    notes.push('Recurring meetings and personal leave count each person/date once across overlapping sub-items. Meeting totals use participant time.');
+    if (tasks.some(t => !active(computed.schedule[t.id]))) notes.push('Meeting and personal-leave totals cover scheduled, unfinished sub-items only.');
+    if (feature.manualEnd) notes.push('Time breakdown is limited to this work item’s manual date window.');
   }
   if (task && !task.assignee && !completed) notes.push('Select an assignee to include their recurring meetings and personal leave.');
   const hasShortfall = tasks.some(t => positive(computed.schedule[t.id]?.shortfall));

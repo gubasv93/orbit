@@ -25,14 +25,14 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
  test.beforeAll(async({browser})=>{context=await browser.newContext();const page=await context.newPage(),password='Orbit9'+randomUUID();await page.goto('/signup');await page.getByLabel('First name',{exact:true}).fill('Test');await page.getByLabel('Last name',{exact:true}).fill('User');await page.getByRole('region',{name:'Cookies and browser storage',exact:true}).getByRole('button',{name:'Got it',exact:true}).click();await page.getByLabel('Email address').fill(`orbit-map-${randomUUID()}@example.com`);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByLabel('Confirm password').fill(password);await acceptSignupTerms(page); await page.getByRole('button',{name:'Create account'}).click();await expect(page).toHaveURL(/\/app$/);await page.close();});
  test.afterAll(async()=>{await context?.close();});
  test('selects distinct compact roles sharing a platform and persists role-matched assignments',async()=>{
-  await reset();const page=await context.newPage();await page.goto('/app');await page.locator('.gantt-corner').getByRole('button',{name:'Add feature'}).click();await page.getByLabel('Feature name').fill('Role-based epic');
+  await reset();const page=await context.newPage();await page.goto('/app');await page.locator('.gantt-corner').getByRole('button',{name:'Add work item'}).click();await page.getByLabel('Work item name').fill('Role-based epic');
   await expect(page.getByRole('checkbox',{name:'Include Backend',exact:true})).toHaveCount(0);
   const row=page.locator('[data-story-team]').first();expect((await row.boundingBox())!.height).toBeLessThan(48);
   for(const [role,person,estimate]of [['Backend Developer','u1','3'],['Backend Reviewer','u2','2']]){await page.getByRole('checkbox',{name:'Include '+role,exact:true}).check();await page.getByLabel(role+' estimate (days)').fill(estimate);await page.getByLabel(role+' assignee',{exact:true}).selectOption(person);}
   expect(await page.getByLabel('Backend Developer assignee',{exact:true}).locator('option').evaluateAll(nodes=>nodes.map(node=>(node as HTMLOptionElement).value))).toEqual(['','u1']);
   expect((await row.boundingBox())!.height).toBeLessThan(72);
   await page.setViewportSize({width:375,height:812});expect(await page.getByRole('dialog').evaluate(node=>node.scrollWidth<=node.clientWidth)).toBe(true);expect((await row.boundingBox())!.height).toBeLessThan(105);
-  await page.screenshot({path:'test-results/compact-roles.png',fullPage:true});await page.getByRole('button',{name:'Create feature',exact:true}).click();await saved(page);
+  await page.screenshot({path:'test-results/compact-roles.png',fullPage:true});await page.getByRole('button',{name:'Create work item',exact:true}).click();await saved(page);
   const data=(await snapshot()).workspace.projects[0].data,created=data.features.find((f:{title:string})=>f.title==='Role-based epic');expect(data.tasks.filter((t:{featureId:string})=>t.featureId===created.id).map((t:{roleId:string;assignee:string})=>[t.roleId,t.assignee])).toEqual([['r1','u1'],['rReview','u2']]);await page.reload();await saved(page);
   await page.setViewportSize({width:1280,height:720});
   for(const task of data.tasks.filter((item:{featureId:string})=>item.featureId===created.id)){
@@ -60,7 +60,7 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   await page.keyboard.press('Escape');await bar.scrollIntoViewIfNeeded();const before=(await bar.boundingBox())!;await page.mouse.move(before.x+before.width/2,before.y+before.height/2);await page.mouse.down();await page.mouse.move(before.x+before.width/2+76,before.y+before.height/2,{steps:8});await page.mouse.up();await saved(page);
   await page.locator('.work-name[data-action=drawer-task][data-id=t1]').click();await expect(page.getByLabel('Start date')).toHaveValue('2026-10-29');await page.keyboard.press('Escape');
   await page.locator('.work-name[data-action=drawer-feature][data-id=f1]').click();const automaticEnd=await page.getByLabel('End date').inputValue();await expect(page.getByLabel('Start date')).toHaveValue('2026-10-26');
-  await page.getByLabel('End date').fill('2026-10-28');await page.getByLabel('End date').press('Tab');await saved(page);await expect(page.locator('.drawer-content')).toContainText('outside this feature window');await page.reload();await saved(page);
+  await page.getByLabel('End date').fill('2026-10-28');await page.getByLabel('End date').press('Tab');await saved(page);await expect(page.locator('.drawer-content')).toContainText('outside this work item window');await page.reload();await saved(page);
   await page.locator('.work-name[data-action=drawer-feature][data-id=f1]').click();await expect(page.getByLabel('End date')).toHaveValue('2026-10-28');await page.getByLabel('Date mode').selectOption('automatic');await saved(page);await expect(page.getByLabel('End date')).toHaveValue(automaticEnd);await page.keyboard.press('Escape');await page.screenshot({path:'test-results/capacity-bands.png',fullPage:true});await page.close();
  });
  test('draws dependencies on the map, prevents cycles, and supports keyboard/tap removal across zoom and filters',async()=>{
@@ -83,7 +83,7 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   expect((await snapshot()).workspace.projects[0].data.tasks[2].start).toBe('2026-10-26');await expect(page.locator('.dependency-edge[data-to=t3]')).toHaveClass(/timing-warning/);
   await page.locator('.work-name[data-action=drawer-task][data-id=t3]').click();await expect(page.getByLabel('Start date')).toHaveValue('2026-10-26');await page.keyboard.press('Escape');
   await openSettings(page);await expect(page.getByRole('heading',{name:'General settings'})).toBeVisible();
-  const automatic=page.getByRole('checkbox',{name:'Auto-shift dependent work items',exact:true});await expect(automatic).not.toBeChecked();await expect(page.getByLabel('Gap between dependent items')).toBeDisabled();
+  const automatic=page.getByRole('checkbox',{name:'Auto-shift dependent sub-items',exact:true});await expect(automatic).not.toBeChecked();await expect(page.getByLabel('Gap between dependent items')).toBeDisabled();
   await automatic.check();await page.getByLabel('Gap between dependent items').fill('5');await page.getByLabel('Gap unit').selectOption('calendar');
   await page.getByRole('button',{name:'Save settings',exact:true}).click();await saved(page);
   await page.locator('.work-name[data-action=drawer-task][data-id=t3]').click();await expect(page.getByLabel('Start date')).toHaveValue('2026-11-09');
@@ -128,12 +128,12 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   await page.mouse.move(a.x+10,a.y+12);await page.mouse.down();await page.mouse.move(a.x+35,a.y-65,{steps:8});await page.dispatchEvent('body','pointercancel');await page.mouse.up();expect((await snapshot()).workspace).toEqual(stable.workspace);
   // Keyboard fallback uses the same validated move command.
   await page.waitForTimeout(270);await grip.focus();await page.keyboard.press('Enter');await expect(page.getByRole('heading',{name:'Move item',exact:true})).toBeVisible();
-  await page.getByLabel('Parent epic', {exact:true}).selectOption('f2');await page.getByLabel('Position', {exact:true}).selectOption('t4');await page.getByRole('button',{name:'Move item',exact:true}).click();await saved(page);
+  await page.getByLabel('Parent work item', {exact:true}).selectOption('f2');await page.getByLabel('Position', {exact:true}).selectOption('t4');await page.getByRole('button',{name:'Move item',exact:true}).click();await saved(page);
   expect(await order()).toEqual(['f3','t3','f2','t1','t2','t4','f1']);
   const updated=(await snapshot()).workspace.projects[0].data;
   for(const task of updated.tasks){const original=originals.find(item=>item.id===task.id)!;expect({...task,featureId:original.featureId}).toEqual(original);}
   await page.reload();await saved(page);expect(await order()).toEqual(['f3','t3','f2','t1','t2','t4','f1']);
-  await page.setViewportSize({width:375,height:812});await page.locator('[data-row-drag=task][data-id=t2]').click();await page.getByLabel('Parent epic',{exact:true}).selectOption('f1');
+  await page.setViewportSize({width:375,height:812});await page.locator('[data-row-drag=task][data-id=t2]').click();await page.getByLabel('Parent work item',{exact:true}).selectOption('f1');
   expect(await page.getByRole('dialog').evaluate(node=>node.scrollWidth<=node.clientWidth)).toBe(true);await page.screenshot({path:'test-results/move-roadmap-item-mobile.png',fullPage:true});
   await page.getByRole('button',{name:'Move item',exact:true}).click();await saved(page);expect((await snapshot()).workspace.projects[0].data.tasks.find((t:{id:string})=>t.id==='t2').featureId).toBe('f1');
   // Backup carries the chosen order and new parent references.
@@ -196,13 +196,13 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   const bar=page.locator('.task-bar[data-task=t1]'),full=page.locator('.task-bar[data-task=t2]');
   await expect(bar).toHaveAttribute('data-item-summary',/0.5 calendar days/);expect((await bar.boundingBox())!.width/(await full.boundingBox())!.width).toBeCloseTo(.5,2);
   await expect(page.getByLabel('Timeline colors')).not.toContainText('Unused');await expect(page.locator('.capacity-band').first()).not.toHaveAttribute('style',/#edf0f6/);
-  await page.getByRole('button',{name:'Add user story to Configure suggestion categories as an administrator',exact:true}).click();await page.getByLabel('User story name').fill('Half-day change');await page.getByRole('checkbox',{name:'Include Backend Developer',exact:true}).check();
-  const input=page.getByLabel('Backend Developer estimate (days)');await expect(input).toHaveAttribute('min','0.5');await expect(input).toHaveAttribute('step','0.5');await input.fill('.25');await expect(page.getByRole('button',{name:'Add user story',exact:true})).toBeDisabled();await input.fill('.5');await page.getByRole('button',{name:'Add user story',exact:true}).click();await saved(page);
+  await page.getByRole('button',{name:'Add sub-item to Configure suggestion categories as an administrator',exact:true}).click();await page.getByLabel('Sub-item name').fill('Half-day change');await page.getByRole('checkbox',{name:'Include Backend Developer',exact:true}).check();
+  const input=page.getByLabel('Backend Developer estimate (days)');await expect(input).toHaveAttribute('min','0.5');await expect(input).toHaveAttribute('step','0.5');await input.fill('.25');await expect(page.getByRole('button',{name:'Add sub-item',exact:true})).toBeDisabled();await input.fill('.5');await page.getByRole('button',{name:'Add sub-item',exact:true}).click();await saved(page);
   const created=(await snapshot()).workspace.projects[0].data.tasks.find((task:{title:string})=>task.title==='Half-day change');expect(created.effort).toBe(.5);await expect(page.locator(`.task-bar[data-task="${created.id}"]`)).toHaveAttribute('data-item-summary',/0.5 calendar days/);
   const changed=workspace();changed.projects[0].data.settings.autoShiftDependencies=false;changed.projects[0].data.tasks[0].effort=.5;
   changed.projects[0].data.meetings=[{id:'quarter',title:'Quarter day',recurrence:'workdays',weekday:1,interval:1,nth:1,startDate:'2026-10-26',endDate:'',startTime:'09:00',duration:120,allTeam:true,attendees:[],enabled:true}];
   await reset(changed);await page.reload();await saved(page);await expect(bar).toHaveAttribute('data-item-summary',/1 calendar days/);await expect(bar).toHaveAttribute('data-item-summary',/Development: 0.5d.*Recurring meetings: 0.5d/);
-  await page.locator('.work-name[data-action=drawer-task][data-id=t1]').click();await expect(page.locator('.drawer-content')).not.toContainText('Unused');await expect(page.getByLabel('Pure effort (days)',{exact:true})).toHaveValue('0.5');await page.keyboard.press('Escape');
+  await page.locator('.work-name[data-action=drawer-task][data-id=t1]').click();await expect(page.locator('.drawer-content')).not.toContainText('Unused');await expect(page.getByLabel('Estimate (days)',{exact:true})).toHaveValue('0.5');await page.keyboard.press('Escape');
   expect((await snapshot()).workspace.projects[0].data.meetings[0].duration).toBe(120);await page.screenshot({path:'test-results/half-day-chart.png',fullPage:true});await page.close();
  });
  test('changes assignees directly in roadmap rows with exact-role choices and persistence',async()=>{
@@ -301,7 +301,7 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
    const person=page.locator('.meeting-person').first();await expect(person).toBeVisible();expect(await page.getByRole('dialog').evaluate(node=>node.scrollWidth<=node.clientWidth)).toBe(true);
    const check=(await person.locator('input').boundingBox())!,name=(await person.locator('.meeting-person-name').boundingBox())!;expect(check.x+check.width).toBeLessThan(name.x);expect(name.x+name.width).toBeLessThanOrEqual(width);
    if(width===375)await page.screenshot({path:'test-results/aligned-meeting-attendees-mobile.png',fullPage:true});await page.keyboard.press('Escape');
-   await page.locator('.gantt-corner').getByRole('button',{name:'Add feature',exact:true}).click();await page.getByRole('checkbox',{name:'Include '+data.roles[0].name,exact:true}).check();expect(await page.getByRole('dialog').evaluate(node=>node.scrollWidth<=node.clientWidth)).toBe(true);
+   await page.locator('.gantt-corner').getByRole('button',{name:'Add work item',exact:true}).click();await page.getByRole('checkbox',{name:'Include '+data.roles[0].name,exact:true}).check();expect(await page.getByRole('dialog').evaluate(node=>node.scrollWidth<=node.clientWidth)).toBe(true);
    if(width===375)await page.screenshot({path:'test-results/aligned-story-estimates-mobile.png',fullPage:true});await page.keyboard.press('Escape');
   }
   if(await page.getByRole('button',{name:'Show sidebar',exact:true}).isVisible())await page.getByRole('button',{name:'Show sidebar',exact:true}).click();
@@ -354,7 +354,7 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   await expect(parent).toHaveAttribute('data-item-summary',/9 calendar days/);await expect(task).toHaveAttribute('data-item-summary',/1d effort.*3 calendar days/);await expect(page.getByLabel('Timeline colors')).not.toContainText('Unused');
   for(const scale of ['week','month','quarter','year','day']){await page.getByLabel('Timeline scale').selectOption(scale);await expect(parent.locator('.capacity-band')).toHaveAttribute('style',parentMix);await expect(task.locator('.capacity-band')).toHaveAttribute('style',taskMix);}
   expect((await snapshot()).workspace.projects[0].data).toEqual(before);
-  await page.locator('.work-name[data-action=drawer-task][data-id=t1]').click();await expect(page.getByLabel('Pure effort (days)',{exact:true})).toHaveValue('1');await expect(page.getByLabel('End date')).toHaveValue('2026-10-28');await expect(page.locator('.drawer-content')).not.toContainText('The bar length follows');await page.keyboard.press('Escape');
+  await page.locator('.work-name[data-action=drawer-task][data-id=t1]').click();await expect(page.getByLabel('Estimate (days)',{exact:true})).toHaveValue('1');await expect(page.getByLabel('End date')).toHaveValue('2026-10-28');await expect(page.locator('.drawer-content')).not.toContainText('The bar length follows');await page.keyboard.press('Escape');
   await page.setViewportSize({width:375,height:812});await page.getByRole('button',{name:'Today',exact:true}).click();await page.screenshot({path:'test-results/filled-accounted-time-mix-mobile.png',fullPage:true});
   const outside=workspace();outside.projects[0].data.settings.autoShiftDependencies=false;outside.projects[0].data.features[0].manualEnd='2026-10-27';for(const t of outside.projects[0].data.tasks)t.start='2026-11-09';
   // Scale preferences autosave too; finish that write before replacing fixtures.

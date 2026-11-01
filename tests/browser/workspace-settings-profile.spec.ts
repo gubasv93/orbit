@@ -124,7 +124,7 @@ test('General settings groups appearance and dependency controls and both worksp
     await expect(dialog.getByRole('heading', {name: 'General settings', exact: true})).toBeVisible();
     await expect(dialog).not.toContainText('Scheduling behavior');
     await expect(dialog.locator('.dependency-advanced')).not.toHaveAttribute('open', '');
-    await expect(dialog.getByRole('checkbox', {name: 'Auto-shift dependent work items', exact: true})).toBeVisible();
+    await expect(dialog.getByRole('checkbox', {name: 'Auto-shift dependent sub-items', exact: true})).toBeVisible();
     await dialog.getByRole('button', {name: 'Dark theme', exact: true}).click();
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
     await dialog.getByText('Advanced options', {exact: true}).click();

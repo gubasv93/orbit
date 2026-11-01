@@ -36,10 +36,10 @@ test.describe.serial('real authentication, onboarding, planning, and durable own
     await page.getByLabel('Meeting name').fill('Daily sync'); await page.getByLabel('Duration (minutes)').fill('30');
     await page.getByRole('button', { name: 'Create meeting' }).click();
     await page.getByRole('button', { name: 'Finish setup', exact: true }).click();
-    await page.getByRole('button', { name: 'Add feature', exact: true }).click(); await page.getByLabel('Feature name').fill('Secure accounts');
+    await page.getByRole('button', { name: 'Add work item', exact: true }).click(); await page.getByLabel('Work item name').fill('Secure accounts');
     await page.getByRole('checkbox', { name: 'Include DevOps Engineer', exact: true }).check();
     await page.getByLabel('DevOps Engineer estimate (days)').fill('2');
-    await page.getByRole('button', { name: 'Create feature' }).click(); await saved(page);
+    await page.getByRole('button', { name: 'Create work item' }).click(); await saved(page);
     await expect(page.getByText('Secure accounts', { exact: true }).first()).toBeVisible();
     const before = await (await owner.request.get('/api/workspace')).json();
     expect(before.workspace.projects[0].data.people).toHaveLength(2); expect(before.workspace.projects[0].data.meetings).toHaveLength(1);
@@ -77,10 +77,10 @@ test.describe.serial('real authentication, onboarding, planning, and durable own
     const page = await owner.newPage(); await page.goto('/app'); await expect(page.getByText('Accounts', { exact: true }).first()).toBeVisible();
     await page.getByRole('button', { name: 'Show sidebar', exact: true }).click();
     await page.locator('[data-action=drawer-task][data-id=t1]').first().click();
-    await page.getByLabel('Pure effort (days)', { exact: true }).fill('5'); await page.getByLabel('Pure effort (days)', { exact: true }).press('Tab');
+    await page.getByLabel('Estimate (days)', { exact: true }).fill('5'); await page.getByLabel('Estimate (days)', { exact: true }).press('Tab');
     await page.getByRole('button', { name: 'Put on hold', exact: true }).click(); await saved(page);
     let data = (await (await owner.request.get('/api/workspace')).json()).workspace.projects[0].data; expect(data.tasks[0].status).toBe('hold'); expect(data.tasks[0].effort).toBe(5);
-    await page.getByRole('button', { name: 'Resume task', exact: true }).click(); await page.keyboard.press('Escape'); await saved(page);
+    await page.getByRole('button', { name: 'Resume sub-item', exact: true }).click(); await page.keyboard.press('Escape'); await saved(page);
     for (const scale of ['day','week','month','quarter','year']) { await page.getByLabel('Timeline scale').selectOption(scale); await expect(page.locator(`.gantt-canvas.scale-${scale}`)).toBeVisible(); }
     await setRoadmapFilter(page,'people',['Alex Dev']); await setRoadmapFilter(page,'platforms',['Backend']); await expect(page.locator('.gantt-row:not(.feature)')).toHaveCount(2);
     await setRoadmapFilter(page,'platforms',['Frontend']); await expect(page.locator('.gantt-row:not(.feature)')).toHaveCount(0);
@@ -137,16 +137,16 @@ test.describe.serial('real authentication, onboarding, planning, and durable own
     const current=await (await owner.request.get('/api/workspace')).json(); expect((await owner.request.put('/api/workspace',{headers:{Origin:'http://localhost:3000'},data:{revision:current.revision,workspace:before.workspace}})).status()).toBe(200); await page.close();
   });
   test('retains unsaved work on a failed save and detects stale tabs', async () => {
-    const page = await owner.newPage(); await page.goto('/app'); await expect(page.getByRole('button', { name: 'Add feature', exact: true })).toBeVisible();
+    const page = await owner.newPage(); await page.goto('/app'); await expect(page.getByRole('button', { name: 'Add work item', exact: true })).toBeVisible();
     await page.route('**/api/workspace', async route => { if (route.request().method() === 'PUT') await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Injected test outage' }) }); else await route.continue(); });
-    await page.getByRole('button', { name: 'Add feature', exact: true }).click(); await page.getByLabel('Feature name').fill('Keep my unsaved work'); await page.getByRole('button', { name: 'Create feature' }).click();
+    await page.getByRole('button', { name: 'Add work item', exact: true }).click(); await page.getByLabel('Work item name').fill('Keep my unsaved work'); await page.getByRole('button', { name: 'Create work item' }).click();
     await expect(page.locator('.save-bar [role=status]')).toHaveText('Not saved'); await expect(page.locator('.save-error')).toContainText('Injected test outage');
     const download = page.waitForEvent('download'); await openSettings(page);await page.getByRole('button', { name: 'Export workspace',exact:true }).click(); expect((await download).suggestedFilename()).toMatch(/^orbit-workspace-/);
     await page.keyboard.press('Escape');await page.unroute('**/api/workspace'); await page.getByRole('button', { name: 'Retry saving' }).click(); await saved(page);
-    const stale = await owner.newPage(); await stale.goto('/app'); await expect(stale.getByRole('button', { name: 'Add feature', exact: true })).toBeVisible();
+    const stale = await owner.newPage(); await stale.goto('/app'); await expect(stale.getByRole('button', { name: 'Add work item', exact: true })).toBeVisible();
     const current = await (await owner.request.get('/api/workspace')).json(); current.workspace.projects[0].name = 'Newer remote changes';
     expect((await owner.request.put('/api/workspace', { headers: { Origin: 'http://localhost:3000' }, data: { workspace: current.workspace, revision: current.revision } })).status()).toBe(200);
-    await stale.getByRole('button', { name: 'Add feature', exact: true }).click(); await stale.getByLabel('Feature name').fill('Stale tab edit'); await stale.getByRole('button', { name: 'Create feature' }).click();
+    await stale.getByRole('button', { name: 'Add work item', exact: true }).click(); await stale.getByLabel('Work item name').fill('Stale tab edit'); await stale.getByRole('button', { name: 'Create work item' }).click();
     await expect(stale.locator('.save-bar [role=status]')).toHaveText('Newer changes exist');
     expect((await (await owner.request.get('/api/workspace')).json()).workspace.projects[0].name).toBe('Newer remote changes');
     page.on('dialog', dialog => dialog.accept()); stale.on('dialog', dialog => dialog.accept()); await page.close(); await stale.close();

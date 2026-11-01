@@ -9,24 +9,26 @@ export function workstreamNames(data: Pick<TeamData, 'roles' | 'tasks'>, extra =
   ].filter(Boolean))].sort((a, b) => a.localeCompare(b));
 }
 
+const estimate = z.union([z.literal(0),z.number().min(0.5, 'Estimates must be at least 0.5 work days').max(3650, 'Estimates cannot exceed 3650 work days').multipleOf(.5, 'Use 0.5-day steps')]);
 const draftSchema = z.object({
-  title: z.string().trim().min(1, 'Enter a user story name').max(200),
+  title: z.string().trim().min(1, 'Enter a sub-item name').max(200),
   start: z.iso.date().refine(value => value >= '2000-01-01' && value <= '2200-12-31', 'Choose a date between 2000 and 2200'),
+  effort: estimate.optional(),
   teams: z.array(z.object({
     platform: z.string().trim().min(1).max(200).optional(), roleId: z.string().optional(), assignee: z.string().default(''),
-    effort: z.union([z.literal(0),z.number().min(0.5, 'Estimates must be at least 0.5 work days').max(3650, 'Estimates cannot exceed 3650 work days').multipleOf(.5, 'Use 0.5-day steps')]).default(0),
+    effort: estimate.default(0),
   })).max(1000),
   sequential: z.boolean().default(false),
-});
+}).refine(value => !value.teams.length || value.effort === undefined, 'Use role estimates or a standalone estimate, rather than both');
 
 // A story fans out to ordinary platform work items in the existing epic model.
 // Build and validate the entire batch before the caller mutates the workspace.
 export function buildStoryWorkItems(featureId: string, draft: unknown, data: TeamData, storyId = `s${crypto.randomUUID()}`): ProjectData['tasks'] {
   const parsed = draftSchema.parse(draft), platforms = new Set(workstreamNames(data));
   if (new Set(parsed.teams.map(team => team.roleId || team.platform)).size !== parsed.teams.length) throw new Error('Select each role only once');
-  if (data.tasks.length + Math.max(1, parsed.teams.length) > 3000) throw new Error('A project can contain at most 3000 work items');
+  if (data.tasks.length + Math.max(1, parsed.teams.length) > 3000) throw new Error('A project can contain at most 3000 sub-items');
   if (!parsed.teams.length) return [{ id: `t${crypto.randomUUID()}`, featureId, storyId, title: parsed.title,
-    platform: '', assignee: '', effort: 0, start: parsed.start, status: 'planned', dependsOn: [] }];
+    platform: '', assignee: '', effort: parsed.effort ?? 0, start: parsed.start, status: 'planned', dependsOn: [] }];
   for (const team of parsed.teams) {
     const role = team.roleId ? data.roles.find(role => role.id === team.roleId) : undefined;
     if (team.roleId && !role) throw new Error('Choose a role from this project');
@@ -60,10 +62,10 @@ export function storyRoleIds(task: ProjectData['tasks'][number], data: TeamData)
 
 /** Validate the entire addition before changing the source or its siblings. */
 export function planStoryRoles(taskId: string, draft: unknown, data: TeamData) {
-  const source = data.tasks.find(t => t.id === taskId);if (!source) throw new Error('Choose an existing story');
+  const source = data.tasks.find(t => t.id === taskId);if (!source) throw new Error('Choose an existing sub-item');
   const parsed = draftSchema.parse(draft), roles = storyRoleIds(source,data);
   if (!parsed.teams.length) throw new Error('Choose at least one new role');
-  if (parsed.teams.some(t => !t.roleId || roles.has(t.roleId))) throw new Error('Choose roles that have not been added to this story');
+  if (parsed.teams.some(t => !t.roleId || roles.has(t.roleId))) throw new Error('Choose roles that have not been added to this sub-item');
   const reuse = source.effort === 0 && !source.roleId && !source.platform && !source.assignee && source.status === 'planned';
   if (reuse && source.manualEnd && (parsed.start > source.manualEnd || Date.parse(source.manualEnd)-Date.parse(parsed.start)>=3650*86400000)) throw new Error('Keep the existing manual date window valid when adding roles');
   const storyId = source.storyId || `s${crypto.randomUUID()}`;

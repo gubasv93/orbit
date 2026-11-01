@@ -114,8 +114,8 @@ test('the same appearance works across real roadmap details and a Poker room wit
     await expect(page.getByRole('dialog',{name:'Cookies, kept simple',exact:true})).toBeHidden();
     await expect(page.locator('.drawer')).toBeVisible();
     await page.getByRole('region',{name:'Cookies and browser storage',exact:true}).getByRole('button',{name:'Got it',exact:true}).click();
-    await expect(page.getByLabel('Pure effort (days)',{exact:true})).toHaveValue('3');
-    await readableSurface(page.getByLabel('Pure effort (days)',{exact:true}),'dark');
+    await expect(page.getByLabel('Estimate (days)',{exact:true})).toHaveValue('3');
+    await readableSurface(page.getByLabel('Estimate (days)',{exact:true}),'dark');
     await page.screenshot({path:'test-results/appearance-drawer-dark-1440.png',fullPage:true});
     await page.keyboard.press('Escape');
     for(const width of [1280,375,320]) {
@@ -131,29 +131,29 @@ test('the same appearance works across real roadmap details and a Poker room wit
     await page.goto(`/poker/${token}?issue=t1`);await theme(page,'dark');
     await expect(page.locator('.poker-table')).toBeVisible();
     await readableSurface(page.locator('.poker-issues'),'dark');
-    await readableSurface(page.getByLabel('Search epics or stories',{exact:true}),'dark');
+    await readableSurface(page.getByLabel('Search work items or sub-items',{exact:true}),'dark');
     await page.getByRole('button',{name:'Vote 3',exact:true}).click();
     await page.getByRole('button',{name:'Reveal cards',exact:true}).click();
     await expect(page.getByRole('button',{name:'Finalize Estimate',exact:true})).toBeVisible();
     await page.screenshot({path:'test-results/appearance-poker-dark-1280.png',fullPage:true});
-    await page.getByRole('button',{name:'Edit story estimate',exact:true}).click();
-    await readableSurface(page.getByRole('dialog',{name:'Edit Story',exact:true}),'dark');
-    await expect(page.getByLabel('Story title',{exact:true})).toHaveValue('API');
-    await readableSurface(page.getByLabel('Story title',{exact:true}),'dark');
+    await page.getByRole('button',{name:'Edit sub-item estimate',exact:true}).click();
+    await readableSurface(page.getByRole('dialog',{name:'Edit sub-item',exact:true}),'dark');
+    await expect(page.getByLabel('Sub-item name',{exact:true})).toHaveValue('API');
+    await readableSurface(page.getByLabel('Sub-item name',{exact:true}),'dark');
     await expect(page.getByLabel('Backend Developer estimate (days)',{exact:true})).toHaveValue('3');
     await readableSurface(page.getByLabel('Backend Developer estimate (days)',{exact:true}),'dark');
     await page.screenshot({path:'test-results/appearance-poker-editor-dark-1280.png',fullPage:true});
-    await page.getByRole('button',{name:'Close story form',exact:true}).click();
+    await page.getByRole('button',{name:'Close sub-item form',exact:true}).click();
     await workspaceTheme(page,'light',before.workspace.activeId);
     await readableSurface(page.locator('.poker-issues'),'light');
-    await readableSurface(page.getByLabel('Search epics or stories',{exact:true}),'light');
+    await readableSurface(page.getByLabel('Search work items or sub-items',{exact:true}),'light');
     for(const width of [1280,375,320]) {
       await page.setViewportSize({width,height:900});
       const hideNavigation=page.getByRole('button',{name:'Hide project navigation',exact:true});
       if(width<900&&await hideNavigation.isVisible())await hideNavigation.click();
-      const hideFeatures=page.getByRole('complementary',{name:'Features / Epics',exact:true}).getByRole('button',{name:'Hide features list',exact:true});
+      const hideFeatures=page.getByRole('complementary',{name:'Work items',exact:true}).getByRole('button',{name:'Hide work items list',exact:true});
       if(width<651&&await hideFeatures.isVisible())await hideFeatures.click();
-      await noOverflow(page);await expect(page.getByRole('button',{name:'Edit story estimate',exact:true})).toBeInViewport();
+      await noOverflow(page);await expect(page.getByRole('button',{name:'Edit sub-item estimate',exact:true})).toBeInViewport();
       await page.screenshot({path:`test-results/appearance-poker-light-${width}.png`,fullPage:true});
     }
     await page.reload();await theme(page,'light');await expect(page.locator('.poker-table')).toBeVisible();

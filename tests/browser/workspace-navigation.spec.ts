@@ -34,9 +34,9 @@ async function acknowledgeCookies(page: Page) {
 }
 
 async function addFeature(page: Page, title: string) {
-  await page.getByRole('button', {name: 'Add feature', exact: true}).click();
-  await page.getByLabel('Feature name', {exact: true}).fill(title);
-  await page.getByRole('button', {name: 'Create feature', exact: true}).click();
+  await page.getByRole('button', {name: 'Add work item', exact: true}).click();
+  await page.getByLabel('Work item name', {exact: true}).fill(title);
+  await page.getByRole('button', {name: 'Create work item', exact: true}).click();
 }
 
 test('guide, profile and poker stay in the signed-in workspace and navigation saves edits before leaving', async ({browser}) => {
