@@ -17,7 +17,7 @@ async function ageRoom(seconds:number){await admin('update public.orbit_poker_ro
 async function ageEmpty(seconds:number){await admin('update public.orbit_poker_rooms set empty_since=clock_timestamp()-$1::int*interval \'1 second\' where invite_token=$2',[seconds,token]);}
 
 beforeAll(async()=>{
- db=new PGlite();await db.exec(`create role anon;create role authenticated; create role service_role;create schema auth;grant usage on schema auth to anon,authenticated;create table auth.users(id uuid primary key);insert into auth.users values('${owner}'),('${other}');create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;`);
+ db=new PGlite();await db.exec(`create role anon;create role authenticated; create role service_role;create schema auth;grant usage on schema auth to anon,authenticated;create table auth.users(id uuid primary key,created_at timestamptz default '2026-01-01T00:00:00Z');insert into auth.users(id) values('${owner}'),('${other}');create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;`);
  const dir=new URL('../supabase/migrations/',import.meta.url);for(const file of readdirSync(dir).filter(name=>/^\d{14}_[a-z0-9_]+\.sql$/.test(name)).sort())await db.exec(readFileSync(new URL(file,dir),'utf8'));
  await user(owner);const loaded=(await db.query<{result:{revision:number}}>('select public.orbit_get_workspace() as result')).rows[0].result;
  await db.query('select public.orbit_save_workspace($1::jsonb,$2)',[JSON.stringify(fullWorkspace()),loaded.revision]);

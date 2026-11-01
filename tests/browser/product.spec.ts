@@ -1,3 +1,4 @@
+import {acceptSignupTerms} from './legal-fixtures';
 import { setRoadmapFilter } from './filters';
 import { test, expect, type BrowserContext, type Page } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
@@ -12,7 +13,7 @@ async function signup(page: Page, address: string) {
   await page.getByRole('region', { name: 'Cookies and browser storage', exact: true }).getByRole('button', { name: 'Got it', exact: true }).click();
   await page.getByLabel('Email address').fill(address);
   await page.getByLabel('Password', { exact: true }).fill(password); await page.getByLabel('Confirm password').fill(password);
-  await page.getByRole('button', { name: 'Create account' }).click();
+  await acceptSignupTerms(page); await page.getByRole('button', { name: 'Create account' }).click();
   await expect(page).toHaveURL(/\/app$/, { timeout: 15000 });
   await expect(page.getByRole('heading', { name: "Let's create your first project." })).toBeVisible();
 }
@@ -46,7 +47,7 @@ test.describe.serial('real authentication, onboarding, planning, and durable own
     expect(before.workspace.projects[0].data.tasks.map((t: { platform: string }) => t.platform)).toContain('DevOps');
     await page.reload(); await expect(page.getByText('Secure accounts', { exact: true }).first()).toBeVisible(); await saved(page);
     const after = await (await owner.request.get('/api/workspace')).json(); expect(after.workspace).toEqual(before.workspace);
-    expect(await page.evaluate(() => Object.keys(localStorage).filter(key => !['orbit-cookie-notice','orbit-appearance','orbit-analytics-preference'].includes(key)).some(key => /auth|orbit/.test(key)))).toBe(false);
+    expect(await page.evaluate(() => Object.keys(localStorage).filter(key => !['orbit-cookie-notice','orbit-appearance'].includes(key)).some(key => /auth|orbit/.test(key)))).toBe(false);
     expect(await page.evaluate(() => localStorage.getItem('orbit-cookie-notice'))).toBe('essential-v1');
     await page.screenshot({ path: 'test-results/roadmap.png', fullPage: true }); expect(errors).toEqual([]);
     await page.close();

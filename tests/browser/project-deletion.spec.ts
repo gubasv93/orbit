@@ -1,3 +1,4 @@
+import {signupLegalFields} from './legal-fixtures';
 import {test, expect, type BrowserContext, type Page} from '@playwright/test';
 import {randomUUID} from 'node:crypto';
 import {fullWorkspace} from '../fixtures';
@@ -11,7 +12,7 @@ async function seed(context: BrowserContext) {
   const address = '2001:db8:' + randomUUID().replaceAll('-', '').match(/.{1,4}/g)!.slice(0, 6).join(':');
   const signup = await context.request.post('/api/auth/signup', {
     headers: {Origin: origin, 'X-Forwarded-For': address},
-    data: {firstName: 'Project', lastName: 'Owner', email: `orbit-delete-project-${randomUUID()}@example.com`, password, confirm: password},
+    data: {...signupLegalFields, firstName: 'Project', lastName: 'Owner', email: `orbit-delete-project-${randomUUID()}@example.com`, password, confirm: password},
   });
   expect(signup.status(), await signup.text()).toBe(200);
   const initial = await snapshot(context), workspace = fullWorkspace();

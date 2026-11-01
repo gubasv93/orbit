@@ -1,7 +1,9 @@
 import { createHash } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { emailSchema, signupSchema, loginPasswordSchema } from '@/lib/schema';
+import { emailSchema, loginPasswordSchema } from '@/lib/schema';
+import {registrationRequestSchema} from '@/lib/legal';
+import {acceptCurrentLegal} from '@/lib/legal-acceptance';
 import { isConfigured, supabase } from '@/lib/supabase';
 import { limitedJson, problem, sameOrigin } from '@/lib/http';
 
@@ -17,7 +19,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ac
   }
   let input: unknown;
   try { input = await limitedJson(request, 4096); } catch { return problem('Invalid request.'); }
-  const schema = action === 'signup' ? signupSchema : z.object({ email: emailSchema, password: loginPasswordSchema });
+  const schema = action === 'signup' ? registrationRequestSchema : z.object({ email: emailSchema, password: loginPasswordSchema });
   const parsed = schema.safeParse(input);
   if (!parsed.success) return problem(parsed.error.issues[0]?.message || 'Check the form fields.');
   const { email, password } = parsed.data;
@@ -41,6 +43,10 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ac
         return problem('We can’t send a confirmation email right now because the email delivery limit has been reached. Please try again later.', 429);
       }
       return problem(error.status === 429 ? 'Too many attempts. Please try later.' : 'Unable to create an account. Check your details or try logging in.', error.status === 429 ? 429 : 400);
+    }
+    if (data.session) {
+      try { await acceptCurrentLegal(client); }
+      catch { return NextResponse.json({error: 'Your account was created. Please review the service terms before continuing.', redirectTo: '/accept-terms?retry=1'}, {status: 503, headers: {'Cache-Control': 'private, no-store'}}); }
     }
     return NextResponse.json({ ok: true, confirmationRequired: !data.session });
   }

@@ -7,6 +7,7 @@ import { fullWorkspace } from './fixtures';
 // planner run unchanged. Only the remote authentication/RPC boundary is replaced,
 // so the otherwise timing-dependent commit interleavings are deterministic.
 const backend = vi.hoisted(() => ({ getUser: vi.fn(), rpc: vi.fn() }));
+vi.mock('../src/lib/legal-acceptance', () => ({ legalApiGate: async () => null }));
 vi.mock('../src/lib/supabase', () => ({
   isConfigured: () => true,
   supabase: async () => ({ auth: { getUser: backend.getUser }, rpc: backend.rpc }),

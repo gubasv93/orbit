@@ -4,6 +4,7 @@ import { workspaceSchema } from '@/lib/schema';
 import { isConfigured, supabase } from '@/lib/supabase';
 import { limitedJson, problem, sameOrigin } from '@/lib/http';
 import { accountProfile } from '@/lib/profile';
+import { legalApiGate } from '@/lib/legal-acceptance';
 
 export const dynamic = 'force-dynamic';
 async function session() {
@@ -15,6 +16,7 @@ async function session() {
 export async function GET(request: NextRequest) {
   const auth = await session();
   if (!auth) return problem('Please log in.', 401);
+  const legal = await legalApiGate(auth.client); if (legal) return legal;
   const { data, error } = await auth.client.rpc('orbit_get_workspace');
   if (error) { console.error('workspace_read_failed', { code: error.code }); return problem('Unable to load your workspace. Please retry.', 503); }
   return NextResponse.json(request.nextUrl.searchParams.get('revisionOnly') === '1' ? { revision: data.revision } : { ...data, email: auth.user.email, profile: accountProfile(auth.user) }, { headers: { 'Cache-Control': 'private, no-store' } });
@@ -23,6 +25,7 @@ export async function PUT(request: NextRequest) {
   if (!sameOrigin(request)) return problem('Request origin is not allowed.', 403);
   const auth = await session();
   if (!auth) return problem('Please log in.', 401);
+  const legal = await legalApiGate(auth.client); if (legal) return legal;
   let input: unknown;
   try { input = await limitedJson(request); } catch { return problem('Invalid or oversized request.'); }
   const parsed = z.object({ revision: z.number().int().min(0), workspace: workspaceSchema }).safeParse(input);

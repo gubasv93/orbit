@@ -1,3 +1,4 @@
+import {acceptSignupTerms} from './legal-fixtures';
 import { test, expect } from '@playwright/test';
 test('landing and auth are responsive, accessible, and contain no mock recovery', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
@@ -6,7 +7,7 @@ test('landing and auth are responsive, accessible, and contain no mock recovery'
   await page.getByLabel('First name', { exact: true }).fill('Test'); await page.getByLabel('Last name', { exact: true }).fill('User');
   await page.getByLabel('Email address').fill('person@example.com');
   await page.getByLabel('Password', { exact: true }).fill('onlyletters'); await page.getByLabel('Confirm password').fill('different');
-  await page.getByRole('button', { name: 'Create account' }).click(); await expect(page.getByRole('alert')).toContainText(['Include a number', 'Passwords do not match']);
+  await acceptSignupTerms(page); await page.getByRole('button', { name: 'Create account' }).click(); await expect(page.getByRole('alert')).toContainText(['Include a number', 'Passwords do not match']);
   await page.goto('/login'); await expect(page.getByText('Forgot password')).toHaveCount(0);
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();

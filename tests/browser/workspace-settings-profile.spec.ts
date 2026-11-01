@@ -1,3 +1,4 @@
+import {signupLegalFields} from './legal-fixtures';
 import {test, expect, type BrowserContext, type Page} from '@playwright/test';
 import {randomUUID} from 'node:crypto';
 import {fullWorkspace} from '../fixtures';
@@ -11,7 +12,7 @@ async function signedIn(context: BrowserContext) {
   const fixtureAddress = '2001:db8:' + randomUUID().replaceAll('-', '').match(/.{1,4}/g)!.slice(0, 6).join(':');
   const response = await context.request.post('/api/auth/signup', {
     headers: {Origin: origin, 'X-Forwarded-For': fixtureAddress},
-    data: {firstName: 'Ada', lastName: 'Lovelace', email, password, confirm: password},
+    data: {...signupLegalFields, firstName: 'Ada', lastName: 'Lovelace', email, password, confirm: password},
   });
   expect(response.status(), await response.text()).toBe(200);
   return {email, password};

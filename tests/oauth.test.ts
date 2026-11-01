@@ -3,6 +3,8 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 import { POST } from '../src/app/api/auth/google/route';
 import { GET } from '../src/app/auth/callback/route';
+import {currentLegalAcceptance,PRIVACY_VERSION,TERMS_VERSION} from '../src/lib/legal';
+import {legalReceiptCookie,verifyLegalReceipt} from '../src/lib/legal-receipt';
 
 const cookies = vi.hoisted(() => ({
   values: new Map<string, string>(),
@@ -17,21 +19,30 @@ vi.mock('next/headers', () => ({ cookies: async () => ({
 }) }));
 
 const app = 'https://orbit.example', backend = 'https://supabase.example';
-let googleEnabled: boolean, allowed: boolean, challenge: string, exchanged: boolean;
-const request = (origin = app) => new NextRequest(`${app}/api/auth/google?next=https://attacker.example`, { method: 'POST', headers: { Origin: origin } });
-const callback = (query: string) => GET(new NextRequest(`${app}/auth/callback?${query}`));
+let googleEnabled: boolean, allowed: boolean, challenge: string, exchanged: boolean, legalRequired:boolean,legalFailure:boolean,acceptFailure:boolean,acceptedAt:string|null;
+const request = (origin = app,body?:unknown) => new NextRequest(`${app}/api/auth/google?next=https://attacker.example`, { method: 'POST', headers: { Origin: origin,'Content-Type':'application/json' },...(body===undefined?{}:{body:JSON.stringify(body)}) });
+const callback = (query: string,receipt?:string) => GET(new NextRequest(`${app}/auth/callback?${query}`,{headers:receipt?{Cookie:`${legalReceiptCookie}=${receipt}`}:{}}));
 
 beforeEach(() => {
   cookies.values.clear(); cookies.writes.length = 0;
   googleEnabled = true; allowed = true; challenge = ''; exchanged = false;
+  legalRequired=false;legalFailure=false;acceptFailure=false;acceptedAt=null;
   vi.stubEnv('SUPABASE_URL', backend); vi.stubEnv('SUPABASE_PUBLISHABLE_KEY', 'test-publishable-key');
   vi.stubEnv('APP_URL', app); vi.stubEnv('SIGNUP_MODE', 'public'); vi.stubEnv('NODE_ENV', 'production');
+  vi.stubEnv('APPLICATION_MANAGER_ENCRYPTION_KEY','test-server-legal-receipt-secret-32-characters');
   // Real @supabase/ssr client and real PKCE storage/exchange; only the remote
   // provider's HTTP boundary and Next.js request cookie jar are substituted.
   vi.stubGlobal('fetch', vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
     const url = new URL(input instanceof Request ? input.url : String(input));
     if (url.origin !== backend) throw new Error('Unexpected destination');
     if (url.pathname === '/rest/v1/rpc/orbit_auth_allow') return Response.json(allowed);
+    if(url.pathname==='/rest/v1/rpc/orbit_legal_status')return legalFailure?Response.json({message:'Private provider failure'},{status:503}):Response.json({required:legalRequired,termsVersion:TERMS_VERSION,privacyVersion:PRIVACY_VERSION,acceptedAt});
+    if(url.pathname==='/rest/v1/rpc/orbit_accept_legal'){
+      expect(JSON.parse(String(init?.body))).toEqual({p_terms_version:TERMS_VERSION,p_privacy_version:PRIVACY_VERSION});
+      if(acceptFailure)return Response.json({message:'Private database failure'},{status:503});
+      legalRequired=false;acceptedAt=new Date().toISOString();
+      return Response.json({required:false,termsVersion:TERMS_VERSION,privacyVersion:PRIVACY_VERSION,acceptedAt});
+    }
     if (url.pathname === '/auth/v1/settings') return Response.json({ external: { google: googleEnabled } });
     if (url.pathname === '/auth/v1/token' && url.searchParams.get('grant_type') === 'pkce') {
       const body = JSON.parse(String(init?.body));
@@ -49,8 +60,8 @@ beforeEach(() => {
 });
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
-async function start() {
-  const response = await POST(request()); expect(response.status).toBe(200);
+async function start(body?:unknown) {
+  const response = await POST(request(app,body)); expect(response.status).toBe(200);
   const url = new URL((await response.json()).url); challenge = url.searchParams.get('code_challenge') || '';
   return { response, url };
 }
@@ -68,6 +79,65 @@ it('starts Google PKCE with an HttpOnly verifier, a fixed callback, and an accou
   expect(response.headers.get('cache-control')).toBe('private, no-store');
   expect(cookies.writes.length).toBeGreaterThan(0);
   for (const cookie of cookies.writes) expect(cookie.options).toMatchObject({ httpOnly: true, secure: true, sameSite: 'lax', path: '/' });
+});
+
+it('accepts a browser login POST with an empty readable stream and no Content-Type',async()=>{
+  const stream=new ReadableStream<Uint8Array>({start(controller){controller.close();}});
+  const input=new NextRequest(app+'/api/auth/google',{method:'POST',headers:{Origin:app},body:stream});
+  expect(input.body).not.toBeNull();expect(input.headers.get('content-type')).toBeNull();
+  const response=await POST(input);expect(response.status).toBe(200);
+  expect(new URL((await response.json()).url).searchParams.get('provider')).toBe('google');
+  expect(response.cookies.get(legalReceiptCookie)?.maxAge).toBe(0);
+});
+
+it.each([
+  ['malformed JSON','{','application/json'],
+  ['non-JSON body','{"mode":"login"}','text/plain'],
+  ['oversized streaming JSON',JSON.stringify({padding:'x'.repeat(3000)}),'application/json'],
+])('rejects %s before rate limiting or starting Google OAuth',async(_label,body,contentType)=>{
+  const stream=new ReadableStream<Uint8Array>({start(controller){controller.enqueue(new TextEncoder().encode(body));controller.close();}});
+  const response=await POST(new NextRequest(app+'/api/auth/google',{method:'POST',headers:{Origin:app,'Content-Type':contentType},body:stream}));
+  expect(response.status).toBe(400);expect(fetch).not.toHaveBeenCalled();expect(cookies.writes).toEqual([]);
+});
+
+it('requires an explicit current agreement before a Google signup can start',async()=>{
+  for(const body of [{mode:'signup'},{mode:'signup',...currentLegalAcceptance,acceptTerms:false},{mode:'signup',...currentLegalAcceptance,termsVersion:'2026-10-31'}]){
+    expect((await POST(request(app,body))).status).toBe(400);
+  }
+  expect(fetch).not.toHaveBeenCalled();expect(cookies.writes).toEqual([]);
+});
+
+it('records Google signup agreement after PKCE exchange and clears its short-lived receipt',async()=>{
+  legalRequired=true;
+  const {response}=await start({mode:'signup',...currentLegalAcceptance});
+  const receipt=response.cookies.get(legalReceiptCookie)!;
+  expect(receipt).toMatchObject({httpOnly:true,secure:true,sameSite:'lax',path:'/auth/callback',maxAge:1800});
+  expect(verifyLegalReceipt(receipt.value)).toBe(true);
+  const result=await callback('code=one-use-code',receipt.value);
+  expect(result.headers.get('location')).toBe(app+'/app');expect(acceptedAt).not.toBeNull();
+  expect(result.cookies.get(legalReceiptCookie)).toMatchObject({value:'',maxAge:0,path:'/auth/callback'});
+});
+
+it('routes a newly created Google-login account to agreement without treating OAuth as acceptance',async()=>{
+  legalRequired=true;await start();
+  const response=await callback('code=one-use-code');
+  expect(exchanged).toBe(true);expect(response.headers.get('location')).toBe(app+'/accept-terms');expect(acceptedAt).toBeNull();
+});
+
+it('cannot turn a modified signup receipt into a recorded agreement',async()=>{
+  legalRequired=true;const {response}=await start({mode:'signup',...currentLegalAcceptance});
+  const receipt=response.cookies.get(legalReceiptCookie)!.value;
+  const tampered=(receipt[0]==='a'?'b':'a')+receipt.slice(1);
+  const result=await callback('code=one-use-code',tampered);
+  expect(result.headers.get('location')).toBe(app+'/accept-terms');expect(acceptedAt).toBeNull();
+});
+
+it.each(['status','record'])('keeps a signed-in user out of the app during legal %s failure',async kind=>{
+  legalRequired=true;const {response}=await start({mode:'signup',...currentLegalAcceptance});
+  if(kind==='status')legalFailure=true;else acceptFailure=true;
+  const result=await callback('code=one-use-code',response.cookies.get(legalReceiptCookie)!.value);
+  expect(result.headers.get('location')).toBe(app+'/accept-terms?retry=1');expect(result.cookies.get(legalReceiptCookie)?.maxAge).toBe(0);
+  expect(acceptedAt).toBeNull();
 });
 
 it('exchanges a matching proof key for a server session and redirects only to the private app', async () => {

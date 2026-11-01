@@ -1,3 +1,4 @@
+import {acceptSignupTerms} from './legal-fixtures';
 import {test,expect,type BrowserContext,type Page} from '@playwright/test';
 import {randomUUID} from 'node:crypto';
 import {projectData} from '../fixtures';
@@ -21,7 +22,7 @@ const selection=(page:Page)=>page.getByRole('region',{name:'Roadmap selection',e
 const review=(page:Page)=>page.getByRole('dialog',{name:'Delete selected items?',exact:true});
 
 test.describe.serial('readable captions and roadmap bulk selection',()=>{
- test.beforeAll(async({browser})=>{context=await browser.newContext();const page=await context.newPage(),password='Orbit9'+randomUUID();await page.goto('/signup');await page.getByLabel('First name',{exact:true}).fill('Test');await page.getByLabel('Last name',{exact:true}).fill('User');await page.getByLabel('Email address').fill(`orbit-bulk-${randomUUID()}@example.com`);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByLabel('Confirm password').fill(password);await page.getByRole('button',{name:'Create account',exact:true}).click();await expect(page).toHaveURL(/\/app$/);await page.close();});
+ test.beforeAll(async({browser})=>{context=await browser.newContext();const page=await context.newPage(),password='Orbit9'+randomUUID();await page.goto('/signup');await page.getByLabel('First name',{exact:true}).fill('Test');await page.getByLabel('Last name',{exact:true}).fill('User');await page.getByLabel('Email address').fill(`orbit-bulk-${randomUUID()}@example.com`);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByLabel('Confirm password').fill(password);await acceptSignupTerms(page); await page.getByRole('button',{name:'Create account',exact:true}).click();await expect(page).toHaveURL(/\/app$/);await page.close();});
  test.afterAll(async()=>{await context?.close();});
 
  test('selects work items with Ctrl and Command clicks, keeps regular clicks for details, then reviews and deletes only selected items',async()=>{

@@ -1,3 +1,4 @@
+import {signupLegalFields} from './legal-fixtures';
 import { test, expect, type Locator, type Page } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
 import { fullWorkspace } from '../fixtures';
@@ -90,7 +91,7 @@ test('the same appearance works across real roadmap details and a Poker room wit
     const password='Orbit9'+randomUUID();
     const signup=await context.request.post('/api/auth/signup',{
       headers:{Origin:origin,'X-Forwarded-For':fixtureAddress},
-      data:{firstName:'Test',lastName:'User',email:`orbit-appearance-${randomUUID()}@example.com`,password,confirm:password},
+      data:{...signupLegalFields, firstName:'Test',lastName:'User',email:`orbit-appearance-${randomUUID()}@example.com`,password,confirm:password},
     });
     expect(signup.status(),await signup.text()).toBe(200);
     const initial=await (await context.request.get('/api/workspace')).json();

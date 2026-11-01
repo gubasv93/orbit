@@ -1,3 +1,4 @@
+import {signupLegalFields} from './legal-fixtures';
 import {test,expect,type BrowserContext,type Page} from '@playwright/test';
 import {createHmac,randomUUID} from 'node:crypto';
 import {fullWorkspace} from '../fixtures';
@@ -53,7 +54,7 @@ test.describe.serial('single-administrator management and real user lifecycle',(
  test.beforeAll(async({browser})=>{
   for(let i=0;i<3;i++)contexts.push(await browser.newContext({viewport:{width:1440,height:1000}}));[manager,normal,outsider]=contexts;page=await manager.newPage();
   const address='2001:db8:'+randomUUID().replaceAll('-','').match(/.{1,4}/g)!.slice(0,6).join(':');
-  const signup=await normal.request.post('/api/auth/signup',{headers:{Origin:origin,'X-Forwarded-For':address},data:{firstName:'Story',lastName:'Fixture',email:accountEmail,password:accountPassword,confirm:accountPassword}});expect(signup.status(),await signup.text()).toBe(200);
+  const signup=await normal.request.post('/api/auth/signup',{headers:{Origin:origin,'X-Forwarded-For':address},data:{...signupLegalFields, firstName:'Story',lastName:'Fixture',email:accountEmail,password:accountPassword,confirm:accountPassword}});expect(signup.status(),await signup.text()).toBe(200);
   const initial=await data(normal,'GET','/api/workspace');await api(normal,'PUT','/api/workspace',{revision:initial.revision,workspace:workspace()});
  });
  test.afterAll(async()=>{for(const context of contexts)await context.close();});
@@ -88,6 +89,24 @@ test.describe.serial('single-administrator management and real user lifecycle',(
   test.setTimeout(90000);
   let value=await dashboard();const observed=value.analytics.users.find((user:{email:string})=>user.email===accountEmail);expect(observed).toBeTruthy();userId=observed.id;
   expect(Number.isFinite(Date.parse(observed.createdAt))).toBe(true);
+  expect(value.analytics).not.toHaveProperty('landing');
+  expect(value.analytics.totals).not.toHaveProperty('planner');
+  expect(value.analytics.coverage).not.toHaveProperty('engagement');
+  expect(value.analytics.users.every((user:Record<string,unknown>)=>!('planner' in user))).toBe(true);
+  const initialViews=value.analytics.landingPageviews.pageviews;
+  const documentHeaders={'Accept':'text/html','Sec-Fetch-Dest':'document','User-Agent':'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36'};
+  expect((await manager.request.get('/',{headers:documentHeaders})).status()).toBe(200);
+  await expect.poll(async()=>(await dashboard()).analytics.landingPageviews.pageviews).toBe(initialViews+1);
+  await manager.request.head('/',{headers:documentHeaders});
+  const excludedRequests:Record<string,string>[]=[{'Purpose':'prefetch'},{'User-Agent':'Googlebot/2.1'}];
+  for(const excluded of excludedRequests)await manager.request.get('/',{headers:{...documentHeaders,...excluded}});
+  // Real RSC requests are fetches with a cache-key query, not document loads.
+  await manager.request.get('/?_rsc=fixture',{headers:{...documentHeaders,'Accept':'text/x-component','Sec-Fetch-Dest':'empty','RSC':'1'}});
+  const minimal=await dashboard();expect(minimal.analytics.landingPageviews).toMatchObject({pageviews:initialViews+1,days:30});
+  expect(Number.isFinite(Date.parse(minimal.analytics.landingPageviews.startedAt))).toBe(true);
+  await page.getByRole('button',{name:'Refresh',exact:true}).click();
+  await expect(card('Landing page')).toContainText('Page views');
+  await expect(page.getByRole('heading',{name:'Planner engagement',exact:true})).toHaveCount(0);
   expect(observed.current).toMatchObject({projects:2,features:2,stories:4,workItems:6,people:2,roles:4,platforms:2,meetings:2,holidays:2,timeOff:2,milestones:2});
   const room=await data(normal,'POST','/api/poker',{action:'create',projectId:'manager-source',name:'Manager analytics fixture',deck:['1','2','3'],settings:{autoReveal:false,showAverage:true,countdown:false}}),ownerConnection=randomUUID(),guestConnection=randomUUID();
   await data(normal,'GET','/api/poker/'+room.token+'?connectionId='+ownerConnection);

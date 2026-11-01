@@ -12,7 +12,7 @@ async function save(workspace: unknown, revision: number) { return (await db.que
 beforeAll(async () => {
   db = new PGlite();
   await db.exec(`create role anon; create role authenticated; create role service_role; create schema auth; grant usage on schema auth to anon,authenticated;
-  create table auth.users(id uuid primary key); insert into auth.users values('${a}'),('${b}');
+  create table auth.users(id uuid primary key,created_at timestamptz default '2026-01-01T00:00:00Z'); insert into auth.users(id) values('${a}'),('${b}');
   create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;`);
   const migrations = new URL('../supabase/migrations/', import.meta.url);
   for (const file of readdirSync(migrations).filter(name => /^\d{14}_[a-z0-9_]+\.sql$/.test(name)).sort()) {

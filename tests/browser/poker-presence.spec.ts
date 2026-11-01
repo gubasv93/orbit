@@ -1,3 +1,4 @@
+import {signupLegalFields} from './legal-fixtures';
 import {test,expect,type Browser,type BrowserContext,type Page} from '@playwright/test';
 import {randomUUID} from 'node:crypto';
 import {projectData} from '../fixtures';
@@ -10,7 +11,7 @@ const contexts:BrowserContext[]=[];
 async function context(browser:Browser){const value=await browser.newContext();contexts.push(value);return value;}
 async function createRoom(browser:Browser){
  const owner=await context(browser),password='Orbit9'+randomUUID();
- const response=await owner.request.post('/api/auth/signup',{headers:{Origin:origin,'X-Forwarded-For':'2001:db8:'+randomUUID().replaceAll('-','').match(/.{1,4}/g)!.slice(0,6).join(':')},data:{firstName:'Presence',lastName:'Facilitator',email:`orbit-presence-${randomUUID()}@example.com`,password,confirm:password}});
+ const response=await owner.request.post('/api/auth/signup',{headers:{Origin:origin,'X-Forwarded-For':'2001:db8:'+randomUUID().replaceAll('-','').match(/.{1,4}/g)!.slice(0,6).join(':')},data:{...signupLegalFields, firstName:'Presence',lastName:'Facilitator',email:`orbit-presence-${randomUUID()}@example.com`,password,confirm:password}});
  expect(response.status(),await response.text()).toBe(200);
  const initial=await (await owner.request.get('/api/workspace')).json();
  const workspace:Workspace={version:1,activeId:'presence-project',preferences:{scale:'day',sidebarHidden:false},projects:[{id:'presence-project',name:'Presence checks',onboardingStep:0,data:projectData()}]};

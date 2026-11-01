@@ -38,8 +38,9 @@ beforeEach(()=>{
  backend.getUserById.mockResolvedValue({data:{user},error:null});
  backend.updateUserById.mockResolvedValue({data:{user:{...user,email:'new@example.com'}},error:null});
  backend.deleteUser.mockResolvedValue({data:{user},error:null});
- backend.rpc.mockImplementation(async(name:string)=>{
-  if(name==='orbit_application_analytics')return {data:{users:[],totals:{current:{projects:2}}},error:null};
+ backend.rpc.mockImplementation(async(name:string,input?:{p_days?:number})=>{
+  if(name==='orbit_application_analytics')return {data:{users:[{id:target,planner:{activeSeconds:777}}],totals:{current:{projects:2},planner:{sessions:5}},coverage:{history:'Observed operations',poker:'Operational room facts',engagement:'Retired optional signal'},landing:{visitors:12,activeSeconds:777}},error:null};
+  if(name==='orbit_landing_pageviews')return {data:{pageviews:17,days:input?.p_days||30,startedAt:'2026-11-01T00:00:00Z'},error:null};
   if(name==='orbit_application_user_workspace')return {data:{workspace:fullWorkspace(),revision},error:null};
   if(name==='orbit_application_delete_project')return {data:{revision:revision+1},error:null};
   return {data:true,error:null};
@@ -79,7 +80,10 @@ describe('application manager HTTP authorization and analytics boundary',()=>{
   const response=await GET(new NextRequest(origin+`/api/applicationmanager?days=90&user=${target}`));
   expect(response.status).toBe(200);expectPrivate(response);
   expect(backend.rpc).toHaveBeenCalledWith('orbit_application_analytics',{p_user_id:target,p_days:90});
+  expect(backend.rpc).toHaveBeenCalledWith('orbit_landing_pageviews',{p_days:90});
   const body=await response.json();expect(body.analytics.totals.current.projects).toBe(2);
+  expect(body.analytics.landingPageviews).toEqual({pageviews:17,days:90,startedAt:'2026-11-01T00:00:00Z'});
+  expect(body.analytics).not.toHaveProperty('landing');expect(body.analytics.totals).not.toHaveProperty('planner');expect(body.analytics.users[0]).not.toHaveProperty('planner');expect(body.analytics.coverage).not.toHaveProperty('engagement');
   expect(body.manager).toMatchObject({email:manager.email,mfaEnabled:true});
   expect(JSON.stringify(body)).not.toMatch(/sessionId|passwordHash|credentialVersion|totpSecret/);
  });

@@ -3,6 +3,7 @@ import { isConfigured, supabase } from '@/lib/supabase';
 import { limitedJson, problem, sameOrigin } from '@/lib/http';
 import { workspaceSchema } from '@/lib/schema';
 import { planPokerPublication, pokerPublicationSchema, PokerPublicationError } from '@/lib/poker-publication';
+import { legalApiGate } from '@/lib/legal-acceptance';
 
 export const dynamic = 'force-dynamic';
 const headers = {'Cache-Control':'private, no-store'};
@@ -20,6 +21,7 @@ export async function POST(request:NextRequest,context:{params:Promise<{token:st
   if(!isConfigured())return problem('Planning Poker is unavailable.',503);
   const client=await supabase(),{data:{user},error:authError}=await client.auth.getUser();
   if(authError||!user)return problem('Please log in as the room facilitator.',401);
+  const legal=await legalApiGate(client);if(legal)return legal;
   const {token}=await context.params;if(!/^[a-f0-9]{64}$/.test(token))return problem('Room not found.',404);
   let raw:unknown;try{raw=await limitedJson(request,250_000);}catch{return problem('Invalid or oversized publication.');}
   const parsed=pokerPublicationSchema.safeParse(raw);if(!parsed.success)return problem(parsed.error.issues[0]?.message||'Invalid publication.');

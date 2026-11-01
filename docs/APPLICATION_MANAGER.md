@@ -30,7 +30,7 @@ already committed provider action as failed.
 
 The dashboard offers overall and individual-user inventory, observed creations,
 account creation/deletion dates, project deletion counts and lifetimes, Poker
-participation/duration/frequency, and planner/landing engagement.
+participation/duration/frequency, and aggregate landing page views.
 
 - **Features** are epics. **Stories** group role work items by project, epic and
   `storyId`; legacy standalone work items count once. Adding roles to an existing
@@ -50,16 +50,28 @@ participation/duration/frequency, and planner/landing engagement.
 - Deletions are recorded independently of cascading business-table removal.
   Account and project history before tracking began cannot be reconstructed.
   Existing records form a baseline; observed creation counts include that baseline.
-- Planner and landing activity requires explicit optional first-party analytics
-  consent. Existing “Got it” acknowledgments never enable analytics. Revocation
-  stops measurements. Landing visitors are consenting browser identifiers, not
-  verified unique people; fingerprints, URLs, page contents, IPs and user agents
-  are not stored in activity facts.
-- Active time excludes hidden, unfocused and idle tabs. Visit days use UTC.
-  Long inactivity and day boundaries begin another activity session.
+- Planner browsing time, activity sessions and return frequency are not collected.
+  The former optional activity endpoint rejects new events and opt-ins, removes
+  old cookies, and continues to support withdrawal cleanup. The privacy cutover
+  removes previously optional activity records and disables their database writer.
+- Landing measurements are UTC-day page-view totals, recorded server-side for
+  document loads. There is no browser identifier, account link, session duration,
+  fingerprint or stored IP/user-agent in the counter. Known bots, prefetches,
+  HEAD/RSC requests and preview deployments are excluded. Reloads can add views;
+  this is not a count of unique people. Cached browser restores may not add a view.
 
 No optional analytics is collected inside the application manager. Current entity
 counts and operational Poker facts do not require an analytics browser identifier.
+The manager API removes the retired engagement fields from its response, including
+per-user planner metrics. The historical storage schema is retained for migration
+compatibility but does not accept or expose new optional activity measurements.
+
+New accounts accept Terms of Use and acknowledge the Privacy Policy at signup.
+This agreement is separate from analytics consent. The database records the fixed
+document versions and server timestamp, scoped to the authenticated account.
+Existing accounts created before the privacy cutover are not forced to register
+again. Google-created accounts without a recorded agreement review `/accept-terms`
+before using the planner. Deleting an account removes its acceptance record.
 
 ## Release
 
@@ -73,6 +85,14 @@ migrations, records exact checksums and verifies that privileged RPCs are denied
 to anonymous and ordinary authenticated roles. It does not replay old migrations
 or seed a bootstrap secret. Create the first invitation separately, only if no
 bootstrap row and no manager identity exist. Never upsert/reset that singleton.
+
+For the minimal-data cutover, use
+`node --use-env-proxy scripts/apply-minimal-analytics-migration.mjs` for a read-only
+preflight, then `--apply` after verifying the source. It applies only
+`20261101000100`, checks existing migration checksums and verifies the counter and
+legal RPC privileges. Operational accounts, projects, Poker and lifecycle facts
+remain intact. The cutover purges only optional activity sessions and their old
+rate-limit keys. Publish the matching application after applying the migration.
 
 The disposable local backend seeds a **localhost-only test invitation** and
 generates separate temporary service-role/encryption keys. No local credentials

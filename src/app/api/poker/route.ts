@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { limitedJson, problem, sameOrigin } from '@/lib/http';
 import { pokerClient, pokerDeck, pokerFailure, pokerJson, pokerSettings } from '@/lib/poker-server';
 import { accountProfile } from '@/lib/profile';
+import { legalApiGate } from '@/lib/legal-acceptance';
 export const dynamic='force-dynamic';
 const projectId=z.string().regex(/^[A-Za-z0-9_-]{1,100}$/);
 const create=z.discriminatedUnion('action',[
@@ -14,6 +15,7 @@ export async function GET(request:NextRequest) {
  try {
   const parsed=projectId.safeParse(request.nextUrl.searchParams.get('project'));if(!parsed.success)return problem('Choose the current Orbit project.');
   const {client,user}=await pokerClient();if(!user)return problem('Please log in.',401);
+  const legal=await legalApiGate(client);if(legal)return legal;
   const {data,error}=await client.rpc('orbit_poker',{p_action:'list',p_input:{projectId:parsed.data}});
   return error?pokerFailure(error):pokerJson({...data,profile:accountProfile(user)});
  }catch{return problem('Planning Poker is temporarily unavailable. Please retry.',503);}
@@ -23,6 +25,7 @@ export async function POST(request:NextRequest) {
  try {
   const parsed=create.safeParse(await limitedJson(request,16384));if(!parsed.success)return problem(parsed.error.issues[0]?.message||'Check room settings.');
   const {client,user}=await pokerClient();if(!user)return problem('Please log in.',401);
+  const legal=await legalApiGate(client);if(legal)return legal;
   const {action,...input}=parsed.data;const token=action==='create'?randomBytes(32).toString('hex'):'';
   const {data,error}=await client.rpc('orbit_poker',{p_action:action,p_token:token,p_input:input});
   return error?pokerFailure(error):pokerJson(data);

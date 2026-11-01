@@ -1,0 +1,12 @@
+.legal-agreement { margin:18px 0; }
+.legal-agreement-label { display:flex; align-items:flex-start; gap:10px; color:var(--ui-muted); font-size:12px; line-height:1.7; cursor:pointer; }
+.legal-agreement-label input[type=checkbox] { appearance:auto; width:16px; height:16px; min-width:16px; min-height:16px; padding:0; margin:3px 0 0; flex:none; accent-color:var(--ui-accent); }
+.legal-agreement-label>span { min-width:0; }
+.legal-agreement-label a { color:var(--ui-text); text-underline-offset:3px; }
+.legal-acceptance-main { max-width:590px; margin:35px auto 70px; padding:0 24px; }
+.legal-acceptance-main .auth-card { padding:30px; }
+.legal-acceptance-main h1 { margin:0 0 16px; font-size:28px; letter-spacing:-.8px; line-height:1.25; }
+.legal-acceptance-main p { color:var(--ui-muted); font-size:13px; line-height:1.8; }
+.legal-acceptance-email { overflow-wrap:anywhere; }
+.legal-acceptance-main .auth-submit { width:100%; }
+@media(max-width:450px) { .legal-acceptance-main { margin:20px auto 45px; padding:0 16px; } .legal-acceptance-main .auth-card { padding:24px 20px; } }

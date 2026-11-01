@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { limitedJson, problem, sameOrigin } from '@/lib/http';
 import { pokerClient, pokerCookie, pokerFailure, pokerIssue, pokerJson, pokerSettings, pokerToken } from '@/lib/poker-server';
 import { accountProfile } from '@/lib/profile';
+import { legalApiGate } from '@/lib/legal-acceptance';
 export const dynamic='force-dynamic';
 const connectionId=z.uuid().transform(value=>value.toLowerCase()).optional();
 const action=z.discriminatedUnion('action',[
@@ -20,7 +21,7 @@ export async function GET(request:NextRequest,context:Context) {
   const token=pokerToken.safeParse((await context.params).token);if(!token.success)return problem('Room not found.',404);
   const issue=pokerIssue.safeParse(request.nextUrl.searchParams.get('issue')||'free');if(!issue.success)return problem('Invalid story.');
   const connection=connectionId.safeParse(request.nextUrl.searchParams.get('connectionId')||undefined);if(!connection.success)return problem('Invalid room connection.');
-  const {client,ownerName,user}=await pokerClient();const session=request.cookies.get(pokerCookie(token.data))?.value||'';
+  const {client,ownerName,user}=await pokerClient();if(user){const legal=await legalApiGate(client);if(legal)return legal;}const session=request.cookies.get(pokerCookie(token.data))?.value||'';
   const {data,error}=await client.rpc('orbit_poker_room_state',{p_token:token.data,p_session:session,p_input:{issue:issue.data,ownerName,connectionId:connection.data}});
   return error?pokerFailure(error):pokerJson({...data,profile:user?accountProfile(user):null});
  }catch{return problem('Planning Poker is temporarily unavailable. Please retry.',503);}
@@ -30,7 +31,7 @@ export async function POST(request:NextRequest,context:Context) {
  try {
   const token=pokerToken.safeParse((await context.params).token);if(!token.success)return problem('Room not found.',404);
   const parsed=action.safeParse(await limitedJson(request,16384));if(!parsed.success)return problem(parsed.error.issues[0]?.message||'Invalid poker action.');
-  const {client,ownerName,user}=await pokerClient();const cookie=pokerCookie(token.data),previous=request.cookies.get(cookie)?.value||'';
+  const {client,ownerName,user}=await pokerClient();if(user&&parsed.data.action!=='leave'){const legal=await legalApiGate(client);if(legal)return legal;}const cookie=pokerCookie(token.data),previous=request.cookies.get(cookie)?.value||'';
   const session=parsed.data.action==='join'&&!/^[a-f0-9]{64}$/.test(previous)?randomBytes(32).toString('hex'):previous;
   const {action:verb,...input}=parsed.data;
   const profile=user?accountProfile(user):null;
