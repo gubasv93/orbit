@@ -21,11 +21,13 @@ async function openSettings(page:Page){
  if(!await advanced.evaluate(element=>(element as HTMLDetailsElement).open))await advanced.locator('summary').click();
 }
 async function saved(page:Page){await expect(page.locator('.gantt-canvas')).toBeVisible();await expect(page.locator('.save-bar [role=status]')).toHaveText('Saved to cloud');}
+// Fixed-date roadmap fixtures must stay visible as the real calendar advances.
+async function fixturePage(){const page=await context.newPage();await page.clock.install({time:new Date('2026-10-26T12:00:00Z')});return page;}
 test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
  test.beforeAll(async({browser})=>{context=await browser.newContext();const page=await context.newPage(),password='Orbit9'+randomUUID();await page.goto('/signup');await page.getByLabel('First name',{exact:true}).fill('Test');await page.getByLabel('Last name',{exact:true}).fill('User');await page.getByRole('region',{name:'Cookies and browser storage',exact:true}).getByRole('button',{name:'Got it',exact:true}).click();await page.getByLabel('Email address').fill(`orbit-map-${randomUUID()}@example.com`);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByLabel('Confirm password').fill(password);await acceptSignupTerms(page); await page.getByRole('button',{name:'Create account'}).click();await expect(page).toHaveURL(/\/app$/);await page.close();});
  test.afterAll(async()=>{await context?.close();});
  test('selects distinct compact roles sharing a platform and persists role-matched assignments',async()=>{
-  await reset();const page=await context.newPage();await page.goto('/app');await page.locator('.gantt-corner').getByRole('button',{name:'Add work item'}).click();await page.getByLabel('Work item name').fill('Role-based epic');
+  await reset();const page=await fixturePage();await page.goto('/app');await page.locator('.gantt-corner').getByRole('button',{name:'Add work item'}).click();await page.getByLabel('Work item name').fill('Role-based epic');
   await expect(page.getByRole('checkbox',{name:'Include Backend',exact:true})).toHaveCount(0);
   const row=page.locator('[data-story-team]').first();expect((await row.boundingBox())!.height).toBeLessThan(48);
   for(const [role,person,estimate]of [['Backend Developer','u1','3'],['Backend Reviewer','u2','2']]){await page.getByRole('checkbox',{name:'Include '+role,exact:true}).check();await page.getByLabel(role+' estimate (days)').fill(estimate);await page.getByLabel(role+' assignee',{exact:true}).selectOption(person);}
@@ -43,7 +45,7 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   await page.screenshot({path:'test-results/role-platform-bar-labels.png',fullPage:true});await page.close();
  });
  test('explains six effort days over eight calendar days and synchronizes manual and automatic dates',async()=>{
-  await reset();const page=await context.newPage();await page.goto('/app');const bar=page.locator('.task-bar[data-task=t1]');
+  await reset();const page=await fixturePage();await page.goto('/app');const bar=page.locator('.task-bar[data-task=t1]');
   await expect(bar).toHaveAttribute('data-item-summary',/8 calendar days/);await expect(bar.locator('.capacity-band')).toHaveAttribute('style',/linear-gradient/);await expect(page.getByLabel('Timeline colors')).toContainText('Recurring meetings');
   const fill=bar.locator('.capacity-band'),gradient=(await fill.getAttribute('style'))!,colors=gradient.match(/#[a-f0-9]{6}/g)!;
   expect(colors).toHaveLength(2);expect(new Set(colors).size).toBe(2);
@@ -64,7 +66,7 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   await page.locator('.work-name[data-action=drawer-feature][data-id=f1]').click();await expect(page.getByLabel('End date')).toHaveValue('2026-10-28');await page.getByLabel('Date mode').selectOption('automatic');await saved(page);await expect(page.getByLabel('End date')).toHaveValue(automaticEnd);await page.keyboard.press('Escape');await page.screenshot({path:'test-results/capacity-bands.png',fullPage:true});await page.close();
  });
  test('draws dependencies on the map, prevents cycles, and supports keyboard/tap removal across zoom and filters',async()=>{
-  await reset();const page=await context.newPage();await page.goto('/app');const from=page.locator('[data-action=link-from][data-id=t1]'),target=page.locator('.task-bar[data-task=t2]');await from.scrollIntoViewIfNeeded();const a=(await from.boundingBox())!,b=(await target.boundingBox())!;
+  await reset();const page=await fixturePage();await page.goto('/app');const from=page.locator('[data-action=link-from][data-id=t1]'),target=page.locator('.task-bar[data-task=t2]');await from.scrollIntoViewIfNeeded();const a=(await from.boundingBox())!,b=(await target.boundingBox())!;
   await page.mouse.move(a.x+a.width/2,a.y+a.height/2);await page.mouse.down();await page.mouse.move(b.x+b.width/2,b.y+b.height/2,{steps:14});await page.mouse.up();await saved(page);
   let data=(await snapshot()).workspace.projects[0].data;expect(data.tasks.find((t:{id:string})=>t.id==='t2').dependsOn).toEqual(['t1']);const edge=page.locator('.dependency-edge[data-from=t1][data-to=t2]');await expect(edge).toHaveCount(1);const path=await edge.getAttribute('d');
   await page.getByLabel('Timeline scale').selectOption('week');await expect(edge).not.toHaveAttribute('d',path!);
@@ -76,7 +78,7 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
  test('controls automatic dependency movement in per-project general settings without moving manual links',async()=>{
   test.setTimeout(90000);
   const legacy=workspace();legacy.projects[0].data.tasks[1].dependsOn=['t1'];delete legacy.projects[0].data.settings.autoShiftDependencies;
-  await reset(legacy);const page=await context.newPage();await page.goto('/app');await saved(page);await openSettings(page);await page.keyboard.press('Escape');
+  await reset(legacy);const page=await fixturePage();await page.goto('/app');await saved(page);await openSettings(page);await page.keyboard.press('Escape');
   await expect.poll(async()=>(await snapshot()).workspace.projects[0].data.settings.autoShiftDependencies).toBe(false);
   expect((await snapshot()).workspace.projects[0].data.tasks[1].start).toBe('2026-11-11');
   await page.locator('[data-action=link-from][data-id=t1]').click();await page.locator('.task-bar[data-task=t3]').click();await saved(page);
@@ -110,7 +112,7 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   const w=workspace(),data=w.projects[0].data;data.settings.autoShiftDependencies=false;
   data.features[0].title='First epic';data.features.push({...data.features[0],id:'f2',title:'Second epic',collapsed:false},{...data.features[0],id:'f3',title:'Empty epic',collapsed:true});
   data.tasks[1].dependsOn=['t1'];data.tasks.push({...data.tasks[2],id:'t4',title:'Destination task',featureId:'f2'});
-  const originals=structuredClone(data.tasks);await reset(w);const page=await context.newPage();await page.setViewportSize({width:1280,height:1100});await page.goto('/app');await saved(page);
+  const originals=structuredClone(data.tasks);await reset(w);const page=await fixturePage();await page.setViewportSize({width:1280,height:1100});await page.goto('/app');await saved(page);
   const order=()=>page.locator('[data-row-feature],[data-row-task]').evaluateAll(rows=>rows.map(row=>row.getAttribute('data-row-feature')||row.getAttribute('data-row-task')));
   async function drag(kind:string,id:string,target:string,position:'before'|'after'|'inside'){
    const grip=page.locator(`[data-row-drag=${kind}][data-id=${id}]`),row=page.locator(target);await grip.scrollIntoViewIfNeeded();await row.scrollIntoViewIfNeeded();
@@ -144,7 +146,7 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   const w=workspace(),data=w.projects[0].data;data.settings.autoShiftDependencies=false;
   data.meetings=[{id:'daily',title:'Daily',recurrence:'workdays',weekday:1,interval:1,nth:1,startDate:'2026-10-26',endDate:'',startTime:'09:00',duration:60,allTeam:true,attendees:[],enabled:true}];
   data.leave=[{id:'sick',person:'u1',type:'sick',from:'2026-10-27',to:'2026-10-27',note:''},{id:'off',person:'u1',type:'vacation',from:'2026-10-30',to:'2026-11-01',note:''}];
-  await reset(w);const page=await context.newPage();await page.goto('/app');const bar=page.locator('.task-bar[data-task=t1]');
+  await reset(w);const page=await fixturePage();await page.goto('/app');const bar=page.locator('.task-bar[data-task=t1]');
   await expect(bar).toHaveAttribute('data-item-summary',/11 calendar days/);await expect(bar).toHaveAttribute('data-item-summary',/Recurring meetings: 1d.*Weekends: 2d.*Days off: 1d.*Sick leave: 1d/);
   expect(new Set((await bar.locator('.capacity-band').getAttribute('style'))!.match(/#[a-f0-9]{6}/g)).size).toBe(5);
   if(await page.getByRole('button',{name:'Show sidebar',exact:true}).isVisible())await page.getByRole('button',{name:'Show sidebar',exact:true}).click();await expect(page.getByRole('button',{name:'Team capacity',exact:true})).toHaveCount(0);
@@ -155,7 +157,7 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
  test('auto-scrolls a long roadmap while dragging an epic and preserves its child group',async()=>{
   const w=workspace(),data=w.projects[0].data;data.settings.autoShiftDependencies=false;
   for(let i=2;i<=24;i++)data.features.push({...data.features[0],id:'f'+i,title:'Epic '+i,collapsed:true});
-  await reset(w);const page=await context.newPage();await page.goto('/app');await saved(page);
+  await reset(w);const page=await fixturePage();await page.goto('/app');await saved(page);
   const scroller=page.locator('#ganttScroller'),grip=page.locator('[data-row-drag=feature][data-id=f1]'),a=(await grip.boundingBox())!,bounds=(await scroller.boundingBox())!;
   await page.mouse.move(a.x+10,a.y+14);await page.mouse.down();await page.mouse.move(bounds.x+110,bounds.y+bounds.height-8,{steps:10});
   await expect(page.locator('.row-drag-ghost')).toBeVisible();
@@ -192,7 +194,7 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
  test('creates half-day estimates, rounds quarter-day meetings and draws genuine half-width bars without unused work',async()=>{
   test.setTimeout(90000);
   const w=workspace(),data=w.projects[0].data;data.settings.autoShiftDependencies=false;data.tasks[0].effort=.5;data.tasks[1].effort=1;data.tasks[1].assignee='';
-  await reset(w);const page=await context.newPage();await page.goto('/app');await saved(page);
+  await reset(w);const page=await fixturePage();await page.goto('/app');await saved(page);
   const bar=page.locator('.task-bar[data-task=t1]'),full=page.locator('.task-bar[data-task=t2]');
   await expect(bar).toHaveAttribute('data-item-summary',/0.5 calendar days/);expect((await bar.boundingBox())!.width/(await full.boundingBox())!.width).toBeCloseTo(.5,2);
   await expect(page.getByLabel('Timeline colors')).not.toContainText('Unused');await expect(page.locator('.capacity-band').first()).not.toHaveAttribute('style',/#edf0f6/);
@@ -208,7 +210,7 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
  test('changes assignees directly in roadmap rows with exact-role choices and persistence',async()=>{
   const w=workspace(),data=w.projects[0].data;data.settings.autoShiftDependencies=false;data.tasks[0].effort=.5;
   data.people.push({...data.people[0],id:'u3',name:'Casey Dev'});data.leave.push({id:'sick',person:'u3',type:'sick',from:'2026-10-26',to:'2026-10-26',note:''});
-  await reset(w);const page=await context.newPage();await page.goto('/app');await saved(page);const select=page.locator('[data-row-assignee=t1]');
+  await reset(w);const page=await fixturePage();await page.goto('/app');await saved(page);const select=page.locator('[data-row-assignee=t1]');
   expect(await select.locator('option').evaluateAll(nodes=>nodes.map(node=>(node as HTMLOptionElement).value))).toEqual(['','u1','u3']);const original=structuredClone(data.tasks[0]);
   await select.selectOption('u3');await saved(page);const changed=(await snapshot()).workspace.projects[0].data.tasks[0];expect(changed).toEqual({...original,assignee:'u3'});await expect(page.locator('.drawer-wrap')).toHaveCount(0);await expect(page.locator('.task-bar[data-task=t1]')).toHaveAttribute('data-item-summary',/27 Oct/);
   await page.reload();await saved(page);await expect(select).toHaveValue('u3');await select.selectOption('');await saved(page);await expect(select).toHaveValue('');
@@ -217,7 +219,7 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   await page.setViewportSize({width:375,height:812});await select.selectOption('u1');await saved(page);await expect(select).toHaveValue('u1');expect((await select.boundingBox())!.width).toBeGreaterThan(20);await page.screenshot({path:'test-results/inline-assignee-mobile.png',fullPage:true});await page.close();
  });
  test('keeps the chart compact while row editing, filters, date dragging and mobile scrolling remain usable',async()=>{
-  await reset();const page=await context.newPage();await page.goto('/app');await saved(page);
+  await reset();const page=await fixturePage();await page.goto('/app');await saved(page);
   expect((await page.locator('.gantt-row[data-row-task=t1]').boundingBox())!.height).toBeLessThanOrEqual(44);expect((await page.locator('[data-row-feature=f1]').boundingBox())!.height).toBeLessThanOrEqual(50);
   expect((await page.locator('#ganttScroller').boundingBox())!.height).toBeGreaterThan(430);expect((await page.locator('#ganttScroller').boundingBox())!.y).toBeLessThan(160);
   await setRoadmapFilter(page,'people',['Alex Dev']);await expect(page.locator('[data-row-task]')).toHaveCount(1);await page.getByRole('button',{name:'Clear filters',exact:true}).click();await expect(page.locator('[data-row-task]')).toHaveCount(3);
@@ -229,7 +231,7 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
  test('resizes work items and epic date windows with half-day ends, keyboard controls and cancellation',async()=>{
   test.setTimeout(90000);
   const w=workspace(),data=w.projects[0].data;data.settings.autoShiftDependencies=false;data.tasks[0].assignee='';data.tasks[0].effort=2;
-  await reset(w);const page=await context.newPage();await page.goto('/app');await saved(page);
+  await reset(w);const page=await fixturePage();await page.goto('/app');await saved(page);
   const handle=(kind:string,id:string,edge:string)=>page.locator(`[data-resize-kind=${kind}][data-id=${id}][data-resize-edge=${edge}]`);
   const resizePoint=async(kind:string,id:string,edge:string)=>{
    const h=handle(kind,id,edge);await h.scrollIntoViewIfNeeded();
@@ -269,7 +271,7 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   data.meetings=[{...base,id:'daily',title:'Daily 30 minutes',recurrence:'workdays',startTime:'09:00',duration:30},
    {...base,id:'planning',title:'Weekly planning',recurrence:'weekly',startTime:'10:00',duration:60},
    {...base,id:'demo',title:'Fortnightly demo',recurrence:'interval',weekday:5,interval:2,startDate:'2026-10-30',startTime:'14:00',duration:60}];
-  await reset(w);const page=await context.newPage();await page.goto('/app');await saved(page);
+  await reset(w);const page=await fixturePage();await page.goto('/app');await saved(page);
   const bar=page.locator('.task-bar[data-task=t1]');await expect(bar).toHaveAttribute('data-item-summary',/9 calendar days.*Recurring meetings: 1d.*Actual meeting time: 6.5h/);
   await page.locator('.work-name[data-action=drawer-task][data-id=t1]').click();await expect(page.locator('.meeting-time-summary')).toContainText('6.5h');await expect(page.locator('.meeting-time-summary')).toContainText('Planning reserve: 1d');await page.keyboard.press('Escape');
   if(await page.getByRole('button',{name:'Show sidebar',exact:true}).isVisible())await page.getByRole('button',{name:'Show sidebar',exact:true}).click();await page.getByRole('button',{name:'Manage recurring meetings',exact:true}).click();await expect(page.getByRole('heading',{name:'Recurring meetings',exact:true})).toBeVisible();
@@ -288,7 +290,7 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   w.projects[0].name='A project with a very long name for planning cross-functional product development and releases';
   data.roles[0].name='Backend developer responsible for configuration and administrator permissions';
   data.people[0].name='Alexandra Developer With A Very Long Display Name';data.features[0].title+=' with a long descriptive feature name';data.tasks[0].title='A user story with a long descriptive name for administrator configuration';
-  await reset(w);const page=await context.newPage();await page.goto('/app');await saved(page);
+  await reset(w);const page=await fixturePage();await page.goto('/app');await saved(page);
   for(const width of [1440,1100,768,375,320]){
    await page.setViewportSize({width,height:900});await page.getByRole('button',{name:'Today',exact:true}).click();
    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
@@ -316,7 +318,7 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   Object.assign(data.features[0],{manualEnd:'2026-11-03',manualEndFraction:.5});data.tasks[0].effort=2;
   Object.assign(data.tasks[1],{start:'2026-10-27',manualEnd:'2026-10-30',manualEndFraction:.5});Object.assign(data.tasks[2],{status:'done',completedDate:'2026-10-27'});
   data.features.push({...data.features[0],id:'f2',title:'Other epic',manualEnd:undefined});data.tasks.push({...data.tasks[1],id:'t4',featureId:'f2',dependsOn:['t1']});
-  await reset(w);const page=await context.newPage();await page.goto('/app');await saved(page);
+  await reset(w);const page=await fixturePage();await page.goto('/app');await saved(page);
   const bar=page.locator('.feature-bar[data-feature=f1]');
   const begin=async(dx:number)=>{const b=(await bar.boundingBox())!,corner=(await page.locator('.gantt-corner').boundingBox())!,scroller=(await page.locator('#ganttScroller').boundingBox())!;const x=(Math.max(b.x+12,corner.x+corner.width+12)+Math.min(b.x+b.width-12,scroller.x+scroller.width-12))/2;await page.mouse.move(x,b.y+b.height/2);await page.mouse.down();await page.mouse.move(x+dx,b.y+b.height/2,{steps:8});};
   const drop=async()=>{await page.mouse.up();await saved(page);await page.waitForTimeout(270);};
@@ -337,7 +339,7 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
  });
  test('reforecasts an automatically dated epic after dragging while preserving estimates and date mode',async()=>{
   const w=workspace();w.projects[0].data.settings.autoShiftDependencies=false;w.projects[0].data.tasks[0].effort=3;
-  await reset(w);const page=await context.newPage();await page.goto('/app');await saved(page);const bar=page.locator('.feature-bar[data-feature=f1]');await expect(bar).toHaveAttribute('data-item-summary',/3 calendar days/);
+  await reset(w);const page=await fixturePage();await page.goto('/app');await saved(page);const bar=page.locator('.feature-bar[data-feature=f1]');await expect(bar).toHaveAttribute('data-item-summary',/3 calendar days/);
   const b=(await bar.boundingBox())!;await page.mouse.move(b.x+b.width/2,b.y+b.height/2);await page.mouse.down();await page.mouse.move(b.x+b.width/2+152,b.y+b.height/2,{steps:10});await page.mouse.up();await saved(page);
   await expect.poll(async()=>(await snapshot()).workspace.projects[0].data.tasks[0].start).toBe('2026-10-30');await expect(bar).toHaveAttribute('data-item-summary',/5 calendar days/);
   const data=(await snapshot()).workspace.projects[0].data;expect(data.tasks.map((task:{effort:number})=>task.effort)).toEqual([3,1,1]);expect(data.features[0]).not.toHaveProperty('manualEnd');expect(data.tasks[0]).not.toHaveProperty('manualEnd');await page.close();
@@ -347,7 +349,7 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   const w=workspace(),data=w.projects[0].data;data.settings.autoShiftDependencies=false;data.features[0].manualEnd='2026-11-03';
   Object.assign(data.tasks[0],{effort:1,manualEnd:'2026-10-28'});data.tasks[1].start='2026-10-30';data.tasks[2].start='2026-11-02';
   data.meetings=[{id:'daily',title:'Daily',recurrence:'workdays',weekday:1,interval:1,nth:1,startDate:'2026-10-26',endDate:'',startTime:'09:00',duration:30,allTeam:true,attendees:[],enabled:true}];
-  await reset(w);const page=await context.newPage();await page.goto('/app');await saved(page);
+  await reset(w);const page=await fixturePage();await page.goto('/app');await saved(page);
   const parent=page.locator('.feature-bar[data-feature=f1]'),task=page.locator('.task-bar[data-task=t1]');
   const before=(await snapshot()).workspace.projects[0].data,parentMix=(await parent.locator('.capacity-band').getAttribute('style'))!,taskMix=(await task.locator('.capacity-band').getAttribute('style'))!;
   expect(parentMix).not.toMatch(/transparent|NaN|Infinity/);expect(parentMix).toContain('100.00000%');expect(taskMix).toContain('#7c9fe5 0.00000% 66.66667%');expect(taskMix).toContain('#e3c584 66.66667% 100.00000%');
@@ -367,7 +369,7 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   const w=workspace(),data=w.projects[0].data;data.settings.autoShiftDependencies=false;
   Object.assign(data.tasks[0],{title:'API',effort:1.5,manualEnd:'2026-11-13'});
   w.projects.push({...structuredClone(w.projects[0]),id:'other',name:'Other project'});
-  await reset(w);const page=await context.newPage();await page.goto('/app');await saved(page);
+  await reset(w);const page=await fixturePage();await page.goto('/app');await saved(page);
   const bar=page.locator('.task-bar[data-task=t1]'),field=(key:string)=>bar.locator(`[data-bar-field=${key}]`);
   await expect(field('title')).toHaveText('API');await expect(field('title')).toBeVisible();await expect(field('role')).toBeVisible();
   await expect(page.getByLabel('Iteration',{exact:true})).toHaveCount(0);await expect(page.locator('.dependency-mode')).toHaveCount(0);
@@ -403,7 +405,7 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
   for(let i=0;i<18;i++)data.people.push({...data.people[0],id:'extra'+i,name:'Teammate '+String(i).padStart(2,'0'),firstName:'Teammate',lastName:String(i)});
   data.features.push({...data.features[0],id:'f2',title:'Another epic'});
   data.tasks.push({...data.tasks[0],id:'t4',featureId:'f2',title:'Frontend work',roleId:'rFront',platform:'Frontend',assignee:'uFront',effort:2,dependsOn:['t1']},{...data.tasks[0],id:'t5',featureId:'f2',title:'Design work',roleId:'rDesign',platform:'Design',assignee:'',effort:1});
-  await reset(w);const page=await context.newPage();await page.goto('/app');await saved(page);
+  await reset(w);const page=await fixturePage();await page.goto('/app');await saved(page);
   const original=(await snapshot()).workspace.projects[0].data,people=page.getByRole('button',{name:'Filter by team member',exact:true}),platforms=page.getByRole('button',{name:'Filter by platform',exact:true}),menu=page.locator('.roadmap-filter-popover');
   const rows=()=>page.locator('[data-row-task]').evaluateAll(nodes=>nodes.map(node=>node.getAttribute('data-row-task')));
   await setRoadmapFilter(page,'people',['Alex Dev','Casey Front']);expect(await rows()).toEqual(['t1','t4']);await expect(people).toContainText('2 people');

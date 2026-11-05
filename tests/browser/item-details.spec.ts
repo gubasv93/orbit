@@ -15,6 +15,8 @@ function daily(minutes=30){return {id:'daily',title:'Daily standup',recurrence:'
 async function snapshot(){return (await context.request.get('/api/workspace')).json();}
 async function replace(value:Workspace){const current=await snapshot();expect((await context.request.put('/api/workspace',{headers:{Origin:origin},data:{revision:current.revision,workspace:value}})).status()).toBe(200);}
 async function ready(page:Page){await expect(page.locator('.gantt-canvas')).toBeVisible();await expect(page.locator('.save-bar [role=status]')).toHaveText('Saved to cloud');}
+// Keep the fixed October scheduling fixtures visible regardless of the CI date.
+async function plannerPage(){const page=await context.newPage();await page.clock.install({time:new Date('2026-10-26T12:00:00Z')});await page.goto('/app');return page;}
 const popupFor=(page:Page)=>page.getByRole('dialog',{name:'Item breakdown',exact:true});
 const metric=(page:Page,name:string)=>popupFor(page).locator(`[data-detail-metric="${name}"]`);
 
@@ -30,7 +32,7 @@ test.describe.serial('readable item breakdowns and calendar-based estimates',()=
   data.leave=[{id:'vacation',person:'u1',type:'vacation',from:'2026-10-29',to:'2026-10-29',note:''},{id:'sick',person:'u1',type:'sick',from:'2026-10-30',to:'2026-10-30',note:''},{id:'dayoff',person:'u1',type:'dayoff',from:'2026-11-02',to:'2026-11-02',note:''}];
   Object.assign(data.tasks[0],{title:'Configuration work',effort:2,manualEnd:'2026-11-05',manualEndFraction:1});
   for(let i=1;i<=6;i++)data.tasks.push({...data.tasks[0],id:'conflict'+i,title:'Competing work '+i,effort:.5,manualEnd:undefined,manualEndFraction:undefined});
-  await replace(value);const page=await context.newPage();await page.goto('/app');await ready(page);const before=(await snapshot()).workspace.projects[0].data,bar=page.locator('.task-bar[data-task=t1]'),popup=popupFor(page);
+  await replace(value);const page=await plannerPage();await ready(page);const before=(await snapshot()).workspace.projects[0].data,bar=page.locator('.task-bar[data-task=t1]'),popup=popupFor(page);
   await bar.hover();await expect(popup).toBeVisible();const compact=(await popup.boundingBox())!;expect(compact.width).toBeLessThanOrEqual(360);expect(compact.height).toBeLessThanOrEqual(360);await expect(metric(page,'estimate')).toContainText(/\b2\b/);await expect(metric(page,'calendar')).toContainText(/\b11\b/);await expect(metric(page,'meetings')).toContainText(/150\s*(?:min|minutes)/i);await expect(metric(page,'meetings')).toContainText(/2\s*(?:h|hours)/i);
   await expect(metric(page,'weekends')).toContainText(/\b2\b/);for(const key of ['holidays','vacation','dayoff','sick'])await expect(metric(page,key)).toContainText(/\b1\b/);
   const conflicts=popup.locator('.item-conflict-list > li');await expect(conflicts).toHaveCount(2);await popup.getByRole('button',{name:/^Show more/}).click();await expect(conflicts).toHaveCount(6);for(let i=1;i<=6;i++)await expect(popup.locator('.item-conflict-list')).toContainText('Competing work '+i);
@@ -42,7 +44,7 @@ test.describe.serial('readable item breakdowns and calendar-based estimates',()=
   const value=workspace(),data=value.projects[0].data,malicious='<img src=x onerror="window.orbitHoverXss=true">';data.features[0].title=malicious;data.meetings=[daily()];data.people.push({...data.people[0],id:'u2',name:'Riley Developer',firstName:'Riley',lastName:'Developer'});
   Object.assign(data.tasks[0],{effort:3,manualEnd:'2026-10-29',manualEndFraction:1});data.tasks.push({...data.tasks[0],id:'parallel',title:'Parallel implementation',assignee:'u2'},{...data.tasks[0],id:'same-person',title:'Additional review',effort:1});
   data.features.push({...data.features[0],id:'pending-feature',title:'Unestimated follow-up'});data.tasks.push({...data.tasks[0],id:'pending',featureId:'pending-feature',title:'Write estimate later',effort:0,platform:'',assignee:'',roleId:undefined,manualEnd:undefined,manualEndFraction:undefined});
-  await replace(value);const page=await context.newPage();await page.goto('/app');await ready(page);const popup=popupFor(page),feature=page.locator('.feature-bar[data-feature=f1]');
+  await replace(value);const page=await plannerPage();await ready(page);const popup=popupFor(page),feature=page.locator('.feature-bar[data-feature=f1]');
   await feature.focus();await expect(popup).toBeVisible();await expect(popup.getByText(malicious,{exact:true})).toBeVisible();await expect(popup.locator('img')).toHaveCount(0);expect(await page.evaluate(()=>Boolean((window as unknown as {orbitHoverXss?:boolean}).orbitHoverXss))).toBe(false);
   await expect(metric(page,'estimate')).toContainText(/\b7\b/);await expect(metric(page,'estimate')).toContainText(/person.day/i);await expect(metric(page,'calendar')).toContainText(/\b4\b/);await expect(metric(page,'meetings')).toContainText(/240\s*(?:min|minutes)/i);await expect(metric(page,'meetings')).not.toContainText(/360\s*(?:min|minutes)/i);
   await page.keyboard.press('Escape');await expect(popup).toHaveCount(0);await page.locator('.work-name[data-action=drawer-task][data-id=pending]').hover();await expect(popup).toBeVisible();await expect(popup.getByRole('heading',{name:'Write estimate later',exact:true})).toBeVisible();await expect(metric(page,'estimate')).toContainText(/not estimated/i);await expect(metric(page,'calendar')).toContainText(/not scheduled|not available|unknown|—|pending/i);await expect(page.locator('.task-bar[data-task=pending]')).toHaveCount(0);
@@ -50,7 +52,7 @@ test.describe.serial('readable item breakdowns and calendar-based estimates',()=
  });
 
  test('recalculates estimate from resized working availability and keeps hover details usable on narrow screens',async()=>{
-  const value=workspace(),data=value.projects[0].data;data.tasks[0].effort=1;data.meetings=[daily(60)];await replace(value);const page=await context.newPage();await page.goto('/app');await ready(page);
+  const value=workspace(),data=value.projects[0].data;data.tasks[0].effort=1;data.meetings=[daily(60)];await replace(value);const page=await plannerPage();await ready(page);
   const handle=page.locator('[data-resize-kind=task][data-id=t1][data-resize-edge=end]');await handle.focus();await page.keyboard.press('ArrowRight');await ready(page);
   const stored=(await snapshot()).workspace.projects[0].data.tasks[0];expect(stored).toMatchObject({effort:1.5,manualEnd:'2026-10-27',manualEndFraction:1});
   await page.locator('.task-bar[data-task=t1]').hover();await expect(metric(page,'estimate')).toContainText('1.5');await expect(metric(page,'calendar')).toContainText(/\b2\b/);await expect(metric(page,'meetings')).toContainText(/120\s*(?:min|minutes)/i);await page.keyboard.press('Escape');
@@ -67,7 +69,7 @@ test.describe.serial('readable item breakdowns and calendar-based estimates',()=
   for(let i=1;i<=6;i++)data.tasks.push({...data.tasks[0],id:'competing'+i,title:'Competing work '+i,featureId:i>3?'other':'f1',effort:.5,manualEnd:undefined});
   data.meetings=[daily(),{...daily(60),id:'planning',title:'Weekly planning',recurrence:'weekly',weekday:4,startTime:'10:00'},
    {...daily(),id:'paused',title:'Paused meeting',enabled:false},{...daily(),id:'others',title:'Other attendees',allTeam:false,attendees:[]}];
-  await replace(value);const page=await context.newPage();await page.goto('/app');await ready(page);await page.locator('.work-name[data-action=drawer-task][data-id=t1]').click();
+  await replace(value);const page=await plannerPage();await ready(page);await page.locator('.work-name[data-action=drawer-task][data-id=t1]').click();
   const drawer=page.locator('.drawer'),conflicts=drawer.locator('[data-drawer-conflicts]'),meetings=drawer.locator('[data-drawer-meetings]');
   await expect(conflicts.locator('li')).toHaveCount(6);for(let i=1;i<=6;i++)await expect(conflicts).toContainText('Competing work '+i);
   await expect(meetings.locator('li')).toHaveCount(2);await expect(meetings).toContainText('Daily standup');await expect(meetings).toContainText('Weekly planning');await expect(meetings).not.toContainText('Paused meeting');await expect(meetings).not.toContainText('Other attendees');
@@ -83,7 +85,7 @@ test.describe.serial('readable item breakdowns and calendar-based estimates',()=
  test('shows only existing incoming, outgoing and epic dependencies and removes each link durably without moving manual dates',async()=>{
   const value=workspace(),data=value.projects[0].data;data.features.push({...data.features[0],id:'other',title:'Other epic'});
   data.tasks.push({...data.tasks[0],id:'review',title:'Review',dependsOn:['t1']},{...data.tasks[0],id:'release',title:'Release',featureId:'other',dependsOn:['review']});
-  await replace(value);const page=await context.newPage();await page.goto('/app');await ready(page);const before=(await snapshot()).workspace.projects[0].data.tasks;
+  await replace(value);const page=await plannerPage();await ready(page);const before=(await snapshot()).workspace.projects[0].data.tasks;
   await page.locator('.work-name[data-action=drawer-task][data-id=review]').click();const dependencies=page.locator('.drawer [data-drawer-dependencies]');await expect(dependencies.locator('li')).toHaveCount(2);await expect(dependencies).toContainText('Depends on');await expect(dependencies).toContainText('Blocks');await expect(page.locator('.drawer [data-dependency]')).toHaveCount(0);
   await dependencies.getByRole('button',{name:'Remove dependency: API → Review',exact:true}).click();await ready(page);await expect(dependencies.locator('li')).toHaveCount(1);expect((await snapshot()).workspace.projects[0].data.tasks.find((t:{id:string})=>t.id==='review').dependsOn).toEqual([]);
   await page.keyboard.press('Escape');await page.locator('.work-name[data-action=drawer-task][data-id=t1]').click();await expect(dependencies).toHaveCount(0);await page.keyboard.press('Escape');
