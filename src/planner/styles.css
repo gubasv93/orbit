@@ -316,6 +316,8 @@
 .setup-footer>div{flex-wrap:wrap}
 @media(max-width:600px){
  .setup-shell{padding:16px 14px 30px}
+ .setup-top{flex-wrap:wrap;gap:12px}
+ .setup-top>.btn{flex:1 1 210px;min-width:0;max-width:100%;white-space:normal;justify-content:center}
  .setup-progress{gap:7px}
  .setup-step{flex-direction:column;align-items:flex-start;gap:7px;padding:10px 9px}
  .setup-step strong{font-size:10px}

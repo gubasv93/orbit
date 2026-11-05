@@ -138,6 +138,8 @@ test('time off is optional without teammates and the third-step layout fits smal
     for (const width of [375, 320]) {
       await page.setViewportSize({width, height: 900});
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      const shortcut = (await page.getByRole('button', {name: /Finish setup & open roadmap/}).boundingBox())!;
+      expect(shortcut.x).toBeGreaterThanOrEqual(0);expect(shortcut.x + shortcut.width).toBeLessThanOrEqual(width);
       await expect(footer(page).getByRole('button', {name: 'Finish setup', exact: true})).toBeVisible();
       await page.screenshot({path: `test-results/onboarding-time-off-${width}.png`, fullPage: true});
     }
