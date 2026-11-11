@@ -1,6 +1,7 @@
 import {afterEach,beforeEach,describe,expect,it,vi} from 'vitest';
 import {NextRequest} from 'next/server';
 import {GET} from '../src/app/api/applicationmanager/route';
+import {trendsFixture} from './analytics-trends-fixture';
 import {PATCH,DELETE as deleteUser} from '../src/app/api/applicationmanager/users/[id]/route';
 import {DELETE as deleteProject} from '../src/app/api/applicationmanager/users/[id]/projects/[projectId]/route';
 import {ManagerAuthError} from '../src/lib/application-manager-auth';
@@ -38,8 +39,9 @@ beforeEach(()=>{
  backend.getUserById.mockResolvedValue({data:{user},error:null});
  backend.updateUserById.mockResolvedValue({data:{user:{...user,email:'new@example.com'}},error:null});
  backend.deleteUser.mockResolvedValue({data:{user},error:null});
- backend.rpc.mockImplementation(async(name:string,input?:{p_days?:number})=>{
+ backend.rpc.mockImplementation(async(name:string,input?:{p_days?:7|30|90|365;p_user_id?:string|null})=>{
   if(name==='orbit_application_analytics')return {data:{users:[{id:target,planner:{activeSeconds:777}}],totals:{current:{projects:2},planner:{sessions:5}},coverage:{history:'Observed operations',poker:'Operational room facts',engagement:'Retired optional signal'},landing:{visitors:12,activeSeconds:777}},error:null};
+  if(name==='orbit_application_analytics_trends')return {data:trendsFixture(input?.p_days||30,input?.p_user_id||null),error:null};
   if(name==='orbit_landing_pageviews')return {data:{pageviews:17,days:input?.p_days||30,startedAt:'2026-11-01T00:00:00Z'},error:null};
   if(name==='orbit_application_user_workspace')return {data:{workspace:fullWorkspace(),revision},error:null};
   if(name==='orbit_application_delete_project')return {data:{revision:revision+1},error:null};
@@ -81,11 +83,23 @@ describe('application manager HTTP authorization and analytics boundary',()=>{
   expect(response.status).toBe(200);expectPrivate(response);
   expect(backend.rpc).toHaveBeenCalledWith('orbit_application_analytics',{p_user_id:target,p_days:90});
   expect(backend.rpc).toHaveBeenCalledWith('orbit_landing_pageviews',{p_days:90});
+  expect(backend.rpc).toHaveBeenCalledWith('orbit_application_analytics_trends',{p_user_id:target,p_days:90});
   const body=await response.json();expect(body.analytics.totals.current.projects).toBe(2);
   expect(body.analytics.landingPageviews).toEqual({pageviews:17,days:90,startedAt:'2026-11-01T00:00:00Z'});
+  expect(body.analytics.trends).toMatchObject({userId:target,periodDays:90,timezone:'UTC'});
+  expect(body.analytics.trends.days).toHaveLength(90);
+  expect(body.analytics.trends.days.every((day:{landingPageviews:unknown})=>day.landingPageviews===null)).toBe(true);
   expect(body.analytics).not.toHaveProperty('landing');expect(body.analytics.totals).not.toHaveProperty('planner');expect(body.analytics.users[0]).not.toHaveProperty('planner');expect(body.analytics.coverage).not.toHaveProperty('engagement');
   expect(body.manager).toMatchObject({email:manager.email,mfaEnabled:true});
   expect(JSON.stringify(body)).not.toMatch(/sessionId|passwordHash|credentialVersion|totpSecret/);
+ });
+
+ it('fails closed when the trends provider returns a different user scope',async()=>{
+  const prior=backend.rpc.getMockImplementation()!;
+  backend.rpc.mockImplementation(async(name:string,input?:unknown)=>name==='orbit_application_analytics_trends'?{data:trendsFixture(30),error:null}:prior(name,input));
+  const response=await GET(new NextRequest(origin+`/api/applicationmanager?user=${target}`));
+  expect(response.status).toBe(503);expectPrivate(response);
+  expect(JSON.stringify(await response.json())).not.toContain(target);
  });
 
  it('rejects arbitrary periods and malformed user IDs before querying privileged analytics',async()=>{

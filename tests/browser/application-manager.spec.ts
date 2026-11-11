@@ -3,6 +3,7 @@ import {test,expect,type BrowserContext,type Page} from '@playwright/test';
 import {createHmac,randomUUID} from 'node:crypto';
 import {fullWorkspace} from '../fixtures';
 import type {Workspace} from '../../src/lib/schema';
+import type {AnalyticsTrends} from '../../src/lib/application-analytics-trends';
 
 test.skip(process.env.ORBIT_E2E_AUTH!=='1','Requires the disposable real-auth backend and its local-only bootstrap fixture.');
 const origin=process.env.E2E_BASE_URL||'http://localhost:3000';
@@ -28,6 +29,7 @@ async function api(context:BrowserContext,method:string,path:string,body?:unknow
 }
 async function data(context:BrowserContext,method:string,path:string,body?:unknown,status=200){return (await api(context,method,path,body,status)).json();}
 async function dashboard(){return data(manager,'GET','/api/applicationmanager?days=30');}
+async function trends(days=30,user?:string):Promise<AnalyticsTrends>{return (await data(manager,'GET','/api/applicationmanager?days='+days+(user?'&user='+user:''))).analytics.trends;}
 async function userMetrics(){const value=await dashboard();return value.analytics.users.find((user:{id:string})=>user.id===userId);}
 async function privateResponse(response:Awaited<ReturnType<typeof api>>){expect(response.headers()['cache-control']).toBe('private, no-store');}
 async function dismissCookieNotice(target:Page){const notice=target.getByRole('region',{name:'Cookies and browser storage',exact:true});if(await notice.isVisible())await notice.getByRole('button',{name:'Got it',exact:true}).click();}
@@ -122,6 +124,91 @@ test.describe.serial('single-administrator management and real user lifecycle',(
   await api(verifier,'POST','/api/auth/login',{email:changedEmail,password:accountPassword});
   const profile=await data(verifier,'GET','/api/profile');expect(profile.profile).toMatchObject({email:changedEmail,firstName:'Managed',lastName:'Fixture'});
   await api(verifier,'GET','/api/applicationmanager',undefined,401);
+ });
+
+ test('charts observed daily activity with exact scoped values, unknown history, period controls and mobile layouts',async()=>{
+  test.setTimeout(120000);
+  const scoped=await trends(30,userId),today=scoped.days.at(-1)!;
+  expect(scoped.timezone).toBe('UTC');expect(scoped.days).toHaveLength(30);expect(today.date).toBe(scoped.endDate);
+  expect(today).toMatchObject({accountsCreated:1,accountsDeleted:0,projectsCreated:2,projectsDeleted:0,featuresCreated:2,storiesCreated:4,workItemsCreated:6,peopleCreated:2,rolesCreated:4,platformsCreated:2,meetingsCreated:2,holidaysCreated:2,timeOffCreated:2,milestonesCreated:2,pokerGamesCreated:1,pokerGamesPlayed:1,pokerParticipantsMin:2,pokerParticipantsMax:2,pokerParticipantsMedian:2,pokerParticipantsAverage:2,pokerDurationSamples:1,projectAverageLifetimeSeconds:null,projectLifetimeSamples:0,landingPageviews:null});
+  expect(scoped.days.slice(0,-1).every(day=>day.featuresCreated===null&&day.accountsCreated===null)).toBe(true);
+  expect(scoped.days.every(day=>day.landingPageviews===null)).toBe(true);
+  const absent=(await trends(7,randomUUID())).days.at(-1)!;
+  expect(absent).toMatchObject({accountsCreated:0,projectsCreated:0,featuresCreated:0,pokerGamesCreated:0,pokerGamesPlayed:0,pokerParticipantsAverage:null,pokerDurationSamples:0,landingPageviews:null});
+
+  await page.getByRole('button',{name:'Overview',exact:true}).click();await overview();
+  const region=page.getByRole('region',{name:'Analytics trends',exact:true});
+  await expect(region).toHaveAttribute('data-trends-scope','global');
+  await expect(region.locator('[data-trend-card]')).toHaveCount(5);
+  for(const title of ['Accounts','Projects','First observed resources','Planning Poker','Landing page views'])await expect(region.getByRole('heading',{name:title,exact:true})).toBeVisible();
+  const period=page.getByRole('combobox',{name:'Activity period',exact:true});
+  for(const days of [7,90]){
+   const loaded=page.waitForResponse(response=>{const url=new URL(response.url());return url.pathname==='/api/applicationmanager'&&url.searchParams.get('days')===String(days)&&!url.searchParams.has('user');});
+   await period.selectOption(String(days));const loadedResponse=await loaded;expect(loadedResponse.status()).toBe(200);const result=(await loadedResponse.json()).analytics.trends;
+   expect(result.periodDays).toBe(days);expect(result.days).toHaveLength(days);
+   await expect(page.getByRole('button',{name:'Refresh',exact:true})).toBeEnabled();
+  }
+  await period.selectOption('30');await expect(page.getByRole('button',{name:'Refresh',exact:true})).toBeEnabled();
+  await region.getByRole('button',{name:'Show Landing page views data table',exact:true}).click();
+  const landing=region.getByRole('table',{name:'Landing page views daily data',exact:true}),global=await trends();
+  await expect(landing.locator('tbody tr')).toHaveCount(30);
+  const landingToday=landing.locator('tbody tr').filter({has:page.locator(`time[datetime="${global.endDate}"]`)});
+  expect((await landingToday.getByRole('cell').last().textContent())!.replaceAll(',','')).toBe(String(global.days.at(-1)!.landingPageviews));
+  await region.getByRole('button',{name:'Hide Landing page views data table',exact:true}).click();
+  await page.screenshot({path:'.vercel/e2e-manager/trends-overview-1440.png',fullPage:true});
+  for(const width of [375,320]){
+   await page.setViewportSize({width,height:900});
+   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+   expect(await region.evaluate(element=>element.scrollWidth<=element.clientWidth)).toBe(true);
+   await page.screenshot({path:`.vercel/e2e-manager/trends-overview-${width}.png`,fullPage:true});
+  }
+  await page.setViewportSize({width:1440,height:1000});
+
+  const userResponse=page.waitForResponse(response=>{const url=new URL(response.url());return url.pathname==='/api/applicationmanager'&&url.searchParams.get('user')===userId;});
+  await openUser();const response=await userResponse;expect(response.status()).toBe(200);const filtered=(await response.json()).analytics;
+  expect(filtered.users.map((user:{id:string})=>user.id)).toEqual([userId]);expect((await response.allHeaders())['cache-control']).toBe('private, no-store');
+  await expect(region).toHaveAttribute('data-trends-scope','user');await expect(region.locator('[data-trend-card]')).toHaveCount(4);await expect(region.locator('[data-trend-card=landing]')).toHaveCount(0);
+  const resources=region.locator('[data-trend-card=resources]');
+  await resources.getByLabel('First observed resources chart metric',{exact:true}).selectOption('workItemsCreated');
+  await resources.getByRole('button',{name:'Show First observed resources data table',exact:true}).click();
+  const resourceTable=resources.getByRole('table',{name:'First observed resources daily data',exact:true});
+  await expect(resourceTable.locator('tbody tr')).toHaveCount(30);
+  const resourceToday=resourceTable.locator('tbody tr').filter({has:page.locator(`time[datetime="${today.date}"]`)});
+  await expect(resourceToday.getByRole('cell').last()).toHaveText('6');
+  await expect(resourceTable.locator('tbody tr').first().getByRole('cell').last()).toHaveText('Not available');
+  await resources.getByRole('button',{name:'Hide First observed resources data table',exact:true}).click();
+
+  const accounts=region.locator('[data-trend-card=accounts]');
+  await accounts.getByLabel('Accounts chart metric',{exact:true}).selectOption('accountsDeleted');
+  await expect(accounts).toHaveAttribute('data-trend-state','empty');
+  await accounts.getByRole('button',{name:'Show Accounts data table',exact:true}).click();
+  const accountTable=accounts.getByRole('table',{name:'Accounts daily data',exact:true}),accountToday=accountTable.locator('tbody tr').filter({has:page.locator(`time[datetime="${today.date}"]`)});
+  await expect(accountToday.getByRole('cell').last()).toHaveText('0');await expect(accountTable.locator('tbody tr').first().getByRole('cell').last()).toHaveText('Not available');
+  await accounts.getByRole('button',{name:'Hide Accounts data table',exact:true}).click();
+  const chart=accounts.getByRole('group',{name:'Accounts chart',exact:true});await chart.focus();await page.keyboard.press('End');
+  await expect(accounts.locator('[data-trend-tooltip] strong')).toHaveText('0');await expect(accounts.locator('[data-trend-tooltip] time')).toHaveAttribute('datetime',scoped.endDate);
+  await page.keyboard.press('Home');await expect(accounts.locator('[data-trend-tooltip] strong')).toHaveText('Not available');await expect(accounts.locator('[data-trend-tooltip] time')).toHaveAttribute('datetime',scoped.startDate);
+  await page.keyboard.press('Escape');
+
+  const projects=region.locator('[data-trend-card=projects]');
+  await projects.getByLabel('Projects chart metric',{exact:true}).selectOption('projectAverageLifetimeSeconds');
+  await expect(projects.getByText('No recorded samples in this period.',{exact:true})).toBeVisible();
+  await projects.getByRole('group',{name:'Projects chart',exact:true}).focus();await page.keyboard.press('End');
+  await expect(projects.locator('[data-trend-tooltip] strong')).toHaveText('Not available');await expect(projects.locator('[data-trend-tooltip] span')).toHaveText('0 samples');await page.keyboard.press('Escape');
+  const poker=region.locator('[data-trend-card=poker]');
+  await poker.getByLabel('Planning Poker chart metric',{exact:true}).selectOption('pokerParticipantsAverage');
+  await poker.getByRole('group',{name:'Planning Poker chart',exact:true}).focus();await page.keyboard.press('End');
+  await expect(poker.locator('[data-trend-tooltip] strong')).toHaveText('2');await expect(poker.locator('[data-trend-tooltip] span')).toHaveText('1 samples');await page.keyboard.press('Escape');
+
+  for(const width of [375,320]){
+   await page.setViewportSize({width,height:900});
+   await expect(region).toHaveAttribute('data-trends-scope','user');
+   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+   expect(await region.evaluate(element=>element.scrollWidth<=element.clientWidth)).toBe(true);
+   for(const metric of await region.locator('select').all())expect(await metric.evaluate(element=>element.getBoundingClientRect().right<=innerWidth)).toBe(true);
+   await page.screenshot({path:`.vercel/e2e-manager/trends-user-${width}.png`,fullPage:true});
+  }
+  await page.setViewportSize({width:1440,height:1000});await page.getByRole('button',{name:'Overview',exact:true}).click();await overview();
  });
 
  test('enrolls an authenticator and requires a fresh unreplayed code before granting manager access',async()=>{

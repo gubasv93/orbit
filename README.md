@@ -39,6 +39,12 @@ The source repository `gubasv93/orbit` is public with owner approval.
 - **General settings** (sidebar) controls dependency behavior for each project. Arrows default to manual placement. Enable **Auto-shift dependent sub-items** to choose a calendar/working-day gap and either push overlapping starts or follow predecessor finishes. Timing warnings can be hidden separately. Turning auto-shift off retains the displayed dependent starts.
 - Open **Recurring meetings** in the sidebar; editing remains available in General settings and project setup. Time off and holidays remain in the sidebar.
 
+## Application manager trends
+
+Application manager includes daily operational charts in the product overview and each user’s details. The activity period selects 7, 30, 90 or 365 UTC days. Charts cover registrations/deletions, first-observed projects and resources, Poker rooms/participants/duration, deleted-project lifetimes, and global aggregate landing page views. Metric selectors, keyboard exploration and daily data tables are available on each chart.
+
+These charts derive from existing retained records; they add no browser tracking. Dates before tracking started are unavailable rather than zero. Resource and project observations include the initial inventory baseline, and do not reconstruct historical current inventory or original creation dates. Poker statistics use room-creation-day cohorts; missing duration samples remain unavailable. Landing page views cannot be attributed to individual accounts. Apply `20261111000100_application_analytics_trends.sql` before deploying the corresponding application code; the guarded helper defaults to a read-only preflight.
+
 ## Development
 
 Use Node.js 24 and the existing checkout; cloud tasks are already isolated and do not need a Git worktree.
