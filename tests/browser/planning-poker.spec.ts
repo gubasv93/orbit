@@ -128,9 +128,13 @@ test.describe.serial('Planning Poker shared state, privacy and real Orbit public
    const beforeNav=(await game.boundingBox())!.width;await ownerPage.getByRole('button',{name:'Hide project navigation',exact:true}).click();await expect(navigation).toBeHidden();await expect(features).toBeVisible();await expect.poll(async()=>(await game.boundingBox())!.width).toBeGreaterThan(beforeNav+100);
    await ownerPage.getByRole('button',{name:'Show project navigation',exact:true}).click();await expect(navigation).toBeVisible();expect(new URL(ownerPage.url()).searchParams.get('issue')).toBe(selectedIssue);
 
-   await search.fill('');const epic=features.locator('.poker-epic-trigger').filter({hasText:'Disable Rules'});
-   // Search temporarily expands matches. Wait for clearing it to render before
-   // explicitly expanding the backlog, rather than reading the stale search state.
+   const unfilteredStoryCount=(await state(owner)).epics.find((epic:{id:string})=>epic.id==='f1').stories.length;
+   await search.fill('');await expect(search).toHaveValue('');const epic=features.locator('.poker-epic-trigger').filter({hasText:'Disable Rules'});
+   // The full count confirms search clearing has rendered. Exercise both controls
+   // from a known state instead of assuming which expansion state search restored.
+   await expect(epic.locator('small')).toHaveText(String(unfilteredStoryCount));
+   if(await epic.getAttribute('aria-expanded')==='false')await epic.click();
+   await expect(epic).toHaveAttribute('aria-expanded','true');await epic.click();
    await expect(epic).toHaveAttribute('aria-expanded','false');await epic.click();
    await expect(epic).toHaveAttribute('aria-expanded','true');
    await expect(features.getByRole('button',{name:'Select sub-item Scroll story 35',exact:true})).toBeAttached();
