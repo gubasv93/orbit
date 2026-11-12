@@ -330,3 +330,10 @@
  .setup-timeoff-detail{flex-basis:calc(100% - 45px)}
  .setup-timeoff-actions{margin-left:auto}
 }
+
+/* Preset actions stay visible and wrap within project setup. */
+.setup-card>.split-head>.setup-meeting-actions{display:flex;align-items:center;justify-content:flex-end;flex:0 1 auto;flex-wrap:wrap;gap:8px}
+.setup-meeting-actions .btn{white-space:normal;max-width:100%}
+@media(max-width:600px){.setup-card>.split-head>.setup-meeting-actions{width:100%;justify-content:flex-start}}
+
+#modalForm[data-form="meeting"] [hidden]{display:none!important}

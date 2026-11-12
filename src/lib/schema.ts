@@ -45,13 +45,33 @@ const task = z.object({ id, featureId: id, title: text, platform: text.or(z.lite
 const role = z.object({ id, name: text, platform: text });
 const person = z.object({ id, name: text, firstName: z.string().max(100), lastName: z.string().max(100),
   roleId: id, role: text, platform: text, color, capacity: capacitySchema });
-const meeting = z.object({ id, title: text, recurrence: z.enum(['workdays', 'weekly', 'interval', 'monthly']),
+export const customRecurrenceSchema = z.object({
+  frequency: z.enum(['day','week','month','year']), interval: z.number().int().min(1).max(99),
+  weekdays: z.array(z.number().int().min(0).max(6)).max(7)
+    .refine(days => new Set(days).size === days.length, 'Choose each repeat weekday once').optional(),
+  monthlyMode: z.enum(['day','weekday']).optional(),
+  monthlyOrdinal: z.union([z.literal(-1),z.number().int().min(1).max(5)]).optional(),
+  endType: z.enum(['never','on','after']), endDate: date.optional(), count: z.number().int().min(1).max(1000).optional(),
+}).superRefine((rule,context) => {
+  if(rule.frequency==='week'&&!rule.weekdays?.length)context.addIssue({code:'custom',path:['weekdays'],message:'Choose at least one repeat weekday'});
+  if(rule.endType==='on'&&!rule.endDate)context.addIssue({code:'custom',path:['endDate'],message:'Choose when the recurrence ends'});
+  if(rule.endType==='after'&&rule.count===undefined)context.addIssue({code:'custom',path:['count'],message:'Choose how many occurrences to repeat'});
+});
+const meeting = z.object({ id, title: text, recurrence: z.enum(['workdays', 'weekly', 'interval', 'monthly','custom']),
   weekday: z.number().int().min(0).max(6), interval: z.number().int().min(1).max(12),
   nth: z.union([z.literal(-1), z.number().int().min(1).max(5)]), startDate: date,
   endDate: date.or(z.literal('')), startTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
   duration: z.number().int().min(5).max(480), allTeam: z.boolean(), attendees: z.array(id).max(1000), enabled: z.boolean(),
   requiresAttendeeReview: z.boolean().optional(), copiedFromProjectId: id.optional(), copiedFromMeetingId: id.optional(),
-}).refine(m => !m.endDate || m.endDate >= m.startDate, 'Meeting end precedes start');
+  customRecurrence: customRecurrenceSchema.optional(),
+  presetKey: z.enum(['scrum-daily','scrum-refinement','scrum-planning','scrum-demo','scrum-retro']).optional(),
+}).superRefine((meeting,context) => {
+  if(meeting.endDate&&meeting.endDate<meeting.startDate)context.addIssue({code:'custom',path:['endDate'],message:'Meeting end precedes start'});
+  if(meeting.recurrence==='custom'){
+    if(!meeting.customRecurrence)context.addIssue({code:'custom',path:['customRecurrence'],message:'Choose a custom recurrence'});
+    else if(meeting.customRecurrence.endType==='on'&&meeting.customRecurrence.endDate!<meeting.startDate)context.addIssue({code:'custom',path:['customRecurrence','endDate'],message:'Recurrence end precedes start'});
+  }
+});
 
 export const projectDataSchema = z.object({
   version: z.number().int().min(3).max(4), features: z.array(feature).max(1000), tasks: z.array(task).max(3000),

@@ -8,6 +8,9 @@ import {projectDataSchema} from '../lib/schema';
 import {DAY,asDay,fromDay,addDays,dow,dmy,fullD,dayName,today,monday,formatTime} from './dates.js';
 import {createScheduler} from './engine.js';
 import {meetingRecurrenceLabel} from './meetings';
+import {upcomingMeetingDates} from './meeting-recurrence.js';
+import {customRecurrenceFields,syncMeetingCustomRecurrence,readMeetingCustomRecurrence} from './meeting-recurrence-form';
+import {addScrumMeetings} from './scrum-meetings';
 import {renderHolidaySettings} from './holiday-settings';
 import {createHolidayController} from './holiday-controller';
 import {removeHoliday,saveManualHoliday} from './holidays';
@@ -729,18 +732,19 @@ function modalMarkup(){if(!view.modal)return '';let m=view.modal,content='',titl
  content=`<form id="modalForm" data-form="settings" class="general-settings-form">${appearanceSettingFields()}${barLabelSettings()}${dependencySettingFields()}<section class="grouped-note settings-section" aria-labelledby="calendar-settings-title"><div class="settings-section-heading"><h3 id="calendar-settings-title">Working calendar</h3><p>Set the working time used in forecasts.</p></div><div class="field-grid">${numberField('Working hours / day','workHours',data.settings.workHours,1,24,1)}<div class="field"><label>Working week</label><input value="Monday – Friday" disabled></div></div></section><section class="grouped-note settings-section settings-management"><div class="settings-section-heading"><h3>People & meetings</h3><p>Keep your team and recurring events up to date.</p></div><div class="meeting-settings-entry"><div><strong>${icon('users',17)} Team & roles</strong><small>${data.people.length} members · ${data.roles.length} roles</small></div><button type="button" class="btn sm" data-action="go-team">Manage team</button></div><div class="meeting-settings-entry"><div><strong>${icon('clock',17)} Recurring meetings</strong><small>${(data.meetings||[]).filter(m=>m.enabled).length} active recurring events</small></div><button class="btn sm" type="button" data-action="manage-meetings">Manage meetings</button></div></section><section class="grouped-note settings-section" aria-labelledby="backup-settings-title"><div class="settings-section-heading"><h3 id="backup-settings-title">Data & backups</h3><p>Export a backup before replacing or resetting data.</p></div><div class="settings-backup-row"><div><strong>Current project</strong><small>Work items, sub-items, people and calendars.</small></div><div class="backup-actions"><button type="button" class="btn sm" data-action="export">${icon('download')} Export JSON</button><button type="button" class="btn sm" data-action="import">${icon('upload')} Import JSON</button><input id="jsonImport" type="file" accept=".json,application/json" hidden></div></div><div class="settings-backup-row"><div><strong>Whole workspace</strong><small>All projects and view preferences.</small></div><div class="backup-actions"><button type="button" class="btn sm" data-action="export-workspace">${icon('download')} Export workspace</button><button type="button" class="btn sm" data-action="import-workspace">${icon('upload')} Import workspace</button></div></div><div class="settings-reset-row"><span>Clear only the current project.</span><button type="button" class="btn sm danger" data-action="reset">Reset project</button></div></section><section class="grouped-note settings-section project-delete-settings" aria-labelledby="delete-project-title"><div class="settings-section-heading"><h3 id="delete-project-title">Delete project</h3><p>Remove this project and its work items, sub-items, team, meetings and calendars. Other projects keep their data.</p></div><button type="button" class="btn danger" data-action="delete-project">${icon('trash',15)} Delete project</button></section><div class="dialog-foot">${submit('Save settings')}</div></form>`;
  }else if(m.type==='meetings'){
  title='Recurring meetings';subtitle='Recurring meetings reduce available work time and update effort-based forecasts.';wide=true;
- content=`<div class="notice" style="margin-bottom:14px">${icon('info',15)} <div><strong>How meetings affect estimates</strong><div style="margin-top:4px">Available work time = working hours − recurring meeting hours. Estimates cover all work, including fixes and review. Overlapping meetings count once. Exact minutes determine daily availability. Only the combined meeting time across a work item is rounded up to 0.5 days on its bar — a 30-minute daily does not reserve half a day every day. Weekends, holidays and time off are excluded.</div></div></div><div class="meeting-list">${(data.meetings||[]).map(mt=>`<div class="meeting-item ${mt.enabled?'':'muted-item'}"><div class="meeting-symbol">${icon('clock',18)}</div><div class="meeting-main"><strong>${esc(mt.title)}</strong><small>${esc(meetingRecurrenceLabel(mt))} · ${esc(mt.startTime)} · ${esc(mt.duration)} min</small><small>${esc(meetingPeopleLabel(mt))}${mt.requiresAttendeeReview?' · Needs attendee review':''}</small></div><div class="meeting-controls"><button class="mini-btn" data-action="toggle-meeting" data-id="${mt.id}" title="${mt.enabled?'Disable':'Enable'}">${mt.enabled?'Enabled':'Paused'}</button><button class="mini-btn" data-action="edit-meeting" data-id="${mt.id}">Edit</button><button class="icon-action" data-action="delete-meeting" data-id="${mt.id}" title="Delete meeting">${icon('trash',15)}</button></div></div>`).join('')||'<div class="grouped-note">No meetings yet. Add a regular event to reserve time automatically.</div>'}</div><div class="dialog-foot"><button class="btn" data-action="close-modal">Close</button><button class="btn primary" data-action="new-meeting">${icon('plus')} Add meeting</button></div>`;
+ content=`<div class="notice" style="margin-bottom:14px">${icon('info',15)} <div><strong>How meetings affect estimates</strong><div style="margin-top:4px">Available work time = working hours − recurring meeting hours. Estimates cover all work, including fixes and review. Overlapping meetings count once. Exact minutes determine daily availability. Only the combined meeting time across a work item is rounded up to 0.5 days on its bar — a 30-minute daily does not reserve half a day every day. Weekends, holidays and time off are excluded.</div></div></div><div class="meeting-list">${(data.meetings||[]).map(mt=>`<div class="meeting-item ${mt.enabled?'':'muted-item'}"><div class="meeting-symbol">${icon('clock',18)}</div><div class="meeting-main"><strong>${esc(mt.title)}</strong><small>${esc(meetingRecurrenceLabel(mt))} · ${esc(mt.startTime)} · ${esc(mt.duration)} min</small><small>${esc(meetingPeopleLabel(mt))}${mt.requiresAttendeeReview?' · Needs attendee review':''}</small></div><div class="meeting-controls"><button class="mini-btn" data-action="toggle-meeting" data-id="${mt.id}" title="${mt.enabled?'Disable':'Enable'}">${mt.enabled?'Enabled':'Paused'}</button><button class="mini-btn" data-action="edit-meeting" data-id="${mt.id}">Edit</button><button class="icon-action" data-action="delete-meeting" data-id="${mt.id}" title="Delete meeting">${icon('trash',15)}</button></div></div>`).join('')||'<div class="grouped-note">No meetings yet. Add a regular event to reserve time automatically.</div>'}</div><div class="dialog-foot"><button class="btn" data-action="close-modal">Close</button><button class="btn" data-action="add-scrum-meetings">${icon('plus')} Add Scrum ceremonies</button><button class="btn primary" data-action="new-meeting">${icon('plus')} Add meeting</button></div>`;
  }else if(m.type==='meeting'){
  let mt=(data.meetings||[]).find(x=>x.id===m.id),edit=!!mt;
  const stored=mt?.recurrence||'workdays',recur=stored==='interval'?'weekly':stored;
  const weekday=Number(mt?.weekday??4),interval=stored==='interval'?Math.max(1,Number(mt?.interval)||1):1,nth=Number(mt?.nth??1);
  title=edit?'Edit recurring meeting':'New recurring meeting';subtitle='Choose a repeat pattern and attendees. Preview the upcoming dates before saving.';wide=true;
  content=`<form id="modalForm" data-form="meeting">${textField('Meeting name','title',mt?.title||'', 'required placeholder="e.g. Sprint planning"')}
- <div class="field-grid thirds"><div class="field"><label for="meetingStartTime">Start time</label><input id="meetingStartTime" name="startTime" type="time" value="${esc(mt?.startTime||'09:30')}" required></div>${numberField('Duration (minutes)','duration',mt?.duration||30,5,480,5)}${selectField('Repeat','recurrence',[['workdays','Every working day'],['weekly','Weekly'],['monthly','Monthly on a weekday']],recur)}</div>
- <div class="field-grid meeting-pattern" ${recur==='workdays'?'hidden':''}>${selectField('Day of week','weekday',[['1','Monday'],['2','Tuesday'],['3','Wednesday'],['4','Thursday'],['5','Friday'],['6','Saturday'],['0','Sunday']],String(weekday))}
+ <div class="field-grid thirds"><div class="field"><label for="meetingStartTime">Start time</label><input id="meetingStartTime" name="startTime" type="time" value="${esc(mt?.startTime||'09:30')}" required></div>${numberField('Duration (minutes)','duration',mt?.duration||30,5,480,5)}${selectField('Repeat','recurrence',[['workdays','Every working day'],['daily','Every day'],['weekly','Weekly'],['monthly','Monthly on a weekday'],['custom','Custom…']],recur)}</div>
+ <div class="field-grid meeting-pattern" ${!['weekly','monthly'].includes(recur)?'hidden':''}>${selectField('Day of week','weekday',[['1','Monday'],['2','Tuesday'],['3','Wednesday'],['4','Thursday'],['5','Friday'],['6','Saturday'],['0','Sunday']],String(weekday))}
  <div class="field" data-pattern-field="weekly" ${recur!=='weekly'?'hidden':''}><label for="meetingInterval">Repeat every (weeks)</label><input id="meetingInterval" type="number" name="interval" min="1" max="12" step="1" value="${interval}" required><small>1 means every week; 2 means every other week.</small></div>
  <div data-pattern-field="monthly" ${recur!=='monthly'?'hidden':''}>${selectField('Which occurrence','nth',[['1','1st of the month'],['2','2nd of the month'],['3','3rd of the month'],['4','4th of the month'],['5','5th of the month'],['-1','Last of the month']],String(nth))}</div></div>
- <div class="field-grid">${dateField('Active from','startDate',mt?.startDate||today())}<div class="field"><label for="meetingEndDate">Until (optional)</label><input id="meetingEndDate" type="date" name="endDate" value="${esc(mt?.endDate||'')}"></div></div>
+ <div class="field-grid">${dateField('Active from','startDate',mt?.startDate||today())}<div class="field" data-meeting-legacy-end><label for="meetingEndDate">Until (optional)</label><input id="meetingEndDate" type="date" name="endDate" value="${esc(mt?.endDate||'')}"></div></div>
+ ${customRecurrenceFields(mt,mt?.startDate||today())}
  <div class="meeting-preview"><strong data-meeting-preview aria-live="polite"></strong><small data-meeting-dates></small></div>
  <fieldset class="meeting-attendees"><legend>Attendees</legend><label class="checkline meeting-audience"><input type="checkbox" name="allTeam" data-meeting-all ${mt?.allTeam!==false?'checked':''}><span><strong>Entire team</strong><small>Includes new team members automatically.</small></span></label>
  <p class="meeting-attendee-count" data-meeting-count aria-live="polite"></p>
@@ -783,7 +787,7 @@ function setupWizard(){
   aside=`<h3>${icon('bolt',15)} Roles become workstreams</h3><p>No need to set up a role directory first. Type a role and Orbit will create it, then use its workstream in the Platform selector when you add sub-items.</p><div class="aside-example"><b>Backend Developer</b> → Backend<br><b>QA Engineer</b> → QA<br><b>iOS Developer</b> → iOS</div><p style="margin-top:15px;margin-bottom:0">You can rename roles or adjust their workstreams later under Team settings.</p>`;
   foot=`<span>${memberCount?`${memberCount} member${memberCount===1?'':'s'} added`:'You can configure your team later.'}</span><div style="display:flex;gap:9px"><button class="btn ghost" data-action="setup-next">Skip for now</button><button class="btn primary" data-action="setup-next">Continue to meetings ${icon('chevron',14)}</button></div>`;
  }else if(step===2){
-  main=`<div class="split-head"><div><h2>Add recurring meetings</h2><p class="setup-sub">Meetings reduce each attendee's available development capacity and automatically update sub-item forecasts.</p></div><button class="btn primary" data-action="setup-add-meeting">${icon('plus',15)} Add meeting</button></div>
+  main=`<div class="split-head"><div><h2>Add recurring meetings</h2><p class="setup-sub">Meetings reduce each attendee's available development capacity and automatically update sub-item forecasts.</p></div><div class="setup-meeting-actions"><button class="btn" data-action="add-scrum-meetings">${icon('plus',15)} Add Scrum ceremonies</button><button class="btn primary" data-action="setup-add-meeting">${icon('plus',15)} Add meeting</button></div></div>
    ${sourceProjectOptions()?`<div class="setup-import-strip"><div><strong>${icon('copy',14)} Or copy meeting schedules</strong><small>Copies recurrence, timing and attendees. Unmatched participants require review.</small></div><div class="setup-import-controls"><select id="meetingImportSource" aria-label="Source project for meetings">${sourceProjectOptions()}</select><button class="btn sm" data-action="setup-import-meetings">${icon('copy',13)} Copy meetings</button></div></div>`:''}
    <div class="setup-meeting-list">${meetingCount?data.meetings.map(mt=>`<div class="meeting-item"><div class="meeting-symbol">${icon('clock',18)}</div><div class="meeting-main"><strong>${esc(mt.title)}</strong><small>${esc(meetingRecurrenceLabel(mt))} · ${esc(mt.startTime)} · ${mt.duration} min</small><small>${esc(meetingPeopleLabel(mt))}${mt.requiresAttendeeReview?' · Needs attendee review':''}</small></div><button class="mini-btn" data-action="setup-edit-meeting" data-id="${mt.id}">Edit</button><button class="icon-action" data-action="delete-meeting" data-id="${mt.id}" title="Delete meeting">${icon('trash',15)}</button></div>`).join(''):'<div class="setup-empty">No meetings configured. Add a daily, weekly, biweekly or monthly meeting — or skip for now.</div>'}</div>
    <div class="grouped-note" style="margin-top:18px"><strong>Capacity calculation</strong><p>The timeline reserves work and meetings in 0.5-day steps. Actual meeting durations stay unchanged. All available work time goes toward the estimate. Recurring meetings are deducted once; weekends, holidays and absences extend the calendar duration.</p></div>`;
@@ -807,7 +811,10 @@ function syncMeetingForm(){
  const form=$('#modalForm[data-form="meeting"]');if(!form)return;
  const field=name=>form.querySelector(`[name="${name}"]`);
  const recur=field('recurrence').value,interval=Number(field('interval').value||1);
- $('.meeting-pattern').hidden=recur==='workdays';
+ const custom=['custom','daily'].includes(recur),legacyPattern=['weekly','monthly'].includes(recur);
+ $('.meeting-pattern').hidden=!legacyPattern;field('weekday').disabled=!legacyPattern;
+ const legacyEnd=form.querySelector('[data-meeting-legacy-end]');legacyEnd.hidden=custom;field('endDate').disabled=custom;
+ syncMeetingCustomRecurrence(form);
  $$('[data-pattern-field]').forEach(group=>{
   group.hidden=group.dataset.patternField!==recur;
   group.querySelectorAll('input,select').forEach(input=>input.disabled=group.hidden);
@@ -822,15 +829,13 @@ function syncMeetingForm(){
  $$('[data-attendee-name]').forEach(label=>label.hidden=!label.dataset.attendeeName.includes(search));
  const preview=$('[data-meeting-preview]'),dates=$('[data-meeting-dates]');dates.textContent='';
  if(recur==='weekly'&&(!Number.isInteger(interval)||interval<1||interval>12)){preview.textContent='Choose a repeat interval of 1–12 whole weeks.';return;}
- const draft={enabled:true,recurrence:recur==='weekly'&&interval>1?'interval':recur,interval,
-  weekday:Number(field('weekday').value),nth:Number(field('nth').value),startDate:field('startDate').value,endDate:field('endDate').value};
+ let customRecurrence;
+ if(custom){try{customRecurrence=readMeetingCustomRecurrence(form)}catch(error){preview.textContent=error.message;return;}}
+ const draft={enabled:true,recurrence:custom?'custom':recur==='weekly'&&interval>1?'interval':recur,interval,
+  weekday:Number(field('weekday').value),nth:Number(field('nth').value),startDate:field('startDate').value,endDate:custom?'':field('endDate').value,
+  ...(customRecurrence?{customRecurrence}:{})};
  preview.textContent=meetingRecurrenceLabel(draft);
- const start=asDay(draft.startDate);if(!Number.isFinite(start))return;
- const first=Math.max(start,asDay(today())),upcoming=[];
- for(let offset=0;offset<370&&upcoming.length<3;offset++){
-  const date=fromDay(first+offset);if(draft.endDate&&date>draft.endDate)break;
-  if(meetingOccurs(draft,date))upcoming.push(fullD(date));
- }
+ const upcoming=upcomingMeetingDates(draft,today()).map(fullD);
  dates.textContent=upcoming.length?`Next: ${upcoming.join(' · ')}`:'No upcoming dates in the selected range.';
 }
 listen(window,'resize',()=>{fitBarLabels();positionFilterMenu();});
@@ -946,13 +951,17 @@ function applyForm(form){let m=view.modal;const F=new FormData(form),g=k=>F.get(
   if(!title||!startDate){notify('Meeting name and start date are required');return}
   if(endDate&&endDate<startDate){notify('Meeting end date cannot be earlier than its start');return}
   if(!allTeam&&!attendees.length){notify('Select at least one attendee');return}
-  let duration=Number(g('duration')),interval=Number(g('interval')||1),recurrence=String(g('recurrence'));
+  let duration=Number(g('duration')),interval=Number(g('interval')||1),recurrence=String(g('recurrence')),customRecurrence;
   if(!Number.isFinite(duration)||duration<5||duration>480||!Number.isInteger(duration)){notify('Duration must be 5–480 whole minutes');return}
   if(recurrence==='weekly'&&(!Number.isInteger(interval)||interval<1||interval>12)){notify('Repeat every 1–12 whole weeks');return}
+  if(['custom','daily'].includes(recurrence)){
+   try{customRecurrence=readMeetingCustomRecurrence(form)}catch(error){notify(error.message);return}
+   recurrence='custom';endDate='';
+  }
   if(recurrence==='weekly'&&interval>1)recurrence='interval';
   if(!['weekly','interval'].includes(recurrence))interval=1;
-  const values={title,recurrence,weekday:Number(g('weekday')??1),interval,nth:Number(g('nth')||1),startDate,endDate,startTime:g('startTime')||'09:00',duration,allTeam,attendees};
-  change(()=>{let existing=(data.meetings||[]).find(x=>x.id===m.id);if(existing){const wasMissing=!!existing.requiresAttendeeReview;Object.assign(existing,values,{requiresAttendeeReview:false});if(wasMissing)existing.enabled=true;}else data.meetings.push({id:uid('mt'),enabled:true,...values});view.modal=view.setupStep===2||m.fromDrawer?null:{type:'meetings'}},'Meeting schedule updated');
+  const values={title,recurrence,weekday:Number(g('weekday')??1),interval,nth:Number(g('nth')||1),startDate,endDate,startTime:g('startTime')||'09:00',duration,allTeam,attendees,...(customRecurrence?{customRecurrence}:{})};
+  change(()=>{let existing=(data.meetings||[]).find(x=>x.id===m.id);if(existing){const wasMissing=!!existing.requiresAttendeeReview;if(!customRecurrence)delete existing.customRecurrence;Object.assign(existing,values,{requiresAttendeeReview:false});if(wasMissing)existing.enabled=true;}else data.meetings.push({id:uid('mt'),enabled:true,...values});view.modal=view.setupStep===2||m.fromDrawer?null:{type:'meetings'}},'Meeting schedule updated');
  }else if(m.type==='iteration'){
  let start=g('start'),end=g('end');if(start>end){notify('Iteration end date must follow start date');return}
  change(()=>{let id=g('iterationId');if(id==='new'){let item={id:uid('i'),name:g('name')||'New iteration',start,end,overrides:{}};data.iterations.push(item);view.iteration=item.id}else{let item=data.iterations.find(it=>it.id===id);if(item){item.name=g('name');item.start=start;item.end=end;view.iteration=item.id}}view.modal=null},'Iteration saved');
@@ -1099,6 +1108,10 @@ listen(root,'click',e=>{
  case 'open-settings':openModal('settings');break;
  case 'manage-meetings':openModal('meetings');break;
  case 'new-meeting':openModal('meeting');break;
+ case 'add-scrum-meetings':{
+  try{const result=addScrumMeetings(data,today());if(result.added)change(()=>{data=result.data},`${result.added} Scrum ceremon${result.added===1?'y':'ies'} added`);else notify('Scrum ceremonies are already in this project');}
+  catch(error){notify(error.message)}break;
+ }
  case 'edit-meeting':openModal('meeting',{id,fromDrawer:!!el.closest('[data-drawer-meetings]')});break;
  case 'toggle-meeting':{let mt=data.meetings.find(x=>x.id===id);if(mt?.requiresAttendeeReview){notify('Edit this meeting and assign attendees before enabling');break}change(()=>{if(mt)mt.enabled=!mt.enabled},'Meeting availability updated');break}
  case 'delete-meeting':if(confirm('Delete this recurring meeting?'))change(()=>{data.meetings=data.meetings.filter(x=>x.id!==id)},'Meeting deleted');break;
@@ -1226,7 +1239,7 @@ listen(root,'input',e=>{
  let existing=data.roles.find(r=>r.name.toLowerCase()===value.toLowerCase());
  display.textContent=value?`${existing?'Existing role':'New role'}: ${existing?.name||value} → Platform: ${existing?.platform||guessPlatform(value)}`:'A new role will automatically create its workstream.';
 });
-listen(window,'resize',()=>{const scroller=$('#ganttScroller');if(scroller&&scroller.scrollWidth<=scroller.clientWidth){const draft=captureItemForm(),dialog=$('.dialog-body'),scrollTop=dialog?.scrollTop||0;view.scrollToStart=true;render();restoreItemForm(draft);if(draft&&$('.dialog-body'))$('.dialog-body').scrollTop=scrollTop;}else drawDependencyLines();});
+listen(window,'resize',()=>{if(view.modal?.type==='meeting'){drawDependencyLines();return;}const scroller=$('#ganttScroller');if(scroller&&scroller.scrollWidth<=scroller.clientWidth){const draft=captureItemForm(),dialog=$('.dialog-body'),scrollTop=dialog?.scrollTop||0;view.scrollToStart=true;render();restoreItemForm(draft);if(draft&&$('.dialog-body'))$('.dialog-body').scrollTop=scrollTop;}else drawDependencyLines();});
 listen(root,'keydown',e=>{if(e.target.matches('.dependency-edge')&&['Enter',' '].includes(e.key)){e.preventDefault();view.selectedLink={from:e.target.dataset.from,to:e.target.dataset.to};render();}if(e.key==='Delete'&&view.selectedLink&&!e.target.matches('input,textarea,select')){e.preventDefault();removeMapDependency();}});
 listen(root,'dblclick',e=>{if(view.selectionMode)return;let day=e.target.closest('.day-cell[data-date], .time-segment[data-date]');if(day){e.preventDefault();openModal('milestone',{date:day.dataset.date})}});
 listen(document,'keydown',e=>{if(e.key==='Escape'){if(itemPopup){e.preventDefault();hideItemPopup(true);return;}if(view.filterMenu){e.preventDefault();closeFilterMenu(true);return;}if(['resize','feature'].includes(view.drag?.kind)){view.drag=null;clearResizePreview();lastDragAt=Date.now();render();return;}if(view.rowDrag){const d=endRowDrag();if(d?.moved)lastDragAt=Date.now();return;}if(view.linkSource||view.linkDrag||view.selectedLink){view.linkSource=null;view.linkDrag=null;view.selectedLink=null;render();return;}if(view.modal){closeModal()}else if(view.drawer){closeDrawer()}else if(view.selectionMode){clearRoadmapSelection();render();$('#ganttScroller')?.focus({preventScroll:true});}}});

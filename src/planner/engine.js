@@ -1,6 +1,7 @@
 // Scheduling logic extracted from the supplied Orbit prototype. No UI or persistence dependencies.
 import {DAY,asDay,fromDay,addDays,dow,today,monday} from './dates.js';
 import {halfDay} from './precision.js';
+import {meetingOccursOnDate} from './meeting-recurrence.js';
 export function createScheduler(data, {legacyAllocation=false}={}) {
 const getPerson=id=>data.people.find(p=>p.id===id);
 const getFeature=id=>data.features.find(f=>f.id===id);
@@ -13,18 +14,7 @@ function capacityParts(pid,date){const p=getPerson(pid),base=p?.capacity||data.s
 // Legacy allocation is used solely to preserve visible starts during migration.
 const meetingDayCache=new Map();
 function meetingOccurs(m,date){
- if(!m.enabled||!m.startDate||date<m.startDate||(m.endDate&&date>m.endDate))return false;
- const n=asDay(date),day=dow(n);
- if(m.recurrence==='workdays')return day>=1&&day<=5;
- if(m.recurrence==='monthly'){
-  if(day!==Number(m.weekday))return false;
-  const dayOfMonth=Number(date.slice(8)),ordinal=Math.ceil(dayOfMonth/7);
-  if(Number(m.nth)===-1)return fromDay(n+7).slice(0,7)!==date.slice(0,7);
-  return ordinal===Number(m.nth);
- }
- if(day!==Number(m.weekday))return false;
- const weeks=Math.floor((asDay(monday(date))-asDay(monday(m.startDate)))/7);
- return weeks>=0&&weeks%Math.max(1,Number(m.recurrence==='interval'?m.interval:1)||1)===0;
+ return meetingOccursOnDate(m,date);
 }
 function meetingMinutes(pid,date){
  if(!pid)return 0;

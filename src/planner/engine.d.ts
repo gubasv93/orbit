@@ -1,4 +1,5 @@
 import type { ProjectData } from '../lib/schema';
+import type {RecurrenceMeeting} from './meeting-recurrence.js';
 export interface ScheduledTask {
   start: number | null; end: number | null; blocked: boolean; reason?: string;
   hold?: boolean; done?: boolean; needsEstimate?: boolean; alloc: Record<string, number>;
@@ -18,7 +19,7 @@ export function createScheduler(data: ProjectData, options?: {legacyAllocation?:
   nonwork(day: number, person?: string): boolean;
   nextWork(day: number, person?: string): number;
   capacityParts(person: string, date: string): ProjectData['settings']['defaultCapacity'];
-  meetingOccurs(meeting: { enabled: boolean; startDate: string; endDate: string; recurrence: string; weekday: number; interval: number; nth: number }, date: string): boolean;
+  meetingOccurs(meeting: RecurrenceMeeting, date: string): boolean;
   meetingMinutes(person: string, date: string): number;
   meetingDays(person: string, date: string): number;
   meetingHoursInIteration(person: string, iteration: ProjectData['iterations'][number]): number;

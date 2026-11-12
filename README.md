@@ -110,6 +110,20 @@ Sub-item and work item details show **Start date** and **End date** from the gra
 
 For an event every Thursday, choose **Repeat → Weekly**, **Repeat every (weeks) → 1**, and **Day of week → Thursday**. Use 2 weeks for every other Thursday, or Monthly for an ordinal such as the second Thursday of each month. The preview shows the saved cadence and upcoming dates. Existing meetings keep their saved cadence until edited.
 
+**Add Scrum ceremonies** is available in Recurring meetings and the meetings step of project setup, including before anyone joins the team. It adds ordinary meetings that you can edit, pause or delete:
+
+| Ceremony | Default schedule | Duration |
+| --- | --- | --- |
+| Daily | Every day at 10:00 | 30 minutes |
+| Refinement | Tuesday and Thursday at 14:00 | 1 hour |
+| Planning | Every two weeks on Monday at 11:00 | 1 hour |
+| Demo | Every two weeks on Friday at 14:00 | 1 hour |
+| Retro | Every two weeks on Friday at 16:00 | 1 hour |
+
+Planning starts on the nearest Monday, including today when it is Monday. Demo and Retro use the second Friday of that same two-week cycle. Daily and Refinement start from today. These meetings include the entire team; non-working days do not reserve working capacity. Clicking the button again preserves existing meetings and your edits, while adding any deleted default ceremonies again.
+
+Choose **Repeat → Custom…** to repeat every 1–99 days, weeks, months or years. Weekly rules support several weekdays; monthly rules support a date or weekday occurrence, including the last weekday of the month. Recurrence can continue indefinitely, end on an inclusive date, or stop after 1–1,000 occurrences. Each selected meeting date counts toward the occurrence limit. The preview shows the rule and upcoming dates before saving; impossible dates such as February 30 are skipped.
+
 Meetings include the entire team by default. Clear **Entire team** to select specific attendees; larger teams have a search field, and the selected count remains visible while searching. The meeting cannot be saved with no specific attendees selected.
 
 Every material planner edit is queued to the server and saved in one database transaction. The status bar distinguishes unsaved, saving, saved, failed, and conflicting writes. If a save fails, keep the tab open and retry or export a backup. A stale tab cannot silently overwrite a newer revision.
