@@ -23,7 +23,7 @@ const colors = [
   { name: 'Estimate', color: '#7c9fe5', description: 'Time allocated to the work itself.' },
   { name: 'Recurring meetings', color: '#e3c584', description: 'Meeting time reserved for the assignee.' },
   { name: 'Weekends', color: '#c7ced9', description: 'Weekend dates inside the calendar span.' },
-  { name: 'Public holidays', color: '#86c4ac', description: 'Holidays enabled in your working calendar.' },
+  { name: 'Public holidays', color: '#86c4ac', description: 'Public holidays imported from your selected country calendar and company holiday dates.' },
   { name: 'Days off', color: '#b6a0dc', description: 'Vacation and personal leave for the assignee.' },
   { name: 'Sick leave', color: '#dfa6a5', description: 'Recorded sick days for the assignee.' },
 ];
@@ -87,7 +87,7 @@ export default async function HowItWorks({searchParams}: {searchParams: Promise<
           <section id="dependencies" className="orbit-guide-section">
             <SectionHeading number="05" title="Connect work. Choose what moves."/>
             <ol className="orbit-guide-steps"><li><span>1</span><div><h3>Connect the work</h3><p>Drag from a dependency handle to the work that follows it. The arrow records the relationship.</p></div></li><li><span>2</span><div><h3>Keep control of the dates</h3><p>With auto-shift off, adding a dependency preserves your dates. A warning shows when their order conflicts.</p></div></li><li><span>3</span><div><h3>Turn on automatic movement if you want it</h3><p>Enable auto-shift in <strong>General settings</strong>. Advanced options let you choose the gap and how connected dates follow changes.</p></div></li></ol>
-            <div className="orbit-guide-tips"><p><strong>Change the labels, not the plan.</strong> General settings also lets you choose which information appears on bars and switch between light and dark themes.</p><p><strong>Keep availability up to date.</strong> Recurring meetings, holidays and recorded absences shape the calendar forecast. The item details show which meetings consume time.</p></div>
+            <div className="orbit-guide-tips"><p><strong>Change the labels, not the plan.</strong> General settings also lets you choose which information appears on bars and switch between light and dark themes.</p><p><strong>Keep availability up to date.</strong> In Time off & holidays, choose a country and optional region to import public holidays for this year and next. Calendars refresh when a new year starts while you use or reopen the planner. Manual dates and removed imported dates are preserved. Recurring meetings, holidays and recorded absences shape the calendar forecast. The item details show which meetings consume time.</p></div>
           </section>
 
           <section id="planning-poker" className="orbit-guide-section">

@@ -17,6 +17,7 @@
   "dependencies": {
     "@supabase/ssr": "0.12.7",
     "@supabase/supabase-js": "2.118.0",
+    "date-holidays": "3.39.1",
     "dompurify": "3.4.17",
     "next": "16.4.2",
     "qrcode": "1.5.4",

@@ -4,6 +4,28 @@ const id = z.string().regex(/^[A-Za-z0-9_-]{1,100}$/);
 const text = z.string().trim().min(1).max(200);
 const date = z.iso.date().refine(value => value >= '2000-01-01' && value <= '2200-12-31', 'Date must be between 2000 and 2200');
 const color = z.string().regex(/^#[0-9a-fA-F]{6}$/);
+const holidayYear = z.number().int().min(2000).max(2200);
+const holidayCountry = z.string().regex(/^[A-Z]{2}$/);
+const holidayRegion = z.string().regex(/^[A-Za-z0-9_-]{1,30}$/);
+export const holidayCalendarSchema = z.object({
+  countryCode: holidayCountry, countryName: text.optional(),
+  stateCode: holidayRegion.optional(), stateName: text.optional(),
+  regionCode: holidayRegion.optional(), regionName: text.optional(),
+  years: z.array(holidayYear).min(1).max(201).refine(years => new Set(years).size === years.length, 'Duplicate holiday years'),
+  excludedDates: z.array(date).max(1000).refine(dates => new Set(dates).size === dates.length, 'Duplicate excluded holiday dates'),
+  updatedForYear: holidayYear,
+  providerVersion: z.string().regex(/^[0-9A-Za-z._-]{1,50}$/).optional(),
+}).refine(calendar => !calendar.regionCode || Boolean(calendar.stateCode), 'Choose a state before a local region')
+  .refine(calendar => calendar.years.includes(calendar.updatedForYear), 'The refreshed year must be included in the holiday calendar');
+export const holidaySchema = z.object({
+  date, name: text,
+  source: z.literal('country').optional(), countryCode: holidayCountry.optional(),
+  stateCode: holidayRegion.optional(), regionCode: holidayRegion.optional(),
+}).superRefine((holiday, context) => {
+  if (holiday.source === 'country' && !holiday.countryCode) context.addIssue({code:'custom',message:'Imported holidays need a country'});
+  if (!holiday.source && (holiday.countryCode || holiday.stateCode || holiday.regionCode)) context.addIssue({code:'custom',message:'Manual holidays cannot carry a country source'});
+  if (holiday.regionCode && !holiday.stateCode) context.addIssue({code:'custom',message:'Choose a state before a local region'});
+});
 export const capacitySchema = z.object({
   feature: z.number().min(0).max(100), bugs: z.number().min(0).max(100),
   ongoing: z.number().min(0).max(100), ops: z.number().min(0).max(100),
@@ -39,8 +61,9 @@ export const projectDataSchema = z.object({
   iterations: z.array(z.object({ id, name: text, start: date, end: date,
     overrides: z.record(id, capacitySchema) }).refine(i => i.end >= i.start, 'Iteration end precedes start')).min(1).max(500),
   milestones: z.array(z.object({ id, title: text, date, color, featureIds: z.array(id).max(1000) })).max(1000),
-  holidays: z.array(z.object({ date, name: text })).max(1000),
-  settings: z.object({ observeHolidays: z.boolean(), workHours: z.number().min(1).max(24), defaultCapacity: capacitySchema,
+  holidays: z.array(holidaySchema).max(1000),
+  settings: z.object({ observeHolidays: z.boolean().default(true), workHours: z.number().min(1).max(24), defaultCapacity: capacitySchema,
+    holidayCalendar: holidayCalendarSchema.optional(),
     autoShiftDependencies: z.boolean().optional(), dependencyGapDays: z.number().int().min(0).max(365).optional(),
     dependencyGapUnit: z.enum(['calendar', 'working']).optional(), dependencyShiftPolicy: z.enum(['push', 'follow']).optional(),
     showDependencyWarnings: z.boolean().optional(),

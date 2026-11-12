@@ -26,3 +26,15 @@
 .workspace-profile strong { display:block; font-size:11px; font-weight:650; }
 .workspace-profile small { display:block; max-width:142px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--ui-muted); font-size:9px; margin-top:4px; }
 .workspace-sidebar .side-spacer { min-height:0; }
+
+/* Planner navigation uses its compact rail; Poker retains its mobile overlay. */
+.planner-root .workspace-sidebar.workspace-sidebar{width:var(--sidebar-w);flex-basis:var(--sidebar-w)}
+@media(max-width:1100px){
+ .planner-root .workspace-sidebar.workspace-sidebar{padding-inline:8px}
+ .planner-root .workspace-sidebar :is(.project-trigger,.project-new,.workspace-help,.workspace-sidebar-feedback,.workspace-profile){justify-content:center;padding-inline:5px;min-width:0}
+ .planner-root .workspace-sidebar .project-new{font-size:0;min-height:34px}
+ .planner-root .workspace-sidebar .project-trigger>svg:last-child,.planner-root .workspace-sidebar .workspace-sidebar-feedback>svg:last-child,.planner-root .workspace-sidebar .workspace-profile>div{display:none}
+ .planner-root .workspace-sidebar :is(.project-trigger>span,.workspace-help>span,.workspace-sidebar-feedback>span){position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+ .planner-root .workspace-sidebar .workspace-profile{min-height:44px}
+}
+@media(max-width:600px){.planner-root .workspace-sidebar.workspace-sidebar{padding:16px 5px}.planner-root .workspace-sidebar :is(.brand,.nav-item){justify-content:center;padding-inline:4px}}

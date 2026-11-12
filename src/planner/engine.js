@@ -5,7 +5,7 @@ export function createScheduler(data, {legacyAllocation=false}={}) {
 const getPerson=id=>data.people.find(p=>p.id===id);
 const getFeature=id=>data.features.find(f=>f.id===id);
 const getTask=id=>data.tasks.find(t=>t.id===id);
-function isHoliday(n){return data.settings.observeHolidays&&data.holidays.some(h=>asDay(h.date)===n)}
+function isHoliday(n){return data.holidays.some(h=>asDay(h.date)===n)}
 function nonwork(n,person){if(dow(n)===0||dow(n)===6||isHoliday(n))return true;return !!person&&data.leave.some(l=>l.person===person&&n>=asDay(l.from)&&n<=asDay(l.to))}
 function nextWork(n,person){let j=0;while(nonwork(n,person)&&j++<550)n++;return n}
 function capacityParts(pid,date){const p=getPerson(pid),base=p?.capacity||data.settings.defaultCapacity,iter=data.iterations.find(i=>asDay(i.start)<=asDay(date)&&asDay(i.end)>=asDay(date));return iter?.overrides?.[pid]||base}

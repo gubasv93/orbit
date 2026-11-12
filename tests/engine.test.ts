@@ -12,7 +12,7 @@ describe('preserved scheduling behavior', () => {
     const dates = source.slice(source.indexOf('const asDay='), source.indexOf('const clamp='));
     const seed = source.slice(source.indexOf('function seed()'), source.indexOf('// Existing single-project'));
     const logic = source.slice(source.indexOf('function isHoliday('), source.indexOf('const weekDayLabels=')) + source.slice(source.indexOf('function calcSchedule()'), source.indexOf('let computed=calcSchedule();'));
-    const baseline = runInNewContext(`const DAY=86400000;${dates}${seed}let data=seed();data.meetings=[];data.settings.defaultCapacity={feature:100,bugs:0,ongoing:0,ops:0};data.people.forEach(p=>p.capacity={...data.settings.defaultCapacity});data.iterations.forEach(i=>i.overrides={});const getPerson=id=>data.people.find(p=>p.id===id),getFeature=id=>data.features.find(f=>f.id===id),getTask=id=>data.tasks.find(t=>t.id===id);${logic}JSON.stringify({data,result:calcSchedule()},(key,value)=>value instanceof Map?[...value]:value);`, {}, { timeout: 3000 });
+    const baseline = runInNewContext(`const DAY=86400000;${dates}${seed}let data=seed();data.meetings=[];data.settings.observeHolidays=true;data.settings.defaultCapacity={feature:100,bugs:0,ongoing:0,ops:0};data.people.forEach(p=>p.capacity={...data.settings.defaultCapacity});data.iterations.forEach(i=>i.overrides={});const getPerson=id=>data.people.find(p=>p.id===id),getFeature=id=>data.features.find(f=>f.id===id),getTask=id=>data.tasks.find(t=>t.id===id);${logic}JSON.stringify({data,result:calcSchedule()},(key,value)=>value instanceof Map?[...value]:value);`, {}, { timeout: 3000 });
     const { data, result } = JSON.parse(baseline);
     data.settings.autoShiftDependencies=true;
     const {dependencyConflicts: _warnings,...calculated}=createScheduler(data).calculate();
@@ -41,11 +41,11 @@ describe('preserved scheduling behavior', () => {
     expect(engine.meetingOccurs({ ...base, weekday: 4, nth: 3, recurrence: 'monthly' }, '2026-11-19')).toBe(true);
     expect(engine.meetingOccurs({ ...base, nth: -1, recurrence: 'monthly' }, '2026-11-30')).toBe(true);
   });
-  it('extends forecasts for leave and respects the holiday switch', () => {
+  it('extends forecasts for leave and always excludes listed holidays with either legacy flag value', () => {
     const data = projectData(); data.leave = [{ id: 'l1', person: 'u1', type: 'sick', from: '2026-10-27', to: '2026-10-28', note: '' }];
     expect(fromDay(createScheduler(data).calculate().schedule.t1.end!)).toBe('2026-10-30');
     data.leave = []; data.holidays = [{ date: '2026-10-27', name: 'Optional holiday' }];
-    expect(fromDay(createScheduler(data).calculate().schedule.t1.end!)).toBe('2026-10-28');
+    expect(fromDay(createScheduler(data).calculate().schedule.t1.end!)).toBe('2026-10-29');
     data.settings.observeHolidays = true;
     expect(fromDay(createScheduler(data).calculate().schedule.t1.end!)).toBe('2026-10-29');
   });

@@ -236,10 +236,10 @@ export function getItemDetails(data: ProjectData, computed: Schedule, kind: Kind
   }
   if (meetingMinutes !== null) meetingMinutes = round(meetingMinutes);
   const weekends = start !== null && finish !== null ? countWeekends(start, finish) : null;
-  const holidays = start !== null && finish !== null && !completed ? round(data.settings.observeHolidays ? [...new Set(data.holidays.map(h => h.date))].reduce((sum, date) => {
+  const holidays = start !== null && finish !== null && !completed ? round([...new Set(data.holidays.map(h => h.date))].reduce((sum, date) => {
     const day = asDay(date);
     return day >= start! && day < finish! && ![0, 6].includes(dow(day)) ? sum + Math.min(1, finish! - day) : sum;
-  }, 0) : 0) : null;
+  }, 0)) : null;
   const timeAway: TimeAwayDetail[] = [
     {kind: 'weekends', label: 'Weekends', days: weekends, unit: 'calendar days'},
     {kind: 'holidays', label: 'Public holidays', days: holidays, unit: 'calendar days'},
