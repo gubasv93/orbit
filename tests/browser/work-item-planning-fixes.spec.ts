@@ -17,8 +17,8 @@ async function account(context:BrowserContext){
 async function snapshot(context:BrowserContext):Promise<{workspace:Workspace;revision:number}>{
   const response=await context.request.get('/api/workspace');expect(response.status(),await response.text()).toBe(200);return response.json();
 }
-async function seed(context:BrowserContext,data:ProjectData){
-  const workspace:Workspace={version:1,activeId:'work-items-project',preferences:{scale:'day',sidebarHidden:false},projects:[{id:'work-items-project',name:'Work item planning checks',onboardingStep:0,data}]};
+async function seed(context:BrowserContext,data:ProjectData,onboardingStep=0){
+  const workspace:Workspace={version:1,activeId:'work-items-project',preferences:{scale:'day',sidebarHidden:false},projects:[{id:'work-items-project',name:'Work item planning checks',onboardingStep,data}]};
   const current=await snapshot(context),response=await context.request.put('/api/workspace',{headers:{Origin:origin},data:{workspace,revision:current.revision}});
   expect(response.status(),await response.text()).toBe(200);
 }
@@ -106,7 +106,17 @@ test('a whole work item can own a half-day estimate and assignee without sub-ite
       if(width===320){const estimate=await conflictPage.getByLabel('Work item estimate (days)',{exact:true}).boundingBox(),assignee=await conflictPage.getByLabel('Assignee',{exact:true}).boundingBox();expect(estimate).not.toBeNull();expect(assignee).not.toBeNull();expect(Math.abs(estimate!.y-assignee!.y)).toBeLessThanOrEqual(1);}
       await conflictPage.screenshot({path:test.info().outputPath(`standalone-work-item-${width}.png`),fullPage:true});
     }
-    expect((await currentData(context)).tasks.filter(task=>task.featureId===workId)).toHaveLength(0);expect(errors).toEqual([]);
+    expect((await currentData(context)).tasks.filter(task=>task.featureId===workId)).toHaveLength(0);
+    // A resumed setup can contain existing work, so removing its owner must
+    // clear both direct work-item ownership and ordinary sub-item assignments.
+    await conflictPage.close();stored=await currentData(context);await seed(context,stored,1);
+    const setupPage=await context.newPage();setupPage.on('pageerror',error=>errors.push(error.message));await setupPage.clock.install({time:new Date('2026-11-13T12:00:00Z')});await setupPage.goto('/app');
+    await expect(setupPage.getByRole('heading',{name:'Add your team',exact:true})).toBeVisible();await expect(setupPage.locator('.save-bar [role=status]')).toHaveText('Saved to cloud');
+    setupPage.once('dialog',dialog=>dialog.accept());await setupPage.locator('[data-action=setup-remove-member][data-id=u1]').click();
+    await expect.poll(async()=>(await currentData(context)).people.length).toBe(0);await expect(setupPage.locator('.save-bar [role=status]')).toHaveText('Saved to cloud');
+    stored=await currentData(context);expect(stored.features.find(feature=>feature.id===workId)?.assignee).toBeFalsy();expect(stored.features.find(feature=>feature.id===workId)?.effortOverride).toBe(3);expect(stored.tasks.find(task=>task.id==='competing-task')?.assignee).toBe('');
+    await setupPage.reload();await expect(setupPage.getByRole('heading',{name:'Add your team',exact:true})).toBeVisible();await expect(setupPage.locator('.save-bar [role=status]')).toHaveText('Saved to cloud');await expect(setupPage.locator('.setup-empty')).toContainText('No team members yet');
+    expect((await snapshot(context)).workspace.projects[0].onboardingStep).toBe(1);expect((await currentData(context)).features.find(feature=>feature.id===workId)?.assignee).toBeFalsy();expect(errors).toEqual([]);
   }finally{await context.close();}
 });
 

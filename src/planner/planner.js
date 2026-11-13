@@ -1088,7 +1088,7 @@ listen(root,'click',e=>{
  case 'setup-remove-member':{
   const p=getPerson(id);if(!p)return;
   if(!confirm(`Remove ${p.name} from this project?`))return;
-  change(()=>{data.people=data.people.filter(x=>x.id!==id);data.meetings.forEach(mt=>mt.attendees=(mt.attendees||[]).filter(x=>x!==id));data.leave=data.leave.filter(x=>x.person!==id);data.tasks.forEach(t=>{if(t.assignee===id)t.assignee=''});data.iterations.forEach(i=>delete i.overrides[id])},'Team member removed');break;
+  change(()=>{data.people=data.people.filter(x=>x.id!==id);data.meetings.forEach(mt=>mt.attendees=(mt.attendees||[]).filter(x=>x!==id));data.leave=data.leave.filter(x=>x.person!==id);data.tasks.forEach(t=>{if(t.assignee===id)t.assignee=''});data.features.forEach(f=>{if(f.assignee===id)f.assignee=''});data.iterations.forEach(i=>delete i.overrides[id])},'Team member removed');break;
  }
  case 'page':clearRoadmapSelection();view.linkSource=null;view.linkDrag=null;view.selectedLink=null;view.page=id;view.drawer=null;view.modal=null;saveUiPreferences();render();break;
  case 'collapse':change(()=>{let f=getFeature(id);if(f)f.collapsed=!f.collapsed});break;
