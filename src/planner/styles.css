@@ -337,3 +337,8 @@
 @media(max-width:600px){.setup-card>.split-head>.setup-meeting-actions{width:100%;justify-content:flex-start}}
 
 #modalForm[data-form="meeting"] [hidden]{display:none!important}
+
+/* Keep paired inspector controls aligned when a label wraps on narrow screens. */
+.drawer .field-grid{align-items:end}
+
+.drawer .field-grid input:not([type="checkbox"]):not([type="radio"]),.drawer .field-grid select{height:44px;min-height:44px}

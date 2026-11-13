@@ -17,7 +17,8 @@ describe('preserved scheduling behavior', () => {
     data.settings.autoShiftDependencies=true;
     const {dependencyConflicts: _warnings,...calculated}=createScheduler(data).calculate();
     const actual = JSON.parse(JSON.stringify(calculated, (_key, value) => _key==='endFraction'?undefined:value instanceof Map ? [...value] : value));
-    const {featureInfo:actualFeatures,...actualWork}=actual,{featureInfo:prototypeFeatures,...prototypeWork}=result;
+    const {featureInfo:actualFeatures,featureSchedules,featureConflicts,...actualWork}=actual,{featureInfo:prototypeFeatures,...prototypeWork}=result;
+    expect(featureSchedules).toEqual({});expect(featureConflicts).toEqual({});
     expect(actualWork).toEqual(prototypeWork);
     for(const [id,info] of Object.entries(prototypeFeatures) as [string,{blocked:boolean}][])if(!info.blocked)expect(actualFeatures[id]).toMatchObject(info);
   });

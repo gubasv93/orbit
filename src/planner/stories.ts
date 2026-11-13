@@ -12,6 +12,7 @@ export function workstreamNames(data: Pick<TeamData, 'roles' | 'tasks'>, extra =
 const estimate = z.union([z.literal(0),z.number().min(0.5, 'Estimates must be at least 0.5 work days').max(3650, 'Estimates cannot exceed 3650 work days').multipleOf(.5, 'Use 0.5-day steps')]);
 const draftSchema = z.object({
   title: z.string().trim().min(1, 'Enter a sub-item name').max(200),
+  description: z.string().max(10000).optional(),
   start: z.iso.date().refine(value => value >= '2000-01-01' && value <= '2200-12-31', 'Choose a date between 2000 and 2200'),
   effort: estimate.optional(),
   teams: z.array(z.object({
@@ -28,7 +29,7 @@ export function buildStoryWorkItems(featureId: string, draft: unknown, data: Tea
   if (new Set(parsed.teams.map(team => team.roleId || team.platform)).size !== parsed.teams.length) throw new Error('Select each role only once');
   if (data.tasks.length + Math.max(1, parsed.teams.length) > 3000) throw new Error('A project can contain at most 3000 sub-items');
   if (!parsed.teams.length) return [{ id: `t${crypto.randomUUID()}`, featureId, storyId, title: parsed.title,
-    platform: '', assignee: '', effort: parsed.effort ?? 0, start: parsed.start, status: 'planned', dependsOn: [] }];
+    platform: '', assignee: '', ...(parsed.description!==undefined?{description:parsed.description}:{}), effort: parsed.effort ?? 0, start: parsed.start, status: 'planned', dependsOn: [] }];
   for (const team of parsed.teams) {
     const role = team.roleId ? data.roles.find(role => role.id === team.roleId) : undefined;
     if (team.roleId && !role) throw new Error('Choose a role from this project');
@@ -42,7 +43,7 @@ export function buildStoryWorkItems(featureId: string, draft: unknown, data: Tea
   for (const team of parsed.teams) {
     const role = data.roles.find(role => role.id === team.roleId);
     tasks.push({ id: `t${crypto.randomUUID()}`, featureId, storyId, title: parsed.title, platform: role?.platform || team.platform!, ...(role ? { roleId: role.id } : {}),
-      assignee: team.assignee, effort: team.effort, start: parsed.start, status: 'planned',
+      assignee: team.assignee, ...(parsed.description!==undefined?{description:parsed.description}:{}), effort: team.effort, start: parsed.start, status: 'planned',
       dependsOn: parsed.sequential && tasks.length ? [tasks[tasks.length - 1].id] : [] });
   }
   return tasks;
@@ -69,7 +70,7 @@ export function planStoryRoles(taskId: string, draft: unknown, data: TeamData) {
   const reuse = source.effort === 0 && !source.roleId && !source.platform && !source.assignee && source.status === 'planned';
   if (reuse && source.manualEnd && (parsed.start > source.manualEnd || Date.parse(source.manualEnd)-Date.parse(parsed.start)>=3650*86400000)) throw new Error('Keep the existing manual date window valid when adding roles');
   const storyId = source.storyId || `s${crypto.randomUUID()}`;
-  const built = buildStoryWorkItems(source.featureId,{...parsed,title:source.title},reuse?{...data,tasks:data.tasks.filter(t=>t.id!==source.id)}:data,storyId);
+  const built = buildStoryWorkItems(source.featureId,{...parsed,title:source.title,...(parsed.description===undefined&&source.description!==undefined?{description:source.description}:{})},reuse?{...data,tasks:data.tasks.filter(t=>t.id!==source.id)}:data,storyId);
   let updatedSource = {...source,storyId}, items = built;
   if (reuse) {
     updatedSource = {...source,...built[0],id:source.id,storyId,dependsOn:source.dependsOn};delete updatedSource.remaining;

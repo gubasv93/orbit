@@ -32,6 +32,7 @@ export const capacitySchema = z.object({
 }).refine(c => Math.abs(c.feature + c.bugs + c.ongoing + c.ops - 100) < 0.001, 'Capacity must total 100%');
 const feature = z.object({ id, title: text, description: z.string().max(10000).default(''), start: date,
   baseline: date, collapsed: z.boolean().default(false), color,
+  assignee: id.or(z.literal('')).optional(),
   effortOverride: z.number().min(0).max(10_950_000).optional(), manualEnd: date.optional(), manualEndFraction: z.union([z.literal(.5),z.literal(1)]).optional() })
   .refine(f => !f.manualEnd || f.manualEnd >= f.start, 'End precedes start')
   .refine(f => !f.manualEnd || Date.parse(f.manualEnd) - Date.parse(f.start) < 3650 * 86400000, 'Date window is too long');
@@ -99,6 +100,7 @@ export const projectDataSchema = z.object({
   if (new Set(data.holidays.map(h => h.date)).size !== data.holidays.length) fail('Duplicate holiday dates');
   const features = new Set(data.features.map(f => f.id)), tasks = new Map(data.tasks.map(t => [t.id, t]));
   const people = new Map(data.people.map(p => [p.id, p])), roles = new Map(data.roles.map(r => [r.id, r]));
+  if(data.features.some(feature=>feature.assignee&&!people.has(feature.assignee)))fail('Choose an existing assignee for this work item');
   for (const p of data.people) if (!roles.has(p.roleId) || roles.get(p.roleId)?.platform !== p.platform) fail('Invalid team role');
   for (const t of data.tasks) {
     if (!features.has(t.featureId)) fail('Choose an existing work item for each sub-item');

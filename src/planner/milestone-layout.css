@@ -1,0 +1,14 @@
+/* A date with several milestones uses one marker and an explicit chooser. */
+.milestone-pin.milestone-group-pin{gap:6px;max-width:min(170px,calc(100vw - 68px));min-height:25px;cursor:pointer;touch-action:manipulation}
+.milestone-group-pin>svg{flex:none}
+.milestone-group-pin>span{min-width:0}
+.milestone-group-pin:focus-visible{outline:3px solid var(--ui-focus,#b7aaff);outline-offset:3px}
+.milestone-group-list{list-style:none;display:grid;gap:9px;margin:0;padding:2px;max-height:min(430px,calc(100dvh - 230px));overflow-y:auto;overscroll-behavior:contain}
+.milestone-group-item{display:flex;align-items:center;justify-content:space-between;gap:13px;padding:13px;border:1px solid var(--ui-border,#e7eaf2);border-radius:11px;background:var(--ui-surface-soft,#f8f9fc)}
+.milestone-group-copy{min-width:0;flex:1}
+.milestone-group-copy strong{display:block;margin:0;color:var(--ui-text,#35415a);font-size:12px;line-height:1.6;white-space:normal;overflow-wrap:anywhere}
+.milestone-group-copy small{display:block;margin-top:4px;color:var(--ui-muted,#8b95a9);font-size:10px;line-height:1.6;overflow-wrap:anywhere}
+.milestone-group-status{display:inline-flex;align-items:center;gap:5px;margin-top:7px;font-size:10px;line-height:1.5;color:var(--ui-muted,#8b95a9)}
+.milestone-group-status.risk{color:var(--ui-danger,#c66d79)}
+.milestone-group-item>.btn{flex:none}
+@media(max-width:420px){.milestone-group-item{align-items:flex-start;flex-direction:column;gap:10px;padding:12px}.milestone-group-item>.btn{align-self:flex-end}.milestone-group-list{max-height:min(430px,calc(100dvh - 210px))}}

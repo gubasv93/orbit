@@ -3,13 +3,14 @@ import type { Schedule, ScheduledTask } from './engine';
 import { createScheduler } from './engine.js';
 import { asDay, fromDay, dow } from './dates.js';
 import { featureEffort } from './features';
+import {planningTasks,standaloneFeatureTask,type PlanningTask} from './standalone-features.js';
 
-type Task = ProjectData['tasks'][number];
 type Kind = 'task' | 'feature';
 type AwayKind = 'weekends' | 'holidays' | 'vacation' | 'dayoff' | 'sick';
 export interface DetailTaskReference {
   id: string; title: string; featureId: string; featureTitle: string;
   platform: string; role: string; assigneeId: string; assigneeName: string;
+  kind?:'task'|'feature';
 }
 export interface ItemConflict {
   id: string; kind: 'capacity' | 'dependency' | 'window' | 'shortfall';
@@ -58,25 +59,28 @@ export function getItemDetails(data: ProjectData, computed: Schedule, kind: Kind
   const task = kind === 'task' ? data.tasks.find(t => t.id === id) : undefined;
   const feature = kind === 'feature' ? data.features.find(f => f.id === id) : undefined;
   if (!task && !feature) return null;
-  const tasks = task ? [task] : data.tasks.filter(t => t.featureId === id);
+  const projected=feature?standaloneFeatureTask(data,feature):null,standalone=Boolean(projected);
+  const tasks:PlanningTask[] = task ? [task] : projected?[projected]:data.tasks.filter(t => t.featureId === id);
+  const allTasks=planningTasks(data);
   const engine = createScheduler(data), hours = data.settings.workHours;
   const people = new Map(data.people.map(p => [p.id, p]));
   const roles = new Map(data.roles.map(r => [r.id, r]));
   const features = new Map(data.features.map(f => [f.id, f]));
-  const taskMap = new Map(data.tasks.map(t => [t.id, t]));
-  const reference = (t: Task): DetailTaskReference => {
+  const taskMap = new Map(allTasks.map(t => [t.id, t]));
+  const reference = (t: PlanningTask): DetailTaskReference => {
     const person = people.get(t.assignee);
-    return { id: t.id, title: t.title, featureId: t.featureId, featureTitle: features.get(t.featureId)?.title || '',
+    return { id: t.standaloneFeatureId||t.id,kind:t.standaloneFeatureId?'feature':'task', title: t.title, featureId: t.featureId, featureTitle: features.get(t.featureId)?.title || '',
       platform: t.platform, role: roles.get(t.roleId || '')?.name || person?.role || t.platform,
       assigneeId: t.assignee, assigneeName: person ? [person.firstName, person.lastName].filter(Boolean).join(' ').trim() || person.name : 'Unassigned' };
   };
+  const referenceKey=(t:PlanningTask)=>t.standaloneFeatureId?`work-item/${t.standaloneFeatureId}`:t.id;
   const s = task ? computed.schedule[id] : computed.featureInfo[id];
   if (!s) return null;
   const completed = task ? task.status === 'done' : Boolean(computed.featureInfo[id].allDone);
   const unestimatedCount = tasks.filter(t => t.effort === 0).length;
   const pendingCount = tasks.filter(t => t.effort === 0 && t.status !== 'done').length;
-  const effort = feature ? featureEffort(feature, tasks) : null;
-  const knownEstimate = effort?.calculated ?? task!.effort;
+  const effort = feature ? featureEffort(feature, data.tasks) : null;
+  const knownEstimate = projected?.effort ?? effort?.calculated ?? task!.effort;
   const estimateManual = effort?.manual || false;
   const estimate = estimateManual ? effort!.total : unestimatedCount ? null : knownEstimate;
   const manualEnd = task?.status === 'done' ? undefined : task?.manualEnd || feature?.manualEnd;
@@ -100,18 +104,19 @@ export function getItemDetails(data: ProjectData, computed: Schedule, kind: Kind
     else if (scheduled?.blocked && !scheduled.needsEstimate) issues.push({kind: 'blocked', task: reference(t), message: scheduled.reason || 'This work item has no reliable forecast.'});
   }
   if (task && !completed && task.remaining !== undefined && task.remaining < task.effort) notes.push(`Estimate includes ${round(task.effort - task.remaining)} work days already completed; ${round(task.remaining)} work days remain.`);
-  if (feature) notes.push('Estimate uses person-days across sub-items. Parallel work can finish in fewer calendar days.');
+  if (feature&&!standalone) notes.push('Estimate uses person-days across sub-items. Parallel work can finish in fewer calendar days.');
+  if(standalone)notes.push('The work item is scheduled directly from its estimate and assignee.');
   if (feature && computed.featureInfo[id].forecastIncomplete && end !== null) notes.push('These dates cover scheduled work only. Paused, unestimated or blocked items do not have a reliable finish date.');
-  if (estimateManual) notes.push(`The estimate is manual. Work-item estimates sum to ${round(knownEstimate)} person-days.`);
-  if (unestimatedCount) notes.push(`${unestimatedCount} sub-item${unestimatedCount === 1 ? ' has' : 's have'} no estimate. Known estimates total ${round(knownEstimate)} ${feature ? 'person-days' : 'work days'}.`);
+  if (estimateManual&&!standalone) notes.push(`The estimate is manual. Work-item estimates sum to ${round(knownEstimate)} person-days.`);
+  if (unestimatedCount) notes.push(standalone?'Add an estimate to calculate this work item’s dates.':`${unestimatedCount} sub-item${unestimatedCount === 1 ? ' has' : 's have'} no estimate. Known estimates total ${round(knownEstimate)} ${feature ? 'person-days' : 'work days'}.`);
 
   // Build each overbooked person/date once. Epic rows name affected tasks, not
   // every task pair; otherwise N simultaneous children create N² popup rows.
   const selectedIds = new Set(tasks.map(t => t.id));
   const wanted = new Set<string>();
   for (const t of tasks) if (t.assignee) for (const date of computed.conflicts[t.id] || []) wanted.add(`${t.assignee}:${date}`);
-  const occupants = new Map<string, Task[]>();
-  if (wanted.size) for (const t of data.tasks) if (t.assignee) {
+  const occupants = new Map<string, PlanningTask[]>();
+  if (wanted.size) for (const t of allTasks) if (t.assignee) {
     for (const [date, allocation] of Object.entries(computed.schedule[t.id]?.alloc || {})) {
       const key = `${t.assignee}:${date}`;
       if (!wanted.has(key) || !positive(allocation)) continue;
@@ -119,8 +124,8 @@ export function getItemDetails(data: ProjectData, computed: Schedule, kind: Kind
     }
   }
   const capacity = new Map<string, ItemConflict>();
-  const addCapacity = (affected: Task, related: Task | null, date: string, overload: number) => {
-    const key = feature ? `capacity:${affected.id}` : `capacity:${affected.id}:${related?.id || affected.id}`;
+  const addCapacity = (affected: PlanningTask, related: PlanningTask | null, date: string, overload: number) => {
+    const key = feature&&!standalone ? `capacity:${referenceKey(affected)}` : `capacity:${referenceKey(affected)}:${referenceKey(related||affected)}`;
     let conflict = capacity.get(key);
     if (!conflict) {
       const ref = reference(affected);
@@ -137,7 +142,7 @@ export function getItemDetails(data: ProjectData, computed: Schedule, kind: Kind
     if (!selected) continue;
     const date = key.slice(-10);
     const overload = Math.max(0, (computed.working.get(key) || 0) - engine.featureCapacity(selected.assignee, date)) * hours * 60;
-    if (feature) for (const affected of list) addCapacity(affected, null, date, overload);
+    if (feature&&!standalone) for (const affected of list) addCapacity(affected, null, date, overload);
     else {
       const others = list.filter(t => t.id !== selected.id);
       if (others.length) for (const other of others) addCapacity(selected, other, date, overload);
@@ -155,7 +160,8 @@ export function getItemDetails(data: ProjectData, computed: Schedule, kind: Kind
         const dependency = taskMap.get(depId), source = computed.schedule[depId];
         if (!dependency || !source) continue;
         let message = '';
-        if (source.end === null) message = source.needsEstimate ? 'The predecessor needs an estimate.' : source.hold ? 'The predecessor is paused.' : 'The predecessor has no reliable finish date.';
+        if (source.hold)message='The predecessor is paused.';
+        else if (source.end === null) message = source.needsEstimate ? 'The predecessor needs an estimate.' : 'The predecessor has no reliable finish date.';
         else if (positive(source.shortfall)) message = 'The predecessor’s estimate does not fit its date window.';
         else {
           let ready = source.end + 1;
@@ -166,7 +172,7 @@ export function getItemDetails(data: ProjectData, computed: Schedule, kind: Kind
         }
         if (message) conflicts.push({id: `dependency:${t.id}:${depId}`, kind: 'dependency', task: reference(t), relatedTask: reference(dependency), dates: target.start === null ? [] : [fromDay(target.start)], message});
       }
-      if (positive(target.shortfall)) conflicts.push({id: `shortfall:${t.id}`, kind: 'shortfall', task: reference(t), relatedTask: null,
+      if (positive(target.shortfall)) conflicts.push({id: `shortfall:${referenceKey(t)}`, kind: 'shortfall', task: reference(t), relatedTask: null,
         dates: dated(target) ? [fromDay(target.start), fromDay(target.end)] : [], message: `${round(target.shortfall!)} work days of remaining work do not fit this date window.`});
     }
     if (feature?.manualEnd && start !== null && finish !== null) {
@@ -243,24 +249,26 @@ export function getItemDetails(data: ProjectData, computed: Schedule, kind: Kind
   const timeAway: TimeAwayDetail[] = [
     {kind: 'weekends', label: 'Weekends', days: weekends, unit: 'calendar days'},
     {kind: 'holidays', label: 'Public holidays', days: holidays, unit: 'calendar days'},
-    ...(['vacation', 'dayoff', 'sick'] as const).map(key => ({kind: key, label: {vacation: 'Vacation', dayoff: 'Days off', sick: 'Sick leave'}[key], days: includedWindows ? round(personal[key]) : null, unit: feature ? 'person-days' as const : 'calendar days' as const})),
+    ...(['vacation', 'dayoff', 'sick'] as const).map(key => ({kind: key, label: {vacation: 'Vacation', dayoff: 'Days off', sick: 'Sick leave'}[key], days: includedWindows ? round(personal[key]) : null, unit: feature&&!standalone ? 'person-days' as const : 'calendar days' as const})),
   ];
   if (completed) notes.push('Meeting time and personal leave were not tracked as history. Current rules are not applied retrospectively.');
   else if (!includedWindows) notes.push('Meeting and personal-leave totals become available when work items have scheduled date windows.');
-  else if (feature) {
+  else if (feature&&!standalone) {
     notes.push('Recurring meetings and personal leave count each person/date once across overlapping sub-items. Meeting totals use participant time.');
     if (tasks.some(t => !active(computed.schedule[t.id]))) notes.push('Meeting and personal-leave totals cover scheduled, unfinished sub-items only.');
     if (feature.manualEnd) notes.push('Time breakdown is limited to this work item’s manual date window.');
   }
+  if(standalone&&feature?.manualEnd)notes.push('Time breakdown is limited to this work item’s manual date window.');
+  if(projected&&!projected.assignee)notes.push('Select an assignee to include their recurring meetings and personal leave.');
   if (task && !task.assignee && !completed) notes.push('Select an assignee to include their recurring meetings and personal leave.');
   const hasShortfall = tasks.some(t => positive(computed.schedule[t.id]?.shortfall));
   const outsideWindow = conflicts.some(c => c.kind === 'window');
   const forecastComplete = Boolean(tasks.length && end !== null && (state === 'scheduled' || state === 'completed') && !s.blocked && !unknown.length && !hasShortfall && !outsideWindow);
   return {kind, id, title: task?.title || feature!.title, state, estimate, knownEstimate: round(knownEstimate),
-    estimateUnit: feature ? 'person-days' : 'work days', estimateHours: estimate === null ? null : round(estimate * hours), estimateManual,
+    estimateUnit: feature&&!standalone ? 'person-days' : 'work days', estimateHours: estimate === null ? null : round(estimate * hours), estimateManual,
     unestimatedCount, start: start === null ? null : fromDay(start), end: end === null ? null : fromDay(end), endFraction, calendarDays,
     dateMode: manualEnd ? 'manual' : completed ? 'recorded' : 'automatic', forecastComplete,
-    meetingMinutes, meetingHours: meetingMinutes === null ? null : round(meetingMinutes / 60), meetingUnit: feature ? 'person-minutes' : 'minutes',
+    meetingMinutes, meetingHours: meetingMinutes === null ? null : round(meetingMinutes / 60), meetingUnit: feature&&!standalone ? 'person-minutes' : 'minutes',
     meetings: data.meetings.flatMap(m => {const row = meetingRows.get(m.id);return row ? [{...row, minutes: round(row.minutes), dates: row.dates.sort()}] : [];}),
     timeAway, conflicts: conflicts.map(c => ({...c, dates: [...c.dates].sort()})), issues, notes};
 }

@@ -2,6 +2,7 @@
 import {DAY,asDay,fromDay,addDays,dow,today,monday} from './dates.js';
 import {halfDay} from './precision.js';
 import {meetingOccursOnDate} from './meeting-recurrence.js';
+import {planningTasks} from './standalone-features.js';
 export function createScheduler(data, {legacyAllocation=false}={}) {
 const getPerson=id=>data.people.find(p=>p.id===id);
 const getFeature=id=>data.features.find(f=>f.id===id);
@@ -60,19 +61,19 @@ function dependencyReadyDay(task,end){
  else day+=gap;
  return day;
 }
-function calculate(){meetingDayCache.clear();const schedule={},working=new Map(),errors=[];
+function calculate(){meetingDayCache.clear();const schedule={},working=new Map(),errors=[],planned=planningTasks(data);
  function calc(t,depth=0,seen=new Set()){
   if(schedule[t.id])return schedule[t.id];
   if(depth>100||seen.has(t.id)){let s={start:null,end:null,blocked:true,reason:'Circular dependency',alloc:{}};schedule[t.id]=s;errors.push(t.id);return s}
   seen=new Set(seen);seen.add(t.id);
-  if(t.status==='hold'){return (schedule[t.id]={start:asDay(t.start),end:null,hold:true,blocked:false,alloc:{}})}
+  if(t.status==='hold'){return (schedule[t.id]={start:asDay(t.start),end:t.manualEnd?asDay(t.manualEnd):null,endFraction:t.manualEndFraction??1,hold:true,blocked:false,alloc:{},...(t.manualEnd?{manual:true}:{})})}
   let initial=asDay(t.start||getFeature(t.featureId)?.start||today());let depBlocked=false;
   if(t.status!=='done'&&Number(t.effort)===0)return (schedule[t.id]={start:initial,end:null,blocked:true,needsEstimate:true,reason:'Add an estimate to schedule this item',alloc:{}});
   let dependencyStart=null;
   for(const depId of(data.settings.autoShiftDependencies===true&&t.status!=='done'?t.dependsOn||[]:[])){
    const dep=getTask(depId);if(!dep)continue;
    const info=calc(dep,depth+1,seen);
-   if(info.end===null||info.shortfall>0){depBlocked=true;continue}
+   if(info.end===null||info.hold||info.shortfall>0){depBlocked=true;continue}
    dependencyStart=Math.max(dependencyStart??-Infinity,dependencyReadyDay(t,info.end));
   }
   if(dependencyStart!==null)initial=data.settings.dependencyShiftPolicy==='follow'?dependencyStart:Math.max(initial,dependencyStart);
@@ -82,7 +83,8 @@ function calculate(){meetingDayCache.clear();const schedule={},working=new Map()
   let current=manual?initial:nextWork(initial,t.assignee),first=current,last=current,allocation={};
   if(t.status==='done'){
    last=asDay(t.completedDate||t.start);first=asDay(t.start);if(last<first)first=last;
-   return (schedule[t.id]={start:first,end:last,blocked:false,done:true,alloc:{}})
+   const endFraction=t.manualEnd===t.completedDate?(t.manualEndFraction??1):1;
+   return (schedule[t.id]={start:first,end:last,endFraction,blocked:false,done:true,alloc:{}})
   }
   let remaining=Math.max(.1,Number(t.remaining??t.effort??1)),guard=0;if(!legacyAllocation)remaining=halfDay(remaining);
   while(remaining>0.0001&&guard++<(manual?3650:600)&&(!manual||current<=windowEnd)){
@@ -103,9 +105,19 @@ function calculate(){meetingDayCache.clear();const schedule={},working=new Map()
   const endFraction=manual?(t.manualEndFraction??1):legacyAllocation?1:Math.min(1,Math.max(.5,halfDay((allocation[fromDay(last)]||0)+meetingDays(t.assignee,fromDay(last)))));
   return (schedule[t.id]={start:first,end:manual?windowEnd:last,endFraction,blocked:false,alloc:allocation,...(manual?{manual:true,shortfall:Math.max(0,Math.round(remaining*1000000)/1000000)}:{})});
  }
- data.tasks.forEach(t=>calc(t));
- const conflicts={};for(let t of data.tasks){let p=schedule[t.id],bad=[];for(let dt of Object.keys(p?.alloc||{})){let val=working.get(`${t.assignee||'_'}:${dt}`)||0;if(t.assignee&&val>featureCapacity(t.assignee,dt)+.001)bad.push(dt)}if(bad.length)conflicts[t.id]=bad}
+ planned.forEach(t=>calc(t));
+ const conflicts={};for(let t of planned){let p=schedule[t.id],bad=[];for(let dt of Object.keys(p?.alloc||{})){let val=working.get(`${t.assignee||'_'}:${dt}`)||0;if(t.assignee&&val>featureCapacity(t.assignee,dt)+.001)bad.push(dt)}if(bad.length)conflicts[t.id]=bad}
+ const featureSchedules={},featureConflicts={};
+ for(const task of planned)if(task.standaloneFeatureId){featureSchedules[task.standaloneFeatureId]=schedule[task.id];if(conflicts[task.id])featureConflicts[task.standaloneFeatureId]=conflicts[task.id];}
  let featureInfo={};data.features.forEach(f=>{
+   const standalone=featureSchedules[f.id];
+   if(standalone){
+    const manual=Boolean(f.manualEnd),start=standalone.start??asDay(f.start),end=manual?asDay(f.manualEnd):standalone.end;
+    featureInfo[f.id]={start,end,endFraction:manual?(f.manualEndFraction??1):(standalone.endFraction??1),
+     standalone:true,shortfall:standalone.shortfall||0,blocked:standalone.blocked,allDone:false,pausedCount:0,activeCount:standalone.end!==null&&!standalone.blocked?1:0,allPaused:false,
+     forecastIncomplete:standalone.blocked,atRisk:standalone.blocked||standalone.shortfall>0||!!featureConflicts[f.id]?.length||(end!==null&&end>asDay(f.baseline)),delta:end!==null?end-asDay(f.baseline):null,
+     ...(standalone.needsEstimate?{needsEstimate:true}:{}),...(manual?{manual:true,forecastStart:standalone.start,forecastEnd:standalone.end,windowConflict:false}:{})};return;
+   }
    let arr=data.tasks.filter(t=>t.featureId===f.id);
    let entries=arr.map(t=>schedule[t.id]).filter(Boolean);
    const dated=entries.filter(s=>s.end!==null&&!s.hold&&!s.blocked),pausedCount=arr.filter(t=>t.status==='hold').length,activeCount=dated.filter(s=>!s.done).length;
@@ -123,10 +135,10 @@ function calculate(){meetingDayCache.clear();const schedule={},working=new Map()
  if(data.settings.showDependencyWarnings!==false)for(const task of data.tasks){
   if(task.status==='done')continue;
   const target=schedule[task.id],issues=[];
-  for(const id of task.dependsOn||[]){const source=schedule[id];if(source&&(source.end===null||source.shortfall>0||(target.start!==null&&target.start<dependencyReadyDay(task,source.end))))issues.push(id);}
+  for(const id of task.dependsOn||[]){const source=schedule[id];if(source&&(source.end===null||source.hold||source.shortfall>0||(target.start!==null&&target.start<dependencyReadyDay(task,source.end))))issues.push(id);}
   if(issues.length)dependencyConflicts[task.id]=issues;
  }
- return {schedule,conflicts,working,featureInfo,errors,dependencyConflicts};
+ return {schedule,conflicts,working,featureInfo,featureSchedules,featureConflicts,errors,dependencyConflicts};
 }
 
 return {calculate,isHoliday,nonwork,nextWork,capacityParts,meetingOccurs,meetingMinutes,meetingDays,meetingHoursInIteration,featureCapacity};
