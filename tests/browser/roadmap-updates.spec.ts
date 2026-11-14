@@ -171,9 +171,12 @@ test.describe.serial('roles, capacity bands, dates and dependency arrows',()=>{
  test('scrolls into past and future on every scale and Today restores the current date without changing work',async()=>{
   test.setTimeout(90000);
   const w=workspace(),data=w.projects[0].data;data.settings.autoShiftDependencies=false;
-  const today=new Date().toISOString().slice(0,10),past=new Date(Date.now()-30*86400000).toISOString().slice(0,10);
+  // Use the same progressing browser clock as the roadmap; another fixture
+  // page may already have installed it on this shared serial context.
+  const page=await fixturePage(),today=await page.evaluate(()=>{const date=new Date();return [date.getFullYear(),String(date.getMonth()+1).padStart(2,'0'),String(date.getDate()).padStart(2,'0')].join('-');});
+  const past=new Date(Date.parse(today+'T00:00:00Z')-30*86400000).toISOString().slice(0,10);
   data.tasks[0].start=past;data.tasks[0].completedDate=past;data.tasks[0].status='done';
-  await reset(w);const page=await context.newPage();await page.goto('/app');await saved(page);const canvas=page.locator('.gantt-canvas'),scroller=page.locator('#ganttScroller');
+  await reset(w);await page.goto('/app');await saved(page);const canvas=page.locator('.gantt-canvas'),scroller=page.locator('#ganttScroller');
   const original=(await snapshot()).workspace.projects[0].data;
   await expect(page.locator('.today-tag')).toBeInViewport();expect(await scroller.evaluate(node=>node.scrollLeft)).toBeGreaterThan(0);
   const initial=(await canvas.getAttribute('data-range-start'))!;

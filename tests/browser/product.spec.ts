@@ -101,15 +101,20 @@ test.describe.serial('real authentication, onboarding, planning, and durable own
   });
 
   test('drags task and milestone dates without changing priorities', async () => {
-    const page = await owner.newPage(); await page.goto('/app'); await page.getByLabel('Timeline scale').selectOption('day'); await saved(page);
+    const page = await owner.newPage();
+    // These saved fixtures start in October. Status edits now preserve those
+    // dates, so keep the actual drag target in view as the real calendar advances.
+    await page.clock.install({time:new Date('2026-10-26T12:00:00Z')});await page.goto('/app'); await page.getByLabel('Timeline scale').selectOption('day'); await saved(page);
     const before = (await (await owner.request.get('/api/workspace')).json()).workspace;
     const start = before.projects[0].data.tasks[0].start;
     const nextDay = (value: string) => new Date(Date.parse(value+'T00:00:00Z')+86400000).toISOString().slice(0,10);
     const bar = page.locator('.task-bar[data-task=t1]'); await bar.scrollIntoViewIfNeeded(); const box = (await bar.boundingBox())!;
     const stickyRight=(await page.locator('.gantt-corner').boundingBox())!.x+(await page.locator('.gantt-corner').boundingBox())!.width;const dragX=Math.max(box.x+15,stickyRight+15);
+    expect(await page.evaluate(({x,y})=>document.elementFromPoint(x,y)?.closest('.task-bar')?.getAttribute('data-task'),{x:dragX,y:box.y+box.height/2})).toBe('t1');
     await page.mouse.move(dragX,box.y+box.height/2); await page.mouse.down(); await page.mouse.move(dragX+38,box.y+box.height/2,{steps:5}); await page.mouse.up();
     await expect.poll(async () => (await (await owner.request.get('/api/workspace')).json()).workspace.projects[0].data.tasks[0].start).toBe(nextDay(start)); await saved(page);
     const pin = page.locator('.milestone-pin[data-id=m1]'); await pin.scrollIntoViewIfNeeded(); const position=(await pin.boundingBox())!;
+    expect(await page.evaluate(({x,y})=>document.elementFromPoint(x,y)?.closest('.milestone-pin')?.getAttribute('data-id'),{x:position.x+10,y:position.y+position.height/2})).toBe('m1');
     await page.mouse.move(position.x+10,position.y+position.height/2); await page.mouse.down(); await page.mouse.move(position.x+48,position.y+position.height/2,{steps:5}); await page.mouse.up();
     await expect.poll(async () => (await (await owner.request.get('/api/workspace')).json()).workspace.projects[0].data.milestones.find((m: {id: string})=>m.id==='m1').date).toBe(nextDay(before.projects[0].data.milestones[0].date));
     await saved(page); expect((await (await owner.request.get('/api/workspace')).json()).workspace.projects[0].data.tasks.map((t: {id: string})=>t.id)).toEqual(['t1','t2','t3']); await page.close();
