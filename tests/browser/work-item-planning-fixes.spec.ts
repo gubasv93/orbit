@@ -134,7 +134,7 @@ test('sub-item descriptions can be created and edited as plain text and survive 
     await taskDrawer(page,created.id);await expect(page.locator('[data-update-task=description]')).toHaveValue(description);await expect(page.locator('.drawer img,.drawer script')).toHaveCount(0);
     expect(await page.evaluate(()=>Boolean((window as unknown as {orbitDescriptionInjected?:boolean}).orbitDescriptionInjected))).toBe(false);
     const edited='Updated delivery notes\n- First rule\n- Second rule\n<b>Keep this literal</b>';
-    await page.getByLabel('Description',{exact:true}).fill(edited);await page.getByLabel('Description',{exact:true}).press('Tab');await ready(page);
+    await page.locator('.drawer [data-description-field]').getByRole('button',{name:'Edit',exact:true}).click();await page.getByLabel('Description',{exact:true}).fill(edited);await page.getByLabel('Description',{exact:true}).press('Tab');await ready(page);
     expect((await currentData(context)).tasks.find(task=>task.id===created.id)?.description).toBe(edited);
     await page.reload();await ready(page);await taskDrawer(page,created.id);await expect(page.getByLabel('Description',{exact:true})).toHaveValue(edited);
     await page.screenshot({path:test.info().outputPath('sub-item-description-desktop.png'),fullPage:true});

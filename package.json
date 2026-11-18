@@ -19,6 +19,7 @@
     "@supabase/supabase-js": "2.118.0",
     "date-holidays": "3.39.1",
     "dompurify": "3.4.17",
+    "markdown-it": "15.0.3",
     "next": "16.4.2",
     "qrcode": "1.5.4",
     "react": "19.3.1",
@@ -28,6 +29,7 @@
   "devDependencies": {
     "@electric-sql/pglite": "0.5.11",
     "@playwright/test": "1.64.1",
+    "@types/markdown-it": "14.2.0",
     "@types/node": "24.19.2",
     "@types/qrcode": "1.5.6",
     "@types/react": "19.3.0",
