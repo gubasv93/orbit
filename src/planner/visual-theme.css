@@ -396,3 +396,9 @@
  .planner-root .general-settings-form .meeting-settings-entry { align-items:flex-start; flex-wrap:wrap; }
  .planner-root .settings-reset-row { align-items:flex-start; flex-direction:column; gap:10px; }
 }
+
+/* Work-item status is independent from forecast and child warnings. */
+.planner-root .work-item-status-text { font-weight: 600; color: var(--ui-muted); }
+.planner-root .work-item-status-text.progress { color: var(--ui-accent); }
+.planner-root .work-item-status-text.hold { color: var(--ui-warning); }
+.planner-root .work-item-status-text.done { color: var(--ui-success); }

@@ -16,6 +16,7 @@ describe('Planning Poker publication into ordinary Orbit work items',()=>{
  it('creates a real epic and three independently assigned role items atomically without modifying the input',()=>{
   const source=fullWorkspace();const data=source.projects[0].data;data.roles.push({id:'qa',name:'QA Engineer',platform:'QA'});const before=structuredClone(source);
   const plan=planPokerPublication(source,projectId,draft({featureId:undefined,newEpic:{title:'Disable Rules'},description:'Add a rule by ID',teams:[{roleId:'r1',assignee:'u1',effort:3},{roleId:'rfront',assignee:'',effort:2},{roleId:'qa',effort:1}]}),'2026-10-29');
+  expect(plan.workspace.projects[0].data.features.at(-1)).toMatchObject({title:'Disable Rules',status:'planned'});
   expect(source).toEqual(before);expect(plan.workspace.projects[0].data.features).toHaveLength(2);const tasks=plan.workspace.projects[0].data.tasks.slice(-3);expect(tasks.map(t=>t.effort)).toEqual([3,2,1]);expect(tasks.map(t=>t.platform)).toEqual(['Backend','Frontend','QA']);expect(tasks.map(t=>t.assignee)).toEqual(['u1','','']);expect(new Set(tasks.map(t=>t.storyId)).size).toBe(1);expect(tasks.every(t=>t.featureId===plan.result.featureId&&t.description==='Add a rule by ID'&&t.start==='2026-10-29'&&t.dependsOn.length===0)).toBe(true);expect(workspaceSchema.safeParse(plan.workspace).success).toBe(true);
  });
  it('creates a name-only unestimated story and does not translate a poker card into working days',()=>{
@@ -62,7 +63,7 @@ describe('Planning Poker publication into ordinary Orbit work items',()=>{
  it('creates a work item with a manual estimate without creating a fabricated sub-item',()=>{
   const source=withoutTeam(),before=structuredClone(source);
   const plan=planPokerPublication(source,projectId,draft({kind:'epic',featureId:undefined,title:'Planning work',teams:[],effort:1.5}));
-  expect(plan.workspace.projects[0].data.features.at(-1)).toMatchObject({title:'Planning work',effortOverride:1.5});
+  expect(plan.workspace.projects[0].data.features.at(-1)).toMatchObject({title:'Planning work',effortOverride:1.5,status:'planned'});
   expect(plan.workspace.projects[0].data.tasks).toEqual(before.projects[0].data.tasks);expect(plan.result.taskIds).toEqual([]);expect(source).toEqual(before);
  });
  it('rejects ambiguous totals, invalid standalone amounts and multi-row estimate redistribution atomically',()=>{
@@ -84,6 +85,29 @@ describe('Planning Poker publication into ordinary Orbit work items',()=>{
   const source=grouped();source.projects.push({...structuredClone(source.projects[0]),id:'other-project'});const before=structuredClone(source);
   const plan=planPokerPublication(source,projectId,draft({taskId:'t1',title:'Renamed story',teams:[{roleId:'r1',effort:3},{roleId:'rfront',effort:1.5}]}));const data=plan.workspace.projects[0].data;
   expect(data.tasks.map(t=>t.id)).toEqual(['t1','t3']);expect(data.tasks[0]).toEqual({...before.projects[0].data.tasks[0],title:'Renamed story',effort:3});expect(data.tasks[1]).toEqual({...before.projects[0].data.tasks[1],title:'Renamed story',effort:1.5});expect(plan.workspace.projects[1]).toEqual(before.projects[1]);expect(plan.result.taskIds).toEqual(['t1','t3']);expect(source).toEqual(before);
+ });
+ it.each(['done','hold'] as const)('publishes a new sub-item without reopening a %s parent or changing existing sibling plans',status=>{
+  const source=fullWorkspace(),data=source.projects[0].data;
+  Object.assign(data.features[0],{status,collapsed:true,manualEnd:'2026-11-20',manualEndFraction:.5});
+  Object.assign(data.tasks[0],{status:'progress',manualEnd:'2026-11-03',manualEndFraction:.5});
+  Object.assign(data.tasks[1],{status:'hold',manualEnd:'2026-11-04'});
+  Object.assign(data.tasks[2],{status:'done',completedDate:'2026-10-30'});
+  const before=structuredClone(source),plan=planPokerPublication(source,projectId,draft({title:'New follow-up',teams:[{roleId:'r1',assignee:'u1',effort:.5}]}),'2026-11-02');
+  const published=plan.workspace.projects[0].data;
+  expect(published.features).toEqual([{...before.projects[0].data.features[0],collapsed:false}]);
+  expect(published.tasks.slice(0,data.tasks.length)).toEqual(before.projects[0].data.tasks);
+  expect(published.tasks.at(-1)).toMatchObject({title:'New follow-up',featureId:'f1',status:'planned',effort:.5,start:before.projects[0].data.features[0].start});
+  expect(published.tasks).toHaveLength(data.tasks.length+1);expect(source).toEqual(before);
+ });
+ it.each(['done','hold'] as const)('edits a role estimate while preserving the %s parent and all other sibling fields',status=>{
+  const source=grouped(),data=source.projects[0].data;
+  Object.assign(data.features[0],{status,collapsed:true,manualEnd:'2026-11-20',manualEndFraction:.5});
+  data.tasks[0].status='progress';Object.assign(data.tasks[1],{status:'hold',manualEnd:'2026-11-13',manualEndFraction:.5});
+  const before=structuredClone(source),plan=planPokerPublication(source,projectId,draft({taskId:'t1',title:'Original story',confirmProgress:true,teams:[{roleId:'r1',effort:3}]}));
+  const published=plan.workspace.projects[0].data;
+  expect(published.features).toEqual([{...before.projects[0].data.features[0],collapsed:false}]);
+  expect(published.tasks).toEqual([{...before.projects[0].data.tasks[0],effort:3},before.projects[0].data.tasks[1]]);
+  expect(plan.result.taskIds).toEqual(['t1','t3']);expect(source).toEqual(before);
  });
  it('preserves individually named role items during re-estimation unless the story name is explicitly changed',()=>{
   const source=grouped();source.projects[0].data.tasks[1].title='Custom QA acceptance title';const plan=planPokerPublication(source,projectId,draft({taskId:'t1',title:'Original story',teams:[{roleId:'r1',effort:3}]}));expect(plan.workspace.projects[0].data.tasks.map(t=>t.title)).toEqual(['Original story','Custom QA acceptance title']);

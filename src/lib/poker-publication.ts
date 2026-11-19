@@ -55,7 +55,7 @@ export function planPokerPublication(source:Workspace,projectId:string,raw:unkno
   if(input.kind==='epic'||input.newEpic){
     if(data.features.length>=1000)throw new PokerPublicationError('A project can contain at most 1000 work items.');
     if(input.kind==='epic'&&input.effort!==undefined&&!Number.isInteger(input.effort*2))throw new PokerPublicationError('Use 0.5-day estimates.');
-    feature={id:`f${crypto.randomUUID()}`,title:input.kind==='epic'?input.title:input.newEpic!.title,description:input.kind==='epic'?input.description||'':'',start:date,baseline:date,collapsed:false,color:'#8c7ae6'};
+    feature={id:`f${crypto.randomUUID()}`,title:input.kind==='epic'?input.title:input.newEpic!.title,description:input.kind==='epic'?input.description||'':'',start:date,baseline:date,collapsed:false,status:'planned',color:'#8c7ae6'};
     data.features.push(feature);
     if(input.kind==='epic'&&input.effort!==undefined)feature.effortOverride=input.effort;
   }

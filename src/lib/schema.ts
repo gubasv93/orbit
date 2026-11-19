@@ -32,6 +32,7 @@ export const capacitySchema = z.object({
 }).refine(c => Math.abs(c.feature + c.bugs + c.ongoing + c.ops - 100) < 0.001, 'Capacity must total 100%');
 const feature = z.object({ id, title: text, description: z.string().max(10000).default(''), start: date,
   baseline: date, collapsed: z.boolean().default(false), color,
+  status: z.enum(['planned', 'progress', 'hold', 'done']).optional(),
   assignee: id.or(z.literal('')).optional(),
   effortOverride: z.number().min(0).max(10_950_000).optional(), manualEnd: date.optional(), manualEndFraction: z.union([z.literal(.5),z.literal(1)]).optional() })
   .refine(f => !f.manualEnd || f.manualEnd >= f.start, 'End precedes start')
